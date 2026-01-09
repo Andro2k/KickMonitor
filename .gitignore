@@ -7,10 +7,9 @@ dist/
 venv/
 .idea/
 .vscode/
-# Archivos de datos locales (NO SUBIR)
 *.db
 *.sqlite
 session.json
-# Archivos temporales de instalación
 *.tmp
 *.iss
+exporter.txt
