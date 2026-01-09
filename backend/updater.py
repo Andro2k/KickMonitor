@@ -7,9 +7,9 @@ import tempfile
 from PyQt6.QtCore import QThread, pyqtSignal
 from packaging import version # Recomendado: pip install packaging
 
-CURRENT_VERSION = "1.0.0"
+CURRENT_VERSION = "1.7.2"
 # URL RAW donde tienes tu json (ejemplo GitHub)
-UPDATE_JSON_URL = "https://raw.githubusercontent.com/TU_USUARIO/TU_REPO/main/version.json"
+UPDATE_JSON_URL = "https://raw.githubusercontent.com/Andro2k/KickMonitor/refs/heads/main/version.json"
 
 class UpdateCheckerWorker(QThread):
     update_available = pyqtSignal(str, str, str) # version, url, changelog
