@@ -3,8 +3,6 @@
   <h1>KickMonitor Bot</h1>
 </div>
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue) ...
-
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![PyQt6](https://img.shields.io/badge/GUI-PyQt6-green)
 ![Status](https://img.shields.io/badge/Status-Active-success)
