@@ -15,3 +15,5 @@ session.json
 *.tmp
 *.iss
 exporter.txt
+installer/*.exe
+backend/credentials.py
