@@ -1,1 +1,0 @@
-pyinstaller --noconfirm --onefile --windowed --name "KickMonitor" --icon "icon.ico" --add-data "ui;ui" --add-data "assets;assets" main.py
