@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Kick Overlay</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: transparent; }
+        #media-container {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; /* Click-through para OBS */
+            /* Quitamos flex para permitir superposición libre */
+            display: block; 
+        }
+        video, img { 
+            max-width: 100%; 
+            max-height: 100%; 
+            will-change: transform, left, top;
+            position: absolute; /* CLAVE: Para que se encimen uno sobre otro */
+        }
+    </style>
+</head>
+<body>
+    <div id="media-container"></div>
+
+    <script>
+        const container = document.getElementById('media-container');
+        let socket = null;
+        let retryInterval = 2000; 
+
+        function connect() {
+            socket = new WebSocket("ws://127.0.0.1:8081/ws");
+
+            socket.onopen = () => console.log("🟢 Conectado al Overlay");
+            
+            socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.action === "play_media") playMedia(data);
+                } catch (e) { console.error(e); }
+            };
+
+            socket.onclose = () => setTimeout(connect, retryInterval);
+            socket.onerror = () => socket.close();
+        }
+
+        function playMedia(data) {
+            // ============================================================
+            // ¡IMPORTANTE! NO LIMPIAMOS EL CONTENEDOR AQUÍ.
+            // Al quitar "container.innerHTML = '';" permitimos simultáneos.
+            // ============================================================
+
+            let element;
+            
+            // Cálculo de volumen (0-100 a 0.0-1.0)
+            let vol = 1.0; 
+            if (data.volume !== undefined && data.volume !== null) {
+                vol = data.volume / 100;
+            }
+
+            if (data.type === 'video') {
+                element = document.createElement('video');
+                element.src = data.url;
+                element.autoplay = true;
+                element.volume = vol; 
+                
+                // Configuración inicial (oculto)
+                element.style.opacity = "0";
+
+                // Auto-eliminación
+                if (data.duration > 0) {
+                    setTimeout(() => { if(element) element.remove(); }, data.duration * 1000);
+                } else {
+                    element.onended = () => element.remove();
+                }
+
+                // Posicionamiento cuando carguen los metadatos
+                element.onloadedmetadata = () => {
+                    const scale = data.scale || 1.0;
+                    
+                    // Tamaño de la ventana y del video escalado
+                    const contW = container.clientWidth;
+                    const contH = container.clientHeight;
+                    const vidW = element.videoWidth * scale;
+                    const vidH = element.videoHeight * scale;
+
+                    if (data.random) {
+                        // MODO RANDOM
+                        element.style.transformOrigin = 'top left'; 
+                        element.style.transform = `scale(${scale})`;
+
+                        const maxLeft = Math.max(0, contW - vidW);
+                        const maxTop = Math.max(0, contH - vidH);
+
+                        element.style.left = Math.floor(Math.random() * maxLeft) + 'px';
+                        element.style.top = Math.floor(Math.random() * maxTop) + 'px';
+
+                    } else {
+                        // MODO CENTRADO
+                        // Usamos top/left 50% y transform para centrar matemáticamente
+                        element.style.transformOrigin = 'center center';
+                        element.style.left = '50%';
+                        element.style.top = '50%';
+                        element.style.transform = `translate(-50%, -50%) scale(${scale})`;
+                    }
+                    
+                    element.style.opacity = "1";
+                    element.play().catch(e => console.log("Error play:", e));
+                };
+
+            } else if (data.type === 'audio') {
+                element = document.createElement('audio');
+                element.src = data.url;
+                element.autoplay = true;
+                element.volume = vol;
+                
+                // Auto-eliminación audio
+                element.onended = () => element.remove();
+            }
+
+            if (element) container.appendChild(element);
+        }
+
+        connect();
+    </script>
+</body>
+</html>
