@@ -13,3 +13,4 @@ venv/
 session.json
 # Archivos temporales de instalación
 *.tmp
+installer.iss
