@@ -1,4 +1,9 @@
-# 🟢 KickMonitor Bot
+<div align="center">
+  <img src="/icon.png" width="120" />
+  <h1>KickMonitor Bot</h1>
+</div>
+
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue) ...
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![PyQt6](https://img.shields.io/badge/GUI-PyQt6-green)
@@ -20,7 +25,7 @@
 * **Alertas y TTS:**
     * Text-to-Speech para leer mensajes del chat.
     * Alertas de sonido configurables (Overlay local).
-* **🔄 Auto-Actualizable:** Sistema integrado para detectar y descargar nuevas versiones automáticamente.
+* **Auto-Actualizable:** Sistema integrado para detectar y descargar nuevas versiones automáticamente.
 
 ## Instalación (Para Usuarios)
 

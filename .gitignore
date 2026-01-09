@@ -14,6 +14,7 @@ venv/
 session.json
 *.tmp
 *.iss
+*.spotify_cache
 exporter.txt
 installer/*.exe
 backend/credentials.py
