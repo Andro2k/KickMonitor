@@ -8,6 +8,8 @@ venv/
 .idea/
 .vscode/
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 session.json
 *.tmp
