@@ -27,7 +27,7 @@ class UpdateCheckerWorker(QThread):
     def run(self):
         try:
             # 1. Consultar JSON remoto
-            print(f"[UPDATER] Buscando actualizaciones en: {UPDATE_JSON_URL}")
+            # print(f"[UPDATER] Buscando actualizaciones en: {UPDATE_JSON_URL}")
             resp = requests.get(UPDATE_JSON_URL, timeout=10)
             
             if resp.status_code != 200:
@@ -42,14 +42,14 @@ class UpdateCheckerWorker(QThread):
             # 2. Comparar versiones
             # Usamos packaging.version para comparaciones robustas (ej: 1.7.10 > 1.7.2)
             if version.parse(remote_ver) > version.parse(CURRENT_VERSION):
-                print(f"[UPDATER] Actualización encontrada: {remote_ver}")
+                # print(f"[UPDATER] Actualización encontrada: {remote_ver}")
                 self.update_available.emit(remote_ver, url, changelog)
             else:
-                print(f"[UPDATER] Sistema actualizado ({CURRENT_VERSION})")
+                # print(f"[UPDATER] Sistema actualizado ({CURRENT_VERSION})")
                 self.no_update.emit()
 
         except Exception as e:
-            print(f"[UPDATER] Error check: {e}")
+            # print(f"[UPDATER] Error check: {e}")
             self.error.emit(f"Error de conexión: {str(e)}")
 
 # =========================================================================
@@ -71,7 +71,7 @@ class UpdateDownloaderWorker(QThread):
             temp_dir = tempfile.gettempdir()
             self.installer_path = os.path.join(temp_dir, "KickMonitor_Update.exe")
             
-            print(f"[UPDATER] Descargando en: {self.installer_path}")
+            # print(f"[UPDATER] Descargando en: {self.installer_path}")
 
             # 2. Descargar con stream para barra de progreso
             with requests.get(self.url, stream=True) as r:
@@ -95,13 +95,13 @@ class UpdateDownloaderWorker(QThread):
             self.finished.emit()
 
         except Exception as e:
-            print(f"[UPDATER] Error download: {e}")
+            # print(f"[UPDATER] Error download: {e}")
             self.error.emit(f"Error en descarga: {str(e)}")
 
     def _launch_installer(self):
         """Ejecuta el instalador y cierra la app actual."""
         if os.path.exists(self.installer_path):
-            print(f"[UPDATER] Ejecutando instalador...")
+            # print(f"[UPDATER] Ejecutando instalador...")
             
             try:
                 os.startfile(self.installer_path)
@@ -109,7 +109,7 @@ class UpdateDownloaderWorker(QThread):
                 sys.exit(0)
                 
             except Exception as e:
-                print(f"[UPDATER] Error lanzando EXE: {e}")
+                #  print(f"[UPDATER] Error lanzando EXE: {e}")
                 self.error.emit(f"No se pudo abrir el instalador: {e}")
         else:
             self.error.emit("El archivo descargado no existe.")
