@@ -9,11 +9,8 @@ from backend.paths import get_app_data_path
 class DatabaseConnection:
     def __init__(self, db_name="kick_data.db"):
         
-        # --- CAMBIO PRINCIPAL AQUÍ ---
-        # Usamos la función centralizada para obtener la ruta
         base_path = get_app_data_path()
         self.db_path = os.path.join(base_path, db_name)
-        # -----------------------------
 
         self.mutex = QMutex()
         
@@ -34,7 +31,6 @@ class DatabaseConnection:
                 self.conn.commit()
             except: pass
 
-    # ... Mantén el resto de métodos (execute_query, fetch_all, close) igual ...
     def execute_query(self, sql, params=()):
         with QMutexLocker(self.mutex):
             try:

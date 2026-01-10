@@ -14,7 +14,7 @@ from backend.overlay_server import OverlayServerWorker
 from backend.kick_bot import KickBotWorker   
 from backend.spotify_worker import SpotifyWorker
 from backend.tts import TTSWorker   
-from backend.updater import UpdateCheckerWorker, UpdateDownloaderWorker
+from backend.updater import CURRENT_VERSION, UpdateCheckerWorker, UpdateDownloaderWorker
 from backend.workers import FollowMonitorWorker
 
 # --- LÓGICA DE NEGOCIO (SERVICIOS Y HANDLERS) ---
@@ -40,6 +40,7 @@ class MainController(QObject):
     toast_signal = pyqtSignal(str, str, str)
     gamble_result_signal = pyqtSignal(str, str, str, bool)
     username_needed = pyqtSignal()
+    VERSION = CURRENT_VERSION
 
     def __init__(self):
         super().__init__()       
@@ -65,7 +66,9 @@ class MainController(QObject):
         # 5. Timers Recurrentes
         self._setup_timers()
         # 6. Actualizaciones
-        self.check_updates()
+        self._manual_check = False
+        self._update_found = False
+        self.check_updates(manual=False)
     def _setup_timers(self):
         # Timer Puntos: Distribuye puntos cada minuto
         self.points_timer = QTimer()
@@ -362,34 +365,49 @@ class MainController(QObject):
                 self.emit_log(Log.system(f"Timer automático ejecutado: '{name}'"))
                 self.db.update_timer_run(name, now)
     # =========================================================================
-    # REGIÓN 5: ACTUALIZACIONES
+    # REGIÓN 5: ACTUALIZACIONES (MODIFICADO)
     # =========================================================================
-    def check_updates(self):
+    def check_updates(self, manual=False):
+        """
+        Inicia el worker de comprobación.
+        :param manual: True si fue invocado por el botón de Settings, False si es automático.
+        """
+        self._manual_check = manual
+        self._update_found = False # Reiniciamos la bandera
+
+        if manual:
+            self.toast_signal.emit("Sistema", "Buscando actualizaciones...", "info")
+
         self.updater = UpdateCheckerWorker()
         self.updater.update_available.connect(self.ask_user_to_update)
+        # Conectamos la señal 'finished' para saber cuándo termina el proceso, haya encontrado algo o no
+        self.updater.finished.connect(self._on_check_finished)
         self.updater.start()
 
-    # En backend/controller.py
-    
-    # ... (dentro de MainController)
-
     def ask_user_to_update(self, new_ver, url, notes):
-        """
-        Se ejecuta cuando UpdateCheckerWorker encuentra una versión nueva.
-        Lanza el modal y espera la decisión del usuario.
-        """
-        # IMPORTANTE: Necesitas pasar un 'parent' visual si es posible para que el modal
-        # aparezca centrado sobre la app. Si no tienes referencia a la ventana principal aquí,
-        # usa None, pero aparecerá en el centro de la pantalla.
+        """Callback cuando SE ENCUENTRA una actualización."""
+        self._update_found = True # Marcamos que encontramos algo
+        
+        # Si es manual o automático, mostramos el modal igual
         modal = UpdateModal(new_ver, notes, parent=None) 
         
         if modal.exec():
-            # El usuario dio click en "Actualizar"
             self.toast_signal.emit("Sistema", "Descargando actualización...", "Status_Green")
             self.start_download(url)
         else:
-            # El usuario dio click en "Más tarde"
             self.emit_log(Log.system("El usuario pospuso la actualización."))
+
+    def _on_check_finished(self):
+        """Se ejecuta siempre que el worker termina de buscar."""
+        # Solo notificamos "Sin novedades" si fue una búsqueda manual y no se encontró nada
+        if self._manual_check and not self._update_found:
+            self.toast_signal.emit("Sistema", "Ya tienes la última versión.", "Status_Green")
+        
+        # Limpieza
+        self._manual_check = False
+        # Es buena práctica limpiar el worker, aunque deleteLater lo maneje Qt
+        try: self.updater.deleteLater()
+        except: pass
 
     def start_download(self, url):
         self.downloader = UpdateDownloaderWorker(url)

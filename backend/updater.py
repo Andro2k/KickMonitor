@@ -1,4 +1,5 @@
 # backend/updater.py
+import json
 import sys
 import os
 import subprocess
@@ -7,7 +8,28 @@ import tempfile
 from PyQt6.QtCore import QThread, pyqtSignal
 from packaging import version # Recomendado: pip install packaging
 
-CURRENT_VERSION = "1.7.3"
+def get_resource_path(relative_path):
+    """Obtiene la ruta absoluta al recurso, funciona para dev y PyInstaller"""
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+def get_local_version():
+    """Lee la versión desde el archivo version.json incluido en el EXE"""
+    try:
+        path = get_resource_path("version.json")
+        with open(path, 'r') as f:
+            data = json.load(f)
+            return data.get("version", "0.0.0")
+    except Exception as e:
+        print(f"Error leyendo versión local: {e}")
+        return "0.0.0"
+
+# --- CAMBIO AQUÍ ---
+# Ya no escribimos el número a mano:
+CURRENT_VERSION = get_local_version()
 # URL RAW donde tienes tu json (ejemplo GitHub)
 UPDATE_JSON_URL = "https://raw.githubusercontent.com/Andro2k/KickMonitor/refs/heads/main/version.json"
 

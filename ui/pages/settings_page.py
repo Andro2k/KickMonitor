@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QSize, pyqtSignal
 
+# Componentes y Utilidades
 from ui.components.cards import Card
 from ui.components.toast import ToastNotification
 from ui.dialogs.connection_modal import ConnectionModal
@@ -16,10 +17,13 @@ from services.settings_service import SettingsService
 class SettingsPage(QWidget):
     user_changed = pyqtSignal()
 
-    def __init__(self, db_handler, spotify_worker, parent=None):
+    def __init__(self, db_handler, controller, parent=None):
         super().__init__(parent)
         self.service = SettingsService(db_handler)
-        self.spotify = spotify_worker
+        self.controller = controller  # Referencia al controlador principal
+        
+        # Obtenemos el worker de Spotify desde el controlador
+        self.spotify = self.controller.spotify
         
         self.init_ui()
         self.load_data()
@@ -47,16 +51,20 @@ class SettingsPage(QWidget):
         content = QWidget()
         content.setStyleSheet("background: transparent;")
         self.content_layout = QVBoxLayout(content)
-        # USA NUEVO MARGEN "OUTER" (24px)
+        # Margen externo definido en el tema
         self.content_layout.setContentsMargins(*LAYOUT["outer"]) 
         self.content_layout.setSpacing(LAYOUT["spacing"])
 
         # --- SECCIONES ---
-        # Fila 1: Credenciales API y Spotify
-        self._setup_connections_row()
+        
+        # Fila 1: Credenciales API y Sistema (Nueva ubicación)
+        self._setup_top_row()
         
         # Fila 2: Economía
         self.content_layout.addWidget(self._create_points_card())
+
+        # Fila 3: Spotify
+        self.content_layout.addWidget(self._create_spotify_card())
         
         self.content_layout.addStretch()
         
@@ -65,19 +73,18 @@ class SettingsPage(QWidget):
 
     def _setup_header(self, layout):
         header = QFrame()
-        
         l = QVBoxLayout(header)
         l.setContentsMargins(*LAYOUT["margins"])
         l.addWidget(QLabel("Ajustes", objectName="h2"))
-        l.addWidget(QLabel("Gestiona conexiones y economía del bot.", objectName="subtitle"))
+        l.addWidget(QLabel("Gestiona conexiones, actualizaciones y economía del bot.", objectName="subtitle"))
         layout.addWidget(header)
 
-    def _setup_connections_row(self):
-        """Fila con tarjetas de APIs."""
+    def _setup_top_row(self):
+        """Fila superior con APIs y Sistema."""
         row = QHBoxLayout()
         row.setSpacing(LAYOUT["spacing"])
         row.addWidget(self._create_api_card())
-        row.addWidget(self._create_spotify_card())
+        row.addWidget(self._create_system_card()) # <--- NUEVA TARJETA DE SISTEMA
         self.content_layout.addLayout(row)
 
     # ==========================================
@@ -95,7 +102,6 @@ class SettingsPage(QWidget):
         
         btn = QPushButton("Gestionar Keys")
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        # USA VARIABLES ESPECÍFICAS (Black_N4, White_N1, Gray_Border)
         btn.setStyleSheet(f"""
             QPushButton {{ 
                 background-color: {THEME_DARK['Black_N4']}; color: {THEME_DARK['White_N1']}; 
@@ -107,12 +113,43 @@ class SettingsPage(QWidget):
         card.layout.addWidget(btn)
         return card
 
+    def _create_system_card(self):
+        """Nueva tarjeta para actualizaciones y versión."""
+        card = Card()
+        # Puedes usar un icono genérico, aquí reutilizo settings.svg
+        self._add_card_header(card, "settings.svg", "Sistema") 
+        
+        # Versión actual obtenida del Controller
+        ver = getattr(self.controller, "VERSION", "Desconocida")
+        lbl_ver = QLabel(f"Versión Actual: v{ver}")
+        lbl_ver.setStyleSheet("color: #AAA; font-size: 13px; border: none; margin-bottom: 5px;")
+        card.layout.addWidget(lbl_ver)
+
+        # Botón de búsqueda manual
+        btn = QPushButton("Buscar Actualizaciones")
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn.setStyleSheet(f"""
+            QPushButton {{ 
+                background-color: {THEME_DARK['Black_N4']}; color: {THEME_DARK['White_N1']}; 
+                border: 1px solid {THEME_DARK['Gray_Border']}; border-radius: 6px; padding: 8px;
+            }} 
+            QPushButton:hover {{ 
+                border-color: {THEME_DARK['NeonGreen_Main']}; 
+                color: {THEME_DARK['NeonGreen_Main']}; 
+            }}
+        """)
+        # Conectamos indicando que es una búsqueda manual
+        btn.clicked.connect(lambda: self.controller.check_updates(manual=True))
+        
+        card.layout.addWidget(btn)
+        return card
+
     def _create_spotify_card(self):
         card = Card()
         self._add_card_header(card, "spotify.svg", "Spotify")
         
         self.lbl_spot_status = QLabel("Estado: Desconocido")
-        # Mantenemos el color de marca Spotify manual (#1DB954) o usamos uno parecido
+        # Color verde Spotify
         self.lbl_spot_status.setStyleSheet("color: #1DB954; font-weight: bold; margin-bottom: 5px; border: none;")
         card.layout.addWidget(self.lbl_spot_status)
         

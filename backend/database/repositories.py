@@ -133,7 +133,6 @@ class EconomyRepository:
     def clear_gamble_history(self):
         return self.conn.execute_query("DELETE FROM gamble_history")
 
-
 # ==========================================
 # 4. REPOSITORIO DE TRIGGERS (Overlay Multimedia)
 # ==========================================
@@ -182,7 +181,6 @@ class TriggersRepository:
         query = "SELECT command, cost FROM triggers WHERE is_active = 1 ORDER BY cost ASC"
         return self.conn.fetch_all(query)
 
-
 # ==========================================
 # 5. REPOSITORIO DE COMANDOS DE TEXTO
 # ==========================================
@@ -213,7 +211,6 @@ class ChatCommandsRepository:
     def toggle_active(self, trigger, is_active):
         val = 1 if is_active else 0
         return self.conn.execute_query("UPDATE custom_commands SET is_active = ? WHERE trigger = ?", (val, trigger))
-
 
 # ==========================================
 # 6. REPOSITORIO DE AUTOMATIZACIONES (Alertas & Timers)

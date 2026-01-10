@@ -67,7 +67,7 @@ class MainWindow(QMainWindow):
         self.ui_overlay = OverlayPage(self.controller.overlay_server, db)
         self.ui_points = PointsPage(db)
         self.ui_gamble = GamblingPage(db, self.controller)
-        self.ui_conf = SettingsPage(db, self.controller.spotify)
+        self.ui_conf = SettingsPage(db, self.controller)
 
     def setup_ui(self):
         self.setStyleSheet(get_sheet(True))
