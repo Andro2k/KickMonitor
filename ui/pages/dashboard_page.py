@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QFrame, QGridLayout, QDialog,
     QTextEdit, QSizePolicy, QScrollArea
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QUrl
+from PyQt6.QtCore import Qt, pyqtSignal, QUrl, QSize
 from PyQt6.QtGui import QPixmap, QPainter, QPainterPath
 from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 
@@ -40,8 +40,11 @@ class DashboardPage(QWidget):
         self.spotify.status_msg.connect(lambda: self.refresh_data())
         self.spotify.status_msg.connect(self._handle_spotify_status_alert)
 
+    # ==========================================
+    # 1. UI SETUP
+    # ==========================================
     def init_ui(self):
-        # 1. SCROLL AREA EXTERNO
+        # 1. Scroll Area Principal
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0,0,0,0)
         
@@ -51,117 +54,191 @@ class DashboardPage(QWidget):
         scroll.setStyleSheet("background: transparent; border: none;")
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
-        # 2. CONTENEDOR INTERNO
+        # 2. Contenedor del contenido
         content = QWidget()
         content.setStyleSheet("background: transparent;")
         self.main_layout = QVBoxLayout(content)
         self.main_layout.setContentsMargins(*LAYOUT["margins"])
         self.main_layout.setSpacing(LAYOUT["spacing"])
 
-        # 3. SECCIONES
-        self._setup_profile_section()
-        self._setup_center_section() 
+        self._setup_top_grid_section() 
         self._setup_log_section()
         
         scroll.setWidget(content)
         outer_layout.addWidget(scroll)
 
-    # ==========================================
-    # SECCIÓN 1: PERFIL
-    # ==========================================
-    def _setup_profile_section(self):
-        self.profile_card = QFrame()
-        self.profile_card.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 15px;")
-        
-        layout = QHBoxLayout(self.profile_card)
-        layout.setContentsMargins(*LAYOUT["margins"])
-        layout.setSpacing(20)
+    def _setup_top_grid_section(self):
+        """
+        Crea un FlowLayout que contiene:
+        - Columna Izquierda: Perfil + Música
+        - Columna Derecha: Accesos Directos
+        """
+        grid_container = QWidget()
+        # Usamos FlowLayout para que si la pantalla es muy estrecha, la columna derecha baje.
+        grid_layout = FlowLayout(grid_container, margin=0, spacing=15)
 
+        # ---------------------------------------------------------
+        # A. COLUMNA IZQUIERDA (Perfil + Música)
+        # ---------------------------------------------------------
+        left_col_widget = QWidget()
+        # Expanding en Horizontal para llenar hueco, Preferred en Vertical
+        left_col_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        left_col_widget.setMinimumWidth(380) # Ancho mínimo para que quepan bien los botones del perfil
+        
+        left_layout = QVBoxLayout(left_col_widget)
+        left_layout.setContentsMargins(0,0,0,0)
+        left_layout.setSpacing(LAYOUT["spacing"])
+
+        # A1. Tarjeta Perfil
+        self.profile_card = self._create_profile_card()
+        left_layout.addWidget(self.profile_card)
+
+        # A2. Tarjeta Música (Instancia del componente)
+        self.music_panel = MusicPlayerPanel(self.service, self.spotify)
+        left_layout.addWidget(self.music_panel)
+        
+        # Añadimos la columna izquierda al FlowLayout
+        grid_layout.addWidget(left_col_widget)
+
+        # ---------------------------------------------------------
+        # B. COLUMNA DERECHA (Accesos Directos)
+        # ---------------------------------------------------------
+        self.shortcuts_card = self._create_shortcuts_card()
+        
+        # Configuración clave para que se estire
+        self.shortcuts_card.setMinimumWidth(300)
+        self.shortcuts_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
+        # Añadimos la columna derecha al FlowLayout
+        grid_layout.addWidget(self.shortcuts_card)
+
+        # Agregamos todo el contenedor superior al layout principal
+        self.main_layout.addWidget(grid_container)
+
+    # ==========================================
+    # CREADORES DE TARJETAS
+    # ==========================================
+    def _create_profile_card(self):
+        card = QFrame()
+        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 16px;")
+        # Altura fija para mantener consistencia
+        card.setFixedHeight(140) 
+        
+        layout = QHBoxLayout(card)
+        layout.setContentsMargins(20, 15, 20, 15)
+        layout.setSpacing(LAYOUT["spacing"])
+
+        # Avatar
         self.lbl_avatar = QLabel()
-        self.lbl_avatar.setFixedSize(110, 110)
-        self.lbl_avatar.setStyleSheet(f"background-color: {THEME_DARK['Black_N4']}; border-radius: 55px;")
+        self.lbl_avatar.setFixedSize(100, 100)
+        self.lbl_avatar.setStyleSheet(f"background-color: {THEME_DARK['Black_N4']}; border-radius: 50px;")
         
-        info = QVBoxLayout(); info.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        self.lbl_welcome = QLabel("Cargando..."); self.lbl_welcome.setObjectName("h1"); self.lbl_welcome.setStyleSheet("border:none;")
-        self.lbl_stats = QLabel("..."); self.lbl_stats.setObjectName("normal"); self.lbl_stats.setStyleSheet("border:none;")
-        info.addWidget(self.lbl_welcome); info.addWidget(self.lbl_stats)
+        # Textos (Nombre y Estado)
+        info = QVBoxLayout()
+        info.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        info.setSpacing(4)
         
-        actions = QVBoxLayout(); actions.setAlignment(Qt.AlignmentFlag.AlignVCenter); actions.setSpacing(8)
+        self.lbl_welcome = QLabel("Cargando...", objectName="h2")
+        self.lbl_welcome.setStyleSheet("border:none;")
         
-        kick_row = QHBoxLayout(); kick_row.setSpacing(10)
-        self.btn_connect = self._create_main_action_btn("Kick: Desconectado", "kick.svg")
+        self.lbl_stats = QLabel("...", objectName="normal")
+        self.lbl_stats.setStyleSheet(f"color: {THEME_DARK['Gray_N1']}; border:none;")
+        
+        info.addWidget(self.lbl_welcome)
+        info.addWidget(self.lbl_stats)
+        
+        # Botones de Acción (Lado derecho de la tarjeta)
+        actions = QVBoxLayout()
+        actions.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        actions.setSpacing(8)
+        
+        # Fila Kick
+        kick_row = QHBoxLayout()
+        self.btn_connect = self._create_main_action_btn("Kick: Offline", "kick.svg")
         self.btn_connect.clicked.connect(self._handle_kick_connect_click)
         
         self.btn_auto = QPushButton()
-        self.btn_auto.setCheckable(True); self.btn_auto.setFixedSize(40, 40)
-        self.btn_auto.setCursor(Qt.CursorShape.PointingHandCursor); self.btn_auto.setIcon(get_icon("plug.svg"))
+        self.btn_auto.setCheckable(True)
+        self.btn_auto.setFixedSize(38, 38)
+        self.btn_auto.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_auto.setIcon(get_icon("plug.svg"))
+        self.btn_auto.setToolTip("Auto-conectar al inicio")
         self.btn_auto.toggled.connect(self._toggle_auto_connect)
+        
         is_auto = self.service.get_auto_connect_state()
-        self.btn_auto.setChecked(is_auto); self._update_auto_btn_style(is_auto)
+        self.btn_auto.setChecked(is_auto)
+        self._update_auto_btn_style(is_auto)
         
-        kick_row.addWidget(self.btn_connect); kick_row.addWidget(self.btn_auto)
+        kick_row.addWidget(self.btn_connect)
+        kick_row.addWidget(self.btn_auto)
         
-        self.btn_spotify = self._create_main_action_btn("Conectar Spotify", "spotify.svg")
+        # Botón Spotify
+        self.btn_spotify = self._create_main_action_btn("Spotify", "spotify.svg")
         self.btn_spotify.clicked.connect(self._toggle_spotify_connection)
         self._update_spotify_btn_style(False)
 
-        actions.addLayout(kick_row); actions.addWidget(self.btn_spotify)
+        actions.addLayout(kick_row)
+        actions.addWidget(self.btn_spotify)
 
-        layout.addWidget(self.lbl_avatar); layout.addLayout(info); layout.addStretch(); layout.addLayout(actions)
-        self.main_layout.addWidget(self.profile_card)
-
-    # ==========================================
-    # SECCIÓN 2: CENTRO (RESPONSIVE)
-    # ==========================================
-    def _setup_center_section(self):
-        center_container = QWidget()
-        center_layout = FlowLayout(center_container, margin=0, spacing=LAYOUT["spacing"])
-
-        # TARJETA 1: MÚSICA (Instancia del nuevo componente)
-        self.music_panel = MusicPlayerPanel(self.service, self.spotify)
-        self.music_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        center_layout.addWidget(self.music_panel)
-
-        # TARJETA 2: ACCESOS DIRECTOS
-        shortcuts_card = QFrame()
-        shortcuts_card.setMinimumWidth(300) 
-        shortcuts_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        shortcuts_card.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 16px;")
+        layout.addWidget(self.lbl_avatar)
+        layout.addLayout(info)
+        layout.addStretch() # Empuja acciones a la derecha
+        layout.addLayout(actions)
         
-        s_layout = QVBoxLayout(shortcuts_card)
-        s_layout.setContentsMargins(*LAYOUT["margins"])
-        s_layout.addWidget(QLabel("Accesos Directos", objectName="h3"))
-        self._setup_shortcuts_grid(s_layout)
-        s_layout.addStretch()
-        
-        center_layout.addWidget(shortcuts_card)
-        self.main_layout.addWidget(center_container)
+        return card
 
-    def _setup_shortcuts_grid(self, layout):
-        grid = QGridLayout(); grid.setSpacing(10)
+    def _create_shortcuts_card(self):
+        card = QFrame()
+        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 16px;")
+        
+        l = QVBoxLayout(card)
+        l.setContentsMargins(*LAYOUT["margins"])
+        l.setSpacing(LAYOUT["spacing"])
+        
+        l.addWidget(QLabel("Accesos Directos", objectName="h3"))
+        
+        # Grid de botones
+        grid = QGridLayout()
+        grid.setSpacing(LAYOUT["spacing"])
+        
         shortcuts = [
-            ("chat.svg", "Chat", 1, "#20C554"), ("terminal.svg", "Comandos", 2, "#2196F3"),
-            ("bell.svg", "Alertas", 3, "#AAFF00"), ("layers.svg", "Triggers", 4, "#FF9800"), 
-            ("users.svg", "Usuarios", 5, "#E91E63"), ("casino.svg", "Casino", 6, "#D81EE9"), 
+            ("chat.svg", "Chat", 1, "#20C554"), 
+            ("terminal.svg", "Comandos", 2, "#2196F3"),
+            ("bell.svg", "Alertas", 3, "#AAFF00"), 
+            ("layers.svg", "Overlay", 4, "#FF9800"), 
+            ("users.svg", "Usuarios", 5, "#E91E63"), 
+            ("casino.svg", "Casino", 6, "#D81EE9"), 
             ("settings.svg", "Ajustes", 7, "#9E9E9E")
         ]
+
+        cols = 3 
+        
         for i, (icon, txt, idx, color) in enumerate(shortcuts):
             btn = self._create_shortcut_btn(icon, txt, color)
             btn.clicked.connect(lambda _, x=idx: self.navigate_signal.emit(x))
-            r, c = divmod(i, 3)
+            r, c = divmod(i, cols)
             grid.addWidget(btn, r, c)
-        layout.addLayout(grid)
+            
+        l.addLayout(grid)
+        l.addStretch() # Para que los botones queden arriba si la tarjeta es muy alta
+        
+        return card
 
     def _setup_log_section(self):
         self.main_layout.addWidget(QLabel("Registros del Sistema", objectName="h3"))
+        
         self.log_console = QTextEdit()
         self.log_console.setReadOnly(True)
         self.log_console.setPlaceholderText("Esperando conexión...")
         self.log_console.setMinimumHeight(150)
+        # Hacemos que el log no crezca infinitamente, pero tenga una altura base buena
+        self.log_console.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding)
+        
         self.log_console.setStyleSheet(f"""
             QTextEdit {{
                 background-color: {THEME_DARK['Black_N3']}; color: #aaa; border-radius: 12px;
                 font-family: Consolas, monospace; font-size: 12px; white-space: pre; padding: 10px;
+                border: 1px solid {THEME_DARK['Black_N4']};
             }}
         """)
         self.main_layout.addWidget(self.log_console)
@@ -200,17 +277,42 @@ class DashboardPage(QWidget):
     def _create_main_action_btn(self, text, icon):
         btn = QPushButton(text); btn.setIcon(get_icon(icon))
         btn.setCheckable(True); btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setFixedHeight(40); btn.setMinimumWidth(180)
+        btn.setFixedHeight(38); btn.setMinimumWidth(160)
         return btn
 
     def _create_shortcut_btn(self, icon, text, hover_c):
         btn = QPushButton()
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setMinimumHeight(65)
+        btn.setMinimumHeight(70) # Botones un poco más altos
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        
         l = QVBoxLayout(btn)
-        l.addWidget(QLabel(pixmap=get_icon(icon).pixmap(24,24), alignment=Qt.AlignmentFlag.AlignCenter, styleSheet="border:none; background:transparent;"))
-        l.addWidget(QLabel(text, alignment=Qt.AlignmentFlag.AlignCenter, styleSheet="border:none; font-weight:bold; font-size:11px; background:transparent;"))
-        btn.setStyleSheet(f"QPushButton {{ background-color: {THEME_DARK['Black_N4']}; border-radius: 12px; }} QPushButton:hover {{ background-color: {THEME_DARK['Black_N3']}; border: 1px solid {hover_c}; }}")
+        l.setSpacing(4)
+        l.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        ico = QLabel()
+        ico.setPixmap(get_icon(icon).pixmap(24,24))
+        ico.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ico.setStyleSheet("border:none; background:transparent;")
+        
+        lbl = QLabel(text)
+        lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl.setStyleSheet("border:none; font-weight:600; font-size:11px; background:transparent;")
+        
+        l.addWidget(ico)
+        l.addWidget(lbl)
+        
+        btn.setStyleSheet(f"""
+            QPushButton {{ 
+                background-color: {THEME_DARK['Black_N4']}; 
+                border-radius: 10px; 
+                border: 1px solid {THEME_DARK['Black_N2']};
+            }} 
+            QPushButton:hover {{ 
+                background-color: {THEME_DARK['Black_N3']}; 
+                border: 1px solid {hover_c}; 
+            }}
+        """)
         return btn
 
     def _update_auto_btn_style(self, checked):
@@ -222,10 +324,17 @@ class DashboardPage(QWidget):
         bg = "#1DB954" if active else THEME_DARK['Black_N4']
         fg = "black" if active else THEME_DARK['White_N1']
         border = "#1DB954" if active else THEME_DARK['border']
-        txt = "Spotify: Conectado" if active else "Conectar Spotify"
+        txt = "Spotify: On" if active else "Conectar Spotify"
+        
         self.btn_spotify.setIcon(get_colored_icon("spotify.svg", fg))
         self.btn_spotify.setText(txt)
-        self.btn_spotify.setStyleSheet(f"QPushButton {{ background-color: {bg}; color: {fg}; border: 1px solid {border}; border-radius: 8px; font-weight: bold; font-size: 14px; text-align: left; padding-left: 20px; }}")
+        self.btn_spotify.setStyleSheet(f"""
+            QPushButton {{ 
+                background-color: {bg}; color: {fg}; 
+                border: 1px solid {border}; border-radius: 8px; 
+                font-weight: bold; font-size: 13px; text-align: left; padding-left: 15px; 
+            }}
+        """)
 
     def update_connection_state(self, connected):
         self.btn_connect.setChecked(connected)
@@ -234,7 +343,13 @@ class DashboardPage(QWidget):
         msg = "Bot Conectado" if connected else "Conectar Bot"
         self.btn_connect.setIcon(get_colored_icon("kick.svg", fg))
         self.btn_connect.setText(msg)
-        self.btn_connect.setStyleSheet(f"QPushButton {{ background-color: {bg}; color: {fg}; border-radius: 8px; font-weight: bold; font-size: 14px; text-align: left; padding-left: 20px; }}")
+        self.btn_connect.setStyleSheet(f"""
+            QPushButton {{ 
+                background-color: {bg}; color: {fg}; 
+                border-radius: 8px; font-weight: bold; font-size: 13px; 
+                text-align: left; padding-left: 15px; 
+            }}
+        """)
 
     def append_log(self, text):
         self.log_console.append(text)
@@ -279,7 +394,7 @@ class DashboardPage(QWidget):
         self.nam.get(req)
 
     def _set_rounded_avatar(self, pix):
-        s = 110; pix = pix.scaled(s, s, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
+        s = 100; pix = pix.scaled(s, s, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
         r = QPixmap(s, s); r.fill(Qt.GlobalColor.transparent)
         p = QPainter(r); p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         path = QPainterPath(); path.addEllipse(0, 0, s, s)

@@ -34,7 +34,7 @@ class SettingsPage(QWidget):
     def init_ui(self):
         # 1. SCROLL AREA EXTERNO
         outer_layout = QVBoxLayout(self)
-        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setContentsMargins(*LAYOUT["margins"])
         
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)

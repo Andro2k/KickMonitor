@@ -14,18 +14,16 @@ from ui.utils import get_icon, get_colored_icon
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
 from services.points_service import PointsService
-from ui.components.flow_layout import FlowLayout # <--- IMPORTANTE
+# (Eliminamos FlowLayout porque ya no lo usaremos aquí)
 
 class PointsPage(QWidget):
     def __init__(self, db_handler, parent=None):
         super().__init__(parent)
         self.service = PointsService(db_handler)
         
-        # Estado interno
         self.search_text = ""
         self.filter_mode = "Todos"
         
-        # Timer: Actualización automática (10s)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._auto_refresh)
         self.timer.start(10000) 
@@ -33,41 +31,43 @@ class PointsPage(QWidget):
         self.init_ui()
         self.load_table_data()
 
-    # ==========================================
-    # 1. UI SETUP (RESPONSIVE)
-    # ==========================================
     def init_ui(self):
-        # 1. SCROLL AREA PRINCIPAL
-        outer_layout = QVBoxLayout(self)
-        outer_layout.setContentsMargins(0,0,0,0)
+        # 1. LAYOUT PRINCIPAL (Scroll Vertical)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0,0,0,0)
         
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setStyleSheet("background: transparent; border: none;")
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
+        # 2. CONTENEDOR INTERNO
         content = QWidget()
         content.setStyleSheet("background: transparent;")
         
-        # 2. FLOW LAYOUT
-        self.flow_layout = FlowLayout(content, margin=LAYOUT["margins"][0], spacing=LAYOUT["spacing"])
+        # --- CAMBIO: Usamos QVBoxLayout simple en lugar de FlowLayout ---
+        self.content_layout = QVBoxLayout(content)
+        self.content_layout.setContentsMargins(*LAYOUT["margins"])
+        self.content_layout.setSpacing(15) # Espacio entre la barra de gestión y la tabla
 
-        # 3. HEADER FIJO
-        outer_layout.addWidget(self._create_header())
+        # 3. CONSTRUCCIÓN DE LA UI
+        # A. Header (Título + Botones Exportar)
+        self.content_layout.addWidget(self._create_header())
         
-        # 4. TARJETAS
-        self._setup_cards()
+        # B. Barra de Gestión Manual (Compacta)
+        self.content_layout.addWidget(self._create_manual_strip())
+
+        # C. Tabla de Usuarios (Expansible)
+        self.content_layout.addWidget(self._create_table_card())
         
         scroll.setWidget(content)
-        outer_layout.addWidget(scroll)
+        main_layout.addWidget(scroll)
 
     def _create_header(self):
         h_frame = QFrame()
         h_header = QHBoxLayout(h_frame)
-        h_header.setContentsMargins(*LAYOUT["margins"])
+        h_header.setContentsMargins(0, 0, 0, 5) # Pequeño margen inferior
         
-        # Títulos
         v_titles = QVBoxLayout()
         v_titles.setSpacing(2)
         v_titles.addWidget(QLabel("Tabla de Usuarios", objectName="h2"))
@@ -75,7 +75,6 @@ class PointsPage(QWidget):
         h_header.addLayout(v_titles)
         h_header.addStretch()
         
-        # Botones de Acción Global
         btn_export = self._create_top_btn("download.svg", "Exportar", self._handle_export_csv)
         btn_import = self._create_top_btn("upload.svg", "Importar", self._handle_import_csv)
         
@@ -84,60 +83,63 @@ class PointsPage(QWidget):
         
         return h_frame
 
-    def _setup_cards(self):
-        # TARJETA 1: GESTIÓN MANUAL (Nueva funcionalidad útil)
-        self.card_manual = self._create_manual_card()
-        self.card_manual.setMinimumWidth(320)
-        self.card_manual.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        self.flow_layout.addWidget(self.card_manual)
-
-        # TARJETA 2: TABLA DE USUARIOS (Con Filtros Integrados)
-        self.card_table = self._create_table_card()
-        self.card_table.setMinimumWidth(500)
-        self.card_table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.flow_layout.addWidget(self.card_table)
-
     # ==========================================
-    # CREADORES DE TARJETAS
+    # TARJETA 1: GESTIÓN MANUAL (MODO BARRA)
     # ==========================================
-    def _create_manual_card(self):
-        """Tarjeta para sumar/restar puntos rápidamente."""
+    def _create_manual_strip(self):
+        """
+        Crea una barra horizontal compacta para agregar/quitar puntos.
+        Se ve mucho mejor que el cuadrado grande anterior.
+        """
         card = QFrame()
-        card.setStyleSheet(f"background: {THEME_DARK['Black_N3']}; border-radius: 16px;")
+        card.setStyleSheet(f"background: {THEME_DARK['Black_N3']}; border-radius: 12px;")
         
-        l = QVBoxLayout(card)
-        l.setContentsMargins(20, 20, 20, 20)
+        # Usamos QHBoxLayout (Horizontal) para que quede en una línea
+        l = QHBoxLayout(card)
+        l.setContentsMargins(15, 12, 15, 12)
         l.setSpacing(15)
 
-        l.addWidget(QLabel("Gestión Rápida", objectName="h3"))
+        # Título pequeño a la izquierda
+        lbl_tit = QLabel("Gestión Rápida", objectName="h3")
+        lbl_tit.setStyleSheet("border:none; margin-right: 10px;")
+        l.addWidget(lbl_tit)
 
-        # Input Usuario
-        l.addWidget(QLabel("Usuario:", styleSheet="color:#888; font-size:12px; border:none;"))
+        # Separador vertical
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.VLine)
+        line.setStyleSheet(f"color: {THEME_DARK['Black_N4']};")
+        l.addWidget(line)
+
+        # Inputs en línea
+        l.addWidget(QLabel("Usuario:", styleSheet="color:#888; font-weight:bold; border:none;"))
+        
         self.inp_manual_user = QLineEdit()
         self.inp_manual_user.setPlaceholderText("Ej: damir")
+        self.inp_manual_user.setFixedWidth(150)
         self.inp_manual_user.setStyleSheet(STYLES["input"])
         l.addWidget(self.inp_manual_user)
 
-        # Input Puntos
-        l.addWidget(QLabel("Puntos (+/-):", styleSheet="color:#888; font-size:12px; border:none;"))
+        l.addWidget(QLabel("Puntos:", styleSheet="color:#888; font-weight:bold; border:none;"))
+        
         self.spin_manual_pts = QSpinBox()
         self.spin_manual_pts.setRange(-100000, 100000)
         self.spin_manual_pts.setValue(100)
+        self.spin_manual_pts.setFixedWidth(100)
         self.spin_manual_pts.setStyleSheet(STYLES["spinbox_modern"])
         l.addWidget(self.spin_manual_pts)
 
-        l.addStretch()
+        l.addStretch() # Empuja el botón a la derecha
 
         # Botón Aplicar
         btn_apply = QPushButton(" Aplicar")
         btn_apply.setIcon(get_colored_icon("save.svg", THEME_DARK['Black_N1']))
         btn_apply.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_apply.setFixedHeight(38)
+        btn_apply.setFixedHeight(34)
         btn_apply.setStyleSheet(f"""
             QPushButton {{ 
                 background-color: {THEME_DARK['NeonGreen_Main']};
                 color: {THEME_DARK['Black_N1']};
-                font-weight: bold; border-radius: 8px; border: none;
+                font-weight: bold; border-radius: 6px; border: none; padding: 0 15px;
             }}
             QPushButton:hover {{ background-color: {THEME_DARK['NeonGreen_Light']}; }}
         """)
@@ -146,16 +148,20 @@ class PointsPage(QWidget):
         
         return card
 
+    # ==========================================
+    # TARJETA 2: TABLA (OCUPA EL RESTO)
+    # ==========================================
     def _create_table_card(self):
-        """Tarjeta que contiene la Toolbar y la Tabla."""
         card = QFrame()
-        card.setStyleSheet(f"background: {THEME_DARK['Black_N3']}; border-radius: 16px;")
+        # Expanding vertical para que llene la pantalla
+        card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        card.setStyleSheet(f"background: {THEME_DARK['Black_N3']}; border-radius: 12px;")
         
         l = QVBoxLayout(card)
         l.setContentsMargins(0,0,0,0)
         l.setSpacing(0)
 
-        # 1. TOOLBAR INTERNA
+        # Toolbar Interna (Buscador y Filtros)
         bar = QFrame()
         bar.setStyleSheet(f"border-bottom: 1px solid {THEME_DARK['Black_N4']}; background: transparent;")
         h_bar = QHBoxLayout(bar)
@@ -183,7 +189,6 @@ class PointsPage(QWidget):
         self.combo_filter.currentIndexChanged.connect(self._handle_filter_changed)
         h_bar.addWidget(self.combo_filter)
         
-        # Botón Refrescar Pequeño
         btn_refresh = QPushButton()
         btn_refresh.setIcon(get_icon("refresh-cw.svg"))
         btn_refresh.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -193,11 +198,11 @@ class PointsPage(QWidget):
 
         l.addWidget(bar)
 
-        # 2. TABLA
+        # Tabla
         self.table = QTableWidget()
         self.table.setColumnCount(6)
         self.table.setHorizontalHeaderLabels(["Usuario", "Puntos", "Visto", "Pausar", "Silenciar", "Acción"])
-        self.table.setStyleSheet(STYLES["table_clean"] + "QTableWidget { border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; }")
+        self.table.setStyleSheet(STYLES["table_clean"] + "QTableWidget { border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }")
         
         self.table.setShowGrid(False)
         self.table.setAlternatingRowColors(True)
@@ -206,7 +211,8 @@ class PointsPage(QWidget):
         self.table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
         self.table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.table.setMinimumHeight(400) # Altura mínima
+        # Altura mínima para que no desaparezca
+        self.table.setMinimumHeight(400) 
         
         h = self.table.horizontalHeader()
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
@@ -221,7 +227,7 @@ class PointsPage(QWidget):
         return card
 
     # ==========================================
-    # 2. LOGICA DE DATOS
+    # LOGICA DE DATOS (Sin Cambios)
     # ==========================================
     def load_table_data(self):
         scroll_val = self.table.verticalScrollBar().value()
@@ -273,9 +279,6 @@ class PointsPage(QWidget):
         if not self.inp_search.hasFocus() and not self.inp_manual_user.hasFocus():
             self.load_table_data()
 
-    # ==========================================
-    # HANDLERS
-    # ==========================================
     def _handle_manual_update(self):
         user = self.inp_manual_user.text().strip()
         qty = self.spin_manual_pts.value()
@@ -284,7 +287,6 @@ class PointsPage(QWidget):
             ToastNotification(self, "Error", "Ingresa un usuario", "Status_Yellow").show_toast()
             return
             
-        # Asumiendo que DB tiene add_points, sino usamos la lógica de import
         new_total = self.service.db.add_points(user, qty) 
         ToastNotification(self, "Puntos", f"{user}: {qty:+} pts (Total: {new_total})", "Status_Green").show_toast()
         self.inp_manual_user.clear()

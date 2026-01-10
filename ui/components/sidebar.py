@@ -4,7 +4,10 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QPushButton, QLabel, 
     QFrame, QScrollArea, QHBoxLayout
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve, QSize
+from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve, QSize, QUrl
+from PyQt6.QtGui import QPixmap, QPainter, QPainterPath
+from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
+
 from ui.theme import THEME_DARK, STYLES
 from ui.utils import get_icon
 
@@ -33,6 +36,10 @@ class Sidebar(QFrame):
         self.is_collapsed = False
         self.buttons = []
         
+        # Gestor de descargas para el avatar
+        self.nam = QNetworkAccessManager(self)
+        self.nam.finished.connect(self._on_avatar_downloaded)
+        
         # INICIO: Fijamos el ancho inicial
         self.setFixedWidth(self.full_width)
         
@@ -49,7 +56,6 @@ class Sidebar(QFrame):
         self.anim = QPropertyAnimation(self, b"maximumWidth")
         self.anim.setDuration(300)
         self.anim.setEasingCurve(QEasingCurve.Type.InOutQuad)
-        
         self.anim.finished.connect(self._on_animation_finished)
 
     def _setup_header(self):
@@ -80,13 +86,11 @@ class Sidebar(QFrame):
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setStyleSheet("background: transparent; border: none;")
-        
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
         content = QWidget()
         content.setStyleSheet("background: transparent;")
         
-        # Opcional: Reducir un poco los márgenes laterales para que los iconos no queden apretados en modo mini
         self.menu_layout = QVBoxLayout(content)
         self.menu_layout.setContentsMargins(5,5,5,5)
         self.menu_layout.setSpacing(0)
@@ -122,24 +126,69 @@ class Sidebar(QFrame):
         
         f_layout = QHBoxLayout(self.footer)
         f_layout.setContentsMargins(15, 10, 15, 10)
-        f_layout.setSpacing(15)
+        f_layout.setSpacing(10) # Menos espacio para que quepa todo
         
+        # Avatar
         self.lbl_avatar = QLabel()
         self.lbl_avatar.setFixedSize(32, 32)
         self.lbl_avatar.setStyleSheet(f"background-color: {THEME_DARK['Black_N4']}; border-radius: 16px;")
-        
-        # Icono fallback
-        self.lbl_avatar.setPixmap(get_icon("user.svg").pixmap(16, 16))
+        self.lbl_avatar.setPixmap(get_icon("user.svg").pixmap(16, 16)) # Icono por defecto
         self.lbl_avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_avatar.setScaledContents(True)
 
-        self.lbl_user_text = QLabel("Usuario\nConectado")
-        self.lbl_user_text.setStyleSheet("font-size: 12px; color: #aaa; line-height: 120%; border:none;")
+        # Texto Usuario
+        self.lbl_user_text = QLabel("Sin Conexión")
+        self.lbl_user_text.setStyleSheet("font-size: 12px; font-weight: bold; color: #ddd; border:none;")
 
         f_layout.addWidget(self.lbl_avatar)
         f_layout.addWidget(self.lbl_user_text)
         f_layout.addStretch()
         self.layout.addWidget(self.footer)
 
+    # ==========================================
+    # NUEVO: LÓGICA DE ACTUALIZACIÓN DE PERFIL
+    # ==========================================
+    def update_user_info(self, username, avatar_url):
+        """Método público llamado desde MainWindow"""
+        if username:
+            self.lbl_user_text.setText(username)
+        
+        if avatar_url:
+            req = QNetworkRequest(QUrl(avatar_url))
+            self.nam.get(req)
+
+    def _on_avatar_downloaded(self, reply):
+        if reply.error() == QNetworkReply.NetworkError.NoError:
+            data = reply.readAll()
+            pix = QPixmap()
+            pix.loadFromData(data)
+            if not pix.isNull():
+                self._set_circular_avatar(pix)
+        reply.deleteLater()
+
+    def _set_circular_avatar(self, pixmap):
+        size = 32
+        # Escalar
+        pixmap = pixmap.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
+        
+        # Crear lienzo transparente
+        rounded = QPixmap(size, size)
+        rounded.fill(Qt.GlobalColor.transparent)
+        
+        # Pintar círculo
+        painter = QPainter(rounded)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        path = QPainterPath()
+        path.addEllipse(0, 0, size, size)
+        painter.setClipPath(path)
+        painter.drawPixmap(0, 0, pixmap)
+        painter.end()
+        
+        self.lbl_avatar.setPixmap(rounded)
+
+    # ==========================================
+    # LÓGICA EXISTENTE
+    # ==========================================
     def _add_section_label(self, text):
         lbl = QLabel(text)
         lbl.setObjectName("SectionLabel")
@@ -161,60 +210,41 @@ class Sidebar(QFrame):
         for btn in self.buttons:
             btn.setChecked(btn.index == index)
 
-    # ==========================================
-    # LÓGICA DE COLAPSO / EXPANSIÓN
-    # ==========================================
     def toggle_sidebar(self):
         self.anim.stop()
         
         if self.is_collapsed:
-            # --- EXPANDIR ---
-            # 1. Configuramos el valor final
+            # EXPANDIR
             self.anim.setStartValue(self.width())
             self.anim.setEndValue(self.full_width)
-            
-            # 2. Restauramos contenido ANTES de animar (opcional, o durante)
             self.lbl_title.show()
             self.lbl_user_text.show()
-            self.lbl_avatar.show()
             self.btn_toggle.setIcon(get_icon("chevron-left.svg"))
             
-            # Restaurar textos botones
             for btn in self.buttons:
                 btn.setText(btn.text_original)
-                btn.setStyleSheet(STYLES["sidebar_btn"]) # Reset alineación izquierda
-                
-            # Restaurar etiquetas secciones
+                btn.setStyleSheet(STYLES["sidebar_btn"])
             for child in self.findChildren(QLabel, "SectionLabel"):
                 child.show()
-
         else:
-            # --- COLAPSAR ---
-            # 1. Configuramos el valor final
+            # COLAPSAR
             self.anim.setStartValue(self.width())
             self.anim.setEndValue(self.mini_width)
-            
             self.lbl_title.hide()
             self.lbl_user_text.hide()
             self.btn_toggle.setIcon(get_icon("menu.svg"))
             
-            # Ocultar texto botones y centrar iconos
             for btn in self.buttons:
                 btn.setText("")
-                btn.setStyleSheet(STYLES["sidebar_btn"] + """
-                    QPushButton { padding: 6px; text-align: center; }
-                """)
-
+                btn.setStyleSheet(STYLES["sidebar_btn"] + "QPushButton { padding: 6px; text-align: center; }")
             for child in self.findChildren(QLabel, "SectionLabel"):
                 child.hide()
 
         self.setMinimumWidth(self.mini_width) 
         self.anim.start()
-
         self.is_collapsed = not self.is_collapsed
 
     def _on_animation_finished(self):
-        # Al terminar, fijamos el tamaño para que el layout no haga cosas raras
         if self.is_collapsed:
             self.setFixedWidth(self.mini_width)
         else:

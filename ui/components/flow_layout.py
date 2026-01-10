@@ -3,7 +3,11 @@ from PyQt6.QtWidgets import QLayout, QSizePolicy
 from PyQt6.QtCore import Qt, QRect, QSize, QPoint
 
 class FlowLayout(QLayout):
-    """Layout personalizado que imita CSS Flexbox (wrap)."""
+    """
+    Layout personalizado tipo CSS Flexbox.
+    Modo: 'Flex-Wrap' con 'Justify-Content: Stretch'.
+    Los elementos llenarán todo el ancho disponible.
+    """
     def __init__(self, parent=None, margin=0, spacing=-1):
         super().__init__(parent)
         if parent is not None:
@@ -53,7 +57,10 @@ class FlowLayout(QLayout):
         size = QSize()
         for item in self.itemList:
             size = size.expandedTo(item.minimumSize())
-        size += QSize(2 * self.contentsMargins().top(), 2 * self.contentsMargins().top())
+        
+        # Añadir márgenes
+        margins = self.contentsMargins()
+        size += QSize(margins.left() + margins.right(), margins.top() + margins.bottom())
         return size
 
     def _do_layout(self, rect, test_only):
@@ -61,23 +68,61 @@ class FlowLayout(QLayout):
         y = rect.y()
         line_height = 0
         spacing = self.spacing()
+        width = rect.width()
 
+        # 1. Agrupar items en filas
+        rows = []
+        current_row = []
+        current_row_width = 0
+        
         for item in self.itemList:
-            wid = item.widget()
-            space_x = spacing + wid.style().layoutSpacing(QSizePolicy.ControlType.PushButton, QSizePolicy.ControlType.PushButton, Qt.Orientation.Horizontal)
-            space_y = spacing + wid.style().layoutSpacing(QSizePolicy.ControlType.PushButton, QSizePolicy.ControlType.PushButton, Qt.Orientation.Vertical)
+            w = item.sizeHint().width()
+            h = item.sizeHint().height()
             
-            next_x = x + item.sizeHint().width() + space_x
-            if next_x - space_x > rect.right() and line_height > 0:
-                x = rect.x()
-                y = y + line_height + space_y
-                next_x = x + item.sizeHint().width() + space_x
+            space = spacing if current_row else 0
+            
+            # Si el elemento no cabe, cambiamos de fila
+            if current_row and (current_row_width + space + w > width):
+                rows.append((current_row, current_row_width, line_height))
+                current_row = []
+                current_row_width = 0
                 line_height = 0
+                space = 0 
 
-            if not test_only:
-                item.setGeometry(QRect(QPoint(x, y), item.sizeHint()))
+            current_row.append(item)
+            current_row_width += space + w
+            line_height = max(line_height, h)
+            
+        # Añadir la última fila
+        if current_row:
+            rows.append((current_row, current_row_width, line_height))
 
-            x = next_x
-            line_height = max(line_height, item.sizeHint().height())
+        # 2. Posicionar items (Estirando para llenar huecos)
+        y = rect.y()
+        
+        for row_items, used_width, row_height in rows:
+            x = rect.x()
+            count = len(row_items)
+            
+            # Espacio sobrante para repartir
+            available_space = width - used_width
+            extra_per_item = int(available_space / count) if count > 0 else 0
+            
+            for i, item in enumerate(row_items):
+                # El ancho será su tamaño base + la porción extra
+                w = item.sizeHint().width() + extra_per_item
+                
+                # Ajuste fino para el último item (por redondeo de enteros)
+                if i == count - 1:
+                    remaining_width = (rect.x() + width) - x
+                    w = remaining_width
+                
+                if not test_only:
+                    # Estiramos también la altura para que todas las cards de la fila sean iguales
+                    item.setGeometry(QRect(QPoint(x, y), QSize(w, row_height)))
+                
+                x += w + spacing
+                
+            y += row_height + spacing
 
-        return y + line_height - rect.y()
+        return y - rect.y()
