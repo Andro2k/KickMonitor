@@ -415,10 +415,8 @@ class MainController(QObject):
         # Conexiones
         self.downloader.progress.connect(self._on_update_progress) # <--- NUEVO
         self.downloader.error.connect(lambda e: self.toast_signal.emit("Error Update", str(e), "Status_Red"))
-        
         self.downloader.start()
 
     def _on_update_progress(self, percent):
-        """Muestra el progreso en los logs o podrías actualizar una barra en la UI."""
         if percent % 10 == 0: # Para no saturar el log
             self.emit_log(Log.system(f"Descargando actualización: {percent}%"))

@@ -5,11 +5,12 @@ from PyQt6.QtWidgets import (
     QTextEdit, QPushButton, QFrame, QCheckBox, 
     QScrollArea, QSpinBox, QSizePolicy
 )
-from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtProperty
+from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve
 from ui.theme import LAYOUT, THEME_DARK, STYLES, get_switch_style
 from ui.components.toast import ToastNotification
 from ui.utils import get_icon, get_colored_icon
 from services.alerts_service import AlertsService
+from ui.components.flow_layout import FlowLayout  # <--- IMPORTAMOS
 
 # =========================================================================
 # REGIÓN 1: CLASE BASE (Acordeón Optimizado)
@@ -17,11 +18,16 @@ from services.alerts_service import AlertsService
 class BaseAccordionCard(QFrame):
     """
     Clase padre con animación fluida y corrección de estilos.
+    Adaptada para funcionar en Grid/Flow Layout.
     """
     def __init__(self, title, subtitle, is_active):
         super().__init__()
-        # 1. ASIGNAMOS UN ID ÚNICO PARA QUE EL CSS NO AFECTE A LOS HIJOS (TOASTS)
         self.setObjectName("AccordionCard")
+        
+        # --- CONFIG RESPONSIVA ---
+        self.setMinimumWidth(320)  # Ancho mínimo antes de bajar de línea
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        # -------------------------
         
         self.is_expanded = False
         self.is_active = is_active
@@ -37,7 +43,6 @@ class BaseAccordionCard(QFrame):
         self.anim.finished.connect(self._on_anim_finished)
 
     def _setup_base_style(self):
-        # 2. USAMOS EL SELECTOR ESPECÍFICO (#AccordionCard) EN LUGAR DE UNO GENÉRICO
         self.setStyleSheet(f"""
             QFrame#AccordionCard {{
                 background-color: {THEME_DARK['Black_N2']};
@@ -89,6 +94,7 @@ class BaseAccordionCard(QFrame):
         layout.addLayout(v_box, stretch=1)
         layout.addWidget(self.chk)
         
+        # Layout principal del frame
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0,0,0,0)
         main_layout.setSpacing(0)
@@ -97,8 +103,6 @@ class BaseAccordionCard(QFrame):
     def _build_content_container(self):
         self.content = QFrame()
         self.content.setObjectName("Content")
-        
-        # Ocultar inicialmente
         self.content.setMaximumHeight(0)
         self.content.setVisible(False) 
         
@@ -117,10 +121,11 @@ class BaseAccordionCard(QFrame):
         icon = "chevron-down.svg" if self.is_expanded else "chevron-right.svg"
         self.arrow.setIcon(get_icon(icon))
         
+        # Calculamos la altura necesaria
+        self.content.setVisible(True) # Hacemos visible para calcular sizeHint
         h = self.content_layout.sizeHint().height()
         
         if self.is_expanded:
-            self.content.setVisible(True)
             self.anim.setStartValue(0)
             self.anim.setEndValue(h)
         else:
@@ -133,14 +138,14 @@ class BaseAccordionCard(QFrame):
         if not self.is_expanded:
             self.content.setVisible(False)
         else:
+            # Liberamos la altura para que se ajuste si cambia el contenido dinámicamente
             self.content.setMaximumHeight(16777215)
 
-    # Métodos a sobrescribir
     def on_switch_toggle(self): pass
     def save_data(self): pass
 
 # =========================================================================
-# REGIÓN 2: IMPLEMENTACIONES ESPECÍFICAS
+# REGIÓN 2: IMPLEMENTACIONES (AlertCard y TimerCard)
 # =========================================================================
 class AlertCard(BaseAccordionCard):
     def __init__(self, service, title, event_key, subtitle, help_text):
@@ -244,7 +249,7 @@ class TimerCard(BaseAccordionCard):
             ToastNotification(self, "Timers", txt, "Status_Green").show_toast()
 
 # =========================================================================
-# REGIÓN 3: PÁGINA PRINCIPAL
+# REGIÓN 3: PÁGINA PRINCIPAL (Layout Responsivo)
 # =========================================================================
 class AlertsPage(QWidget):
     def __init__(self, db_handler, parent=None):
@@ -253,19 +258,22 @@ class AlertsPage(QWidget):
         self.init_ui()
 
     def init_ui(self):
+        # 1. SCROLL AREA
         main = QVBoxLayout(self)
         main.setContentsMargins(0,0,0,0)
 
-        # Scroll Area
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setStyleSheet("background: transparent; border: none;")
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
         container = QWidget()
+        container.setStyleSheet("background: transparent;")
+        
+        # 2. LAYOUT PRINCIPAL DEL CONTENEDOR
         layout = QVBoxLayout(container)
         layout.setContentsMargins(*LAYOUT["margins"])
-        layout.setSpacing(15)
+        layout.setSpacing(20) # Un poco más de espacio entre secciones
 
         # Header
         h = QHBoxLayout()
@@ -277,17 +285,37 @@ class AlertsPage(QWidget):
         h.addStretch()
         layout.addLayout(h)
 
-        # Sección 1
-        layout.addWidget(QLabel("Eventos", styleSheet="color:#666; font-weight:bold; margin-top:10px; border:none;"))
-        layout.addWidget(AlertCard(self.service, "Nuevo Seguidor", "follow", "Mensaje al seguir.", "{user}, {count}"))
-        layout.addWidget(AlertCard(self.service, "Suscripción", "subscription", "Mensaje al suscribirse.", "{user}, {months}"))
-        layout.addWidget(AlertCard(self.service, "Host / Raid", "host", "Mensaje al alojar.", "{user}, {viewers}"))
+        # -----------------------------------------------------------------
+        # SECCIÓN 1: EVENTOS (Grid Responsivo)
+        # -----------------------------------------------------------------
+        layout.addWidget(QLabel("Eventos", styleSheet=f"color:{THEME_DARK['Gray_N2']}; font-weight:bold; border:none;"))
+        
+        events_container = QWidget()
+        events_container.setStyleSheet("background: transparent;")
+        # Usamos FlowLayout aquí para que las alertas se acomoden
+        events_flow = FlowLayout(events_container, margin=0, spacing=15)
+        
+        events_flow.addWidget(AlertCard(self.service, "Nuevo Seguidor", "follow", "Mensaje al seguir.", "{user}, {count}"))
+        events_flow.addWidget(AlertCard(self.service, "Suscripción", "subscription", "Mensaje al suscribirse.", "{user}, {months}"))
+        events_flow.addWidget(AlertCard(self.service, "Host / Raid", "host", "Mensaje al alojar.", "{user}, {viewers}"))
+        
+        layout.addWidget(events_container)
 
-        # Sección 2
-        layout.addWidget(QLabel("Mensajes Recurrentes (Timers)", styleSheet="color:#666; font-weight:bold; margin-top:20px; border:none;"))
-        layout.addWidget(TimerCard(self.service, "Redes Sociales", "redes", "Ej: Sígueme en Twitter..."))
-        layout.addWidget(TimerCard(self.service, "Discord / Comunidad", "discord", "Ej: Únete al server..."))
-        layout.addWidget(TimerCard(self.service, "Promo / Reglas", "promo", "Ej: Respetar normas..."))
+        # -----------------------------------------------------------------
+        # SECCIÓN 2: TIMERS (Grid Responsivo)
+        # -----------------------------------------------------------------
+        layout.addWidget(QLabel("Mensajes Recurrentes (Timers)", styleSheet=f"color:{THEME_DARK['Gray_N2']}; font-weight:bold; border:none;"))
+        
+        timers_container = QWidget()
+        timers_container.setStyleSheet("background: transparent;")
+        # Otro FlowLayout independiente para esta sección
+        timers_flow = FlowLayout(timers_container, margin=0, spacing=15)
+        
+        timers_flow.addWidget(TimerCard(self.service, "Redes Sociales", "redes", "Ej: Sígueme en Twitter..."))
+        timers_flow.addWidget(TimerCard(self.service, "Discord / Comunidad", "discord", "Ej: Únete al server..."))
+        timers_flow.addWidget(TimerCard(self.service, "Promo / Reglas", "promo", "Ej: Respetar normas..."))
+        
+        layout.addWidget(timers_container)
 
         layout.addStretch()
         scroll.setWidget(container)

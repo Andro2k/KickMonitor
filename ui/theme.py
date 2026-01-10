@@ -5,8 +5,6 @@ import os
 # ==========================================
 # 1. SISTEMA DE RUTAS (Para CSS/QSS)
 # ==========================================
-# ui/theme.py
-
 def asset_url(filename: str) -> str:
     if getattr(sys, 'frozen', False):
         base_path = sys._MEIPASS
@@ -23,16 +21,16 @@ class Palette:
     Sistema de Color 'Kick Dark'.
     """
     # --- 1. Paleta Base ---
-    Black_N0       = "#0B0B0C"  
-    Black_N1       = "#1E1E1E"  # Fondo
-    Black_N2       = "#252525"  # Sidebar
-    Black_N3       = "#2D2D2D"  # Cards
-    Black_N4       = "#3E3E3E"  # Inputs
+    Black_N0       = "#0B0B0C"
+    Black_N1       = "#1E1E1E"
+    Black_N2       = "#252525"
+    Black_N3       = "#2D2D2D"
+    Black_N4       = "#3E3E3E"
     Black_Pure     = "#000000"
     
-    Gray_N1        = "#A0A0A0"  # Texto secundario
-    Gray_N2        = "#666666"  # Texto muted
-    Gray_Border    = "#454545"  # Bordes
+    Gray_N1        = "#A0A0A0"
+    Gray_N2        = "#666666"
+    Gray_Border    = "#454545"
     
     White_N1       = "#FFFFFF"
     White_Alpha_08 = "rgba(255,255,255,0.08)"
@@ -256,6 +254,33 @@ STYLES = {
         }}
         QTabBar::tab:selected {{ background: {c.Black_N3}; color: {c.NeonGreen_Main}; border-bottom: 2px solid {c.NeonGreen_Main}; }}
         QTabBar::tab:hover {{ color: {c.White_N1}; background: {c.White_Alpha_08}; }}
+    """,
+    "sidebar_btn": f"""
+        QPushButton {{
+            background-color: transparent;
+            color: {c.Gray_N1};
+            border: none;
+            border-radius: 8px;
+            text-align: left;
+            padding: 6px;
+            font-weight: 500;
+            margin: 2px;
+        }}
+        QPushButton:hover {{
+            background-color: {c.White_Alpha_08};
+            color: {c.White_N1};
+        }}
+        QPushButton:checked {{
+            background-color: rgba(83, 252, 24, 0.15);
+            color: {c.NeonGreen_Main};
+            font-weight: bold;
+        }}
+    """,
+    "sidebar_container": f"""
+        QFrame {{
+            background-color: {c.Black_N1}; 
+            border-right: 0.5px solid {c.border};
+        }}
     """
 }
 

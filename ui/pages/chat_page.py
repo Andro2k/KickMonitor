@@ -2,49 +2,67 @@
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, 
-    QPushButton, QCheckBox, QFrame, QComboBox, QSlider, QLineEdit
+    QPushButton, QCheckBox, QFrame, QComboBox, QSlider, QLineEdit,
+    QSizePolicy, QGridLayout
 )
 from PyQt6.QtCore import QSize, Qt
 from ui.theme import LAYOUT, THEME_DARK, STYLES
-from ui.utils import get_icon
+from ui.utils import get_icon, get_colored_icon
 from services.chat_service import ChatService
+from ui.components.flow_layout import FlowLayout # <--- IMPORTANTE
 
 class ChatPage(QWidget):
     def __init__(self, db, tts_worker, parent=None):
         super().__init__(parent)
-        
-        # 1. Lógica de Negocio (Servicio)
         self.service = ChatService(db, tts_worker)
-        
-        # 2. Estado Interno UI
         self.voice_ids_map = []
         
-        # 3. Inicialización
         self.init_ui()
         self._load_initial_state()
 
-    # ==========================================
-    # 1. CONSTRUCCIÓN DE UI (SETUP)
-    # ==========================================
     def init_ui(self):
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(*LAYOUT["margins"])
-        main_layout.setSpacing(LAYOUT["spacing"])
+        main_layout.setContentsMargins(0, 0, 0, 0) # Margen 0 para manejar scroll si fuera necesario
+        
+        # CONTENEDOR PRINCIPAL CON MARGENES
+        content = QWidget()
+        l_content = QVBoxLayout(content)
+        l_content.setContentsMargins(*LAYOUT["margins"])
+        l_content.setSpacing(LAYOUT["spacing"])
 
-        # Construcción modular
-        self._setup_header(main_layout)
-        self._setup_tts_toolbar(main_layout)
-        self._setup_filters_bar(main_layout)
-        self._setup_chat_log(main_layout)
+        # 1. HEADER
+        self._setup_header(l_content)
+        
+        # 2. AREA DE CONTROLES (RESPONSIVE FLOW)
+        # Usamos un widget contenedor para el FlowLayout
+        controls_container = QWidget()
+        controls_layout = FlowLayout(controls_container, margin=0, spacing=10)
+        
+        # Tarjeta 1: Configuración de Voz
+        self.card_tts = self._create_tts_card()
+        self.card_tts.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        controls_layout.addWidget(self.card_tts)
+        
+        # Tarjeta 2: Filtros y Acciones
+        self.card_actions = self._create_actions_card()
+        self.card_actions.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        controls_layout.addWidget(self.card_actions)
+        
+        l_content.addWidget(controls_container)
+
+        # 3. CHAT LOG (Expandible)
+        self._setup_chat_log(l_content)
+        
+        main_layout.addWidget(content)
 
     def _setup_header(self, layout):
         h_box = QHBoxLayout()
         v_titles = QVBoxLayout()
+        v_titles.setSpacing(2)
 
         lbl_title = QLabel("Monitor de Chat")
         lbl_title.setObjectName("h2")
         
-        # Etiqueta pública para que el Controller actualice el estado (En Vivo/Desconectado)
         self.lbl_status = QLabel("Desconectado")
         self.lbl_status.setObjectName("subtitle")
         
@@ -53,118 +71,176 @@ class ChatPage(QWidget):
         
         h_box.addLayout(v_titles)
         h_box.addStretch()
+        
+        # Botón Toggle Mute (Lo movemos al header para acceso rápido global, opcional)
+        # O lo dejamos en la tarjeta de acciones. Por diseño limpio, lo dejaré en acciones.
+        
         layout.addLayout(h_box)
 
-    def _setup_tts_toolbar(self, layout):
-        self.frame_tts = QFrame()
-        self.frame_tts.setStyleSheet(f"""
-            QFrame {{
-                background-color: {THEME_DARK['Black_N3']};
-                border-radius: 8px; 
-                
-            }}
-        """)
+    # ==========================================
+    # CREACIÓN DE TARJETAS
+    # ==========================================
+    def _create_tts_card(self):
+        """Tarjeta con: Selector de Voz, Velocidad, Volumen."""
+        frame = QFrame()
+        frame.setMinimumWidth(320)
+        frame.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 12px;")
         
-        toolbar = QHBoxLayout(self.frame_tts)
-        toolbar.setContentsMargins(*LAYOUT["margins"])
-        toolbar.setSpacing(LAYOUT["spacing"])
+        l = QVBoxLayout(frame)
+        l.setContentsMargins(15, 15, 15, 15)
+        l.setSpacing(10)
 
-        # Icono
-        lbl_ico = QLabel()
-        lbl_ico.setPixmap(get_icon("voice.svg").pixmap(QSize(18,18)))
-        lbl_ico.setStyleSheet("border:none; opacity: 0.8;")
-        toolbar.addWidget(lbl_ico)
+        # Título
+        h_head = QHBoxLayout()
+        h_head.addWidget(QLabel("Configuración de Voz", objectName="h3"))
+        h_head.addStretch()
+        l.addLayout(h_head)
 
-        # Selector de Voz
+        # Selector
         self.c_voice = QComboBox()
         self.c_voice.setStyleSheet(STYLES["combobox"])
-        self.c_voice.setFixedWidth(200)
         self.c_voice.currentIndexChanged.connect(self._handle_settings_changed)
-        toolbar.addWidget(self.c_voice)
+        l.addWidget(QLabel("Voz del Sistema:", styleSheet="color:#aaa; font-size:11px;"))
+        l.addWidget(self.c_voice)
 
-        # Sliders (Velocidad y Volumen)
-        self.s_rate = self._create_slider(50, 300, "Velocidad:", toolbar)
-        self.s_vol = self._create_slider(0, 100, "Volumen:", toolbar)
+        # Sliders en Grid (Lado a Lado)
+        grid = QGridLayout()
+        self.s_rate = self._create_slider_widget("Velocidad", 50, 300)
+        self.s_vol = self._create_slider_widget("Volumen", 0, 100)
+        
+        grid.addWidget(self.s_rate, 0, 0)
+        grid.addWidget(self.s_vol, 0, 1)
+        l.addLayout(grid)
+        
+        return frame
 
-        # Comando disparador
-        toolbar.addWidget(QLabel("Comando:", styleSheet="border:none; color:#aaa; font-size:12px;"))
+    def _create_actions_card(self):
+        """Tarjeta con: Comando, Checkbox, Test, Mute."""
+        frame = QFrame()
+        frame.setMinimumWidth(320)
+        frame.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 12px;")
+        
+        l = QVBoxLayout(frame)
+        l.setContentsMargins(15, 15, 15, 15)
+        l.setSpacing(12)
+
+        # Título
+        l.addWidget(QLabel("Comportamiento", objectName="h3"))
+
+        # Fila: Comando + Botones
+        row_top = QHBoxLayout()
+        
+        # Input Comando
         self.txt_cmd_tts = QLineEdit()
         self.txt_cmd_tts.setPlaceholderText("!voz")
-        self.txt_cmd_tts.setFixedWidth(70)
+        self.txt_cmd_tts.setFixedWidth(80)
         self.txt_cmd_tts.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.txt_cmd_tts.setStyleSheet(STYLES["input_cmd"])
         self.txt_cmd_tts.editingFinished.connect(self._handle_command_saved)
-        toolbar.addWidget(self.txt_cmd_tts)
-
-        toolbar.addStretch()
         
-        # Botón Test
-        btn_test = QPushButton("Test")
+        row_top.addWidget(QLabel("Trigger:", styleSheet="color:#aaa; font-weight:bold;"))
+        row_top.addWidget(self.txt_cmd_tts)
+        row_top.addStretch()
+        
+        # Botones de Acción
+        btn_test = QPushButton(" Test Audio")
+        btn_test.setIcon(get_icon("play-circle.svg"))
         btn_test.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_test.setFixedSize(52, 32)
-        btn_test.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 4px;")
+        btn_test.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 6px; padding: 6px 12px;")
         btn_test.clicked.connect(self._handle_test_audio)
-        toolbar.addWidget(btn_test)
-
-        layout.addWidget(self.frame_tts)
-
-    def _setup_filters_bar(self, layout):
-        h_box = QHBoxLayout()
         
-        self.chk_command_only = QCheckBox("Solo leer mensajes que inicien con el comando")
-        self.chk_command_only.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.chk_command_only.stateChanged.connect(self._handle_filter_changed)
-        
-        # Botón Toggle Mute (Bocina)
         self.voice_btn = QPushButton()
-        self.voice_btn.setFixedSize(38, 38)
+        self.voice_btn.setFixedSize(36, 36)
         self.voice_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.voice_btn.setCheckable(True)
-        self.voice_btn.setChecked(True)
+        self.voice_btn.setChecked(True) # Start unmuted
         self.voice_btn.clicked.connect(self._update_mute_visuals)
+        
+        row_top.addWidget(btn_test)
+        row_top.addWidget(self.voice_btn)
+        l.addLayout(row_top)
 
-        h_box.addWidget(self.chk_command_only)
-        h_box.addStretch()
-        h_box.addWidget(self.voice_btn)
-        layout.addLayout(h_box)
+        # Separador
+        sep = QFrame(); sep.setFixedHeight(1); sep.setStyleSheet(f"background: {THEME_DARK['border']};")
+        l.addWidget(sep)
+
+        # Checkbox
+        self.chk_command_only = QCheckBox("Solo leer si inicia con comando")
+        self.chk_command_only.setCursor(Qt.CursorShape.PointingHandCursor)
+        # Usamos el estilo del switch importado o el default si no está disponible, aquí uno simple:
+        self.chk_command_only.setStyleSheet(f"QCheckBox {{ color: {THEME_DARK['Gray_N1']}; spacing: 8px; }}")
+        self.chk_command_only.stateChanged.connect(self._handle_filter_changed)
+        l.addWidget(self.chk_command_only)
+
+        return frame
+
+    def _create_slider_widget(self, label_text, min_v, max_v):
+        """Helper para crear un mini-widget de slider vertical u horizontal."""
+        w = QWidget()
+        l = QVBoxLayout(w)
+        l.setContentsMargins(0,0,0,0); l.setSpacing(5)
+        
+        header = QHBoxLayout()
+        lbl_name = QLabel(label_text, styleSheet="color:#aaa; font-size:11px;")
+        lbl_val = QLabel(str(min_v), styleSheet=f"color:{THEME_DARK['NeonGreen_Main']}; font-weight:bold; font-size:11px;")
+        header.addWidget(lbl_name); header.addStretch(); header.addWidget(lbl_val)
+        
+        slider = QSlider(Qt.Orientation.Horizontal)
+        slider.setRange(min_v, max_v)
+        slider.setStyleSheet(f"""
+            QSlider::groove:horizontal {{ height: 4px; background: {THEME_DARK['Black_N1']}; border-radius: 2px; }}
+            QSlider::handle:horizontal {{ background: {THEME_DARK['Gray_N1']}; width: 12px; margin: -4px 0; border-radius: 6px; }}
+            QSlider::handle:horizontal:hover {{ background: {THEME_DARK['NeonGreen_Main']}; }}
+        """)
+        
+        # Conexión interna para actualizar etiqueta
+        slider.valueChanged.connect(lambda v: lbl_val.setText(str(v)))
+        # Conexión externa
+        slider.valueChanged.connect(self._handle_settings_changed)
+        
+        l.addLayout(header)
+        l.addWidget(slider)
+        return w
 
     def _setup_chat_log(self, layout):
+        layout.addWidget(QLabel("Historial en Vivo", objectName="h3"))
         self.txt = QTextEdit()
         self.txt.setReadOnly(True)
         self.txt.setPlaceholderText("Esperando mensajes de Kick...")
         self.txt.setStyleSheet(f"""
             QTextEdit {{
-                background-color: {THEME_DARK['Black_N0']};
-                border-radius: 8px;
-                padding: 10px;
+                background-color: {THEME_DARK['Black_N3']};
+                color: {THEME_DARK['White_N1']};
+                border: 1px solid {THEME_DARK['Black_N2']};
+                border-radius: 12px;
+                padding: 12px;
+                font-family: 'Segoe UI', sans-serif;
+                font-size: 13px;
             }}
         """)
         layout.addWidget(self.txt)
 
     # ==========================================
-    # 2. CARGA DE DATOS (STATE)
+    # CARGA Y HANDLERS (Lógica igual)
     # ==========================================
     def _load_initial_state(self):
-        """Lee configuración de DB y Voces del sistema."""
-        # Bloqueamos señales para que al setear valores no dispare eventos de guardado
         self.c_voice.blockSignals(True)
         
-        # 1. Voces del Sistema
         voices = self.service.get_available_voices()
         self.voice_ids_map = []
+        self.c_voice.clear()
         for v in voices:
             self.c_voice.addItem(v["name"])
             self.voice_ids_map.append(v["id"])
         
-        # 2. Configuración Guardada
         settings = self.service.get_tts_settings()
-        
         self.txt_cmd_tts.setText(settings["command"])
         self.chk_command_only.setChecked(settings["filter_enabled"])
-        self.s_rate.setValue(settings["rate"])
-        self.s_vol.setValue(settings["volume"])
         
-        # Restaurar voz seleccionada
+        # Sliders (buscamos el QSlider dentro del widget contenedor)
+        self.s_rate.findChild(QSlider).setValue(settings["rate"])
+        self.s_vol.findChild(QSlider).setValue(settings["volume"])
+        
         if settings["voice_id"] in self.voice_ids_map:
             idx = self.voice_ids_map.index(settings["voice_id"])
             self.c_voice.setCurrentIndex(idx)
@@ -172,32 +248,25 @@ class ChatPage(QWidget):
         self.c_voice.blockSignals(False)
         self._update_mute_visuals()
 
-    # ==========================================
-    # 3. MANEJO DE EVENTOS (HANDLERS)
-    # ==========================================
     def _handle_settings_changed(self):
-        """Guarda configuración al mover sliders o cambiar combo."""
         idx = self.c_voice.currentIndex()
         if idx < 0: return
         
+        # Accedemos al valor real del slider
+        rate_val = self.s_rate.findChild(QSlider).value()
+        vol_val = self.s_vol.findChild(QSlider).value()
+        
         self.service.save_tts_config(
             voice_id=self.voice_ids_map[idx],
-            rate=self.s_rate.value(),
-            volume=self.s_vol.value()
+            rate=rate_val,
+            volume=vol_val
         )
 
     def _handle_command_saved(self):
-        # 1. Obtener el texto quitando espacios extra
         text = self.txt_cmd_tts.text().strip()
-    
-        if not text:
-            text = "!voz"
-
-        if not text.startswith("!"):
-            text = "!" + text
-        
+        if not text: text = "!voz"
+        if not text.startswith("!"): text = "!" + text
         self.txt_cmd_tts.setText(text)
-        
         if hasattr(self.service, 'save_tts_command'):
             self.service.save_tts_command(text)
 
@@ -205,68 +274,24 @@ class ChatPage(QWidget):
         self.service.set_filter_enabled(self.chk_command_only.isChecked())
 
     def _handle_test_audio(self):
-        # Aseguramos que la config actual esté guardada antes de probar
         self._handle_settings_changed()
-        self.service.tts.add_message("Prueba de audio del monitor de chat.")
+        self.service.tts.add_message("Prueba de audio, monitor activo.")
 
     def update_user_info(self, *args):
-        """
-        Slot para recibir señales de info de usuario.
-        (Actualmente no mostramos info específica aquí, pero mantenemos la compatibilidad)
-        """
         pass
 
-    # ==========================================
-    # 4. HELPERS VISUALES
-    # ==========================================
     def _update_mute_visuals(self):
         is_active = self.voice_btn.isChecked()
-        
         icon_name = "volume_on.svg" if is_active else "volume_off.svg"
-        bg_color = THEME_DARK['NeonGreen_Main'] if is_active else THEME_DARK['Black_N4']
-        border = "none" if is_active else "1px solid #555"
+        color = THEME_DARK['NeonGreen_Main'] if is_active else THEME_DARK['Gray_N1']
         
-        self.voice_btn.setIcon(get_icon(icon_name))
+        self.voice_btn.setIcon(get_colored_icon(icon_name, color))
         self.voice_btn.setStyleSheet(f"""
             QPushButton {{ 
-                background-color: {bg_color}; 
-                border-radius: 19px; 
-                border: {border}; 
+                background-color: {THEME_DARK['Black_N1']}; 
+                border: 1px solid {THEME_DARK['Black_N4']}; 
+                border-radius: 8px; 
             }}
+            QPushButton:hover {{ border-color: {color}; }}
+            QPushButton:checked {{ border-color: {THEME_DARK['NeonGreen_Main']}; background-color: rgba(83, 252, 24, 0.1); }}
         """)
-
-    def _create_slider(self, min_v, max_v, label_text, parent_layout):
-        # 1. El Título del Slider
-        parent_layout.addWidget(QLabel(label_text, styleSheet="border:none; color:#aaa; font-size:12px;"))
-        
-        # 2. Contenedor horizontal para [Slider] [Numero]
-        container = QWidget()
-        container.setStyleSheet("background: transparent; border: none;")
-        row = QHBoxLayout(container)
-        row.setContentsMargins(0,0,0,0)
-        row.setSpacing(5)
-
-        # 3. El Slider
-        slider = QSlider(Qt.Orientation.Horizontal)
-        slider.setStyleSheet("background: transparent;")
-        slider.setRange(min_v, max_v)
-        slider.setFixedWidth(100)
-        
-        # 4. El Label del Valor (NUEVO)
-        val_label = QLabel(str(min_v))
-        val_label.setFixedWidth(35) # Ancho fijo para que no "baile" la interfaz al cambiar de 9 a 10
-        val_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        val_label.setStyleSheet("color: #fff; font-weight: bold; font-size: 11px; border: none;")
-        
-        # --- LA MAGIA ---
-        slider.valueChanged.connect(lambda v: val_label.setText(str(v)))
-        slider.valueChanged.connect(self._handle_settings_changed)
-        
-        # Agregamos ambos al contenedor fila
-        row.addWidget(slider)
-        row.addWidget(val_label)
-        
-        # Agregamos el contenedor al layout padre
-        parent_layout.addWidget(container)
-        
-        return slider
