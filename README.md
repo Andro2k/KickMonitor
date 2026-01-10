@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="icon.png" height="220" alt="KickMonitor Logo" />
-  <h1>KickMonitor Bot</h1>
+  <img src="icon.png" height="220" alt="Kick Monitor Logo" />
+  <h1>KickMonitor</h1>
   <p>Solución integral de escritorio para gestión y automatización de streams en Kick.com</p>
 
   <p>
