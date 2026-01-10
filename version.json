@@ -1,5 +1,5 @@
 {
-    "version": "1.7.4.2",
+    "version": "1.7.4",
     "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.7.4/KickMonitor_Setup_v1.7.4.exe",
     "changelog": "<ul><li><b>SISTEMA:</b> Agregada protección de 'Instancia Única' (evita abrir la app dos veces) y corrección crítica en la detección de versiones del actualizador.</li><li><b>VISUAL:</b> Solucionado el error del icono en la barra de tareas de Windows y sincronización automática de foto de perfil en el Menú Lateral.</li><li><b>DASHBOARD:</b> Nueva distribución estratégica: Perfil y Música apilados a la izquierda, Accesos Directos a la derecha.</li><li><b>MEJORAS UI:</b> Tarjeta de Música rediseñada (horizontal con comandos laterales) y Página de Puntos optimizada para maximizar el espacio vertical.</li></ul>"
 }
