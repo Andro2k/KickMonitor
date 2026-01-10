@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QStackedWidget, QDialog
 )
 from PyQt6.QtCore import QTimer
-
+from PyQt6.QtGui import QIcon
 # Backend
 from backend.controller import MainController
 
@@ -24,11 +24,14 @@ from ui.pages.settings_page import SettingsPage
 from ui.pages.overlay_page import OverlayPage
 from ui.pages.points_page import PointsPage
 from ui.pages.commands_page import CommandsPage
-from ui.pages.casino_page import GamblingPage 
+from ui.pages.casino_page import GamblingPage
+from ui.utils import resource_path 
 
 class MainWindow(QMainWindow):
     def __init__(self):
-        super().__init__()      
+        super().__init__() 
+        self._setup_app_id()     
+        self.setWindowIcon(QIcon(resource_path("icon.ico")))
         self.setWindowTitle("Kick Monitor")
         self.resize(1000, 750)
         
@@ -47,8 +50,11 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(1000, self.controller.start_bot)
 
     def _setup_app_id(self):
-        try: ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('kick.monitor.bot.v2')
-        except: pass
+        myappid = 'kickmonitor.bot.v2.0' 
+        try: 
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+        except: 
+            pass
 
     def _init_pages(self):
         db = self.controller.db

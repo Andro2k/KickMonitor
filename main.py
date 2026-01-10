@@ -30,7 +30,7 @@ except ImportError:
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     
-    icon_path = resource_path("icon.png") 
+    icon_path = resource_path("icon.ico") 
     app.setWindowIcon(QIcon(icon_path))
     
     w = MainWindow()
