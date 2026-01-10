@@ -75,15 +75,14 @@ class DashboardPage(QWidget):
         """
         grid_container = QWidget()
         # Usamos FlowLayout para que si la pantalla es muy estrecha, la columna derecha baje.
-        grid_layout = FlowLayout(grid_container, margin=0, spacing=15)
+        grid_layout = FlowLayout(grid_container, margin=0, spacing=(LAYOUT["spacing"]))
 
         # ---------------------------------------------------------
         # A. COLUMNA IZQUIERDA (Perfil + Música)
         # ---------------------------------------------------------
         left_col_widget = QWidget()
-        # Expanding en Horizontal para llenar hueco, Preferred en Vertical
         left_col_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        left_col_widget.setMinimumWidth(380) # Ancho mínimo para que quepan bien los botones del perfil
+        left_col_widget.setMinimumWidth(380)
         
         left_layout = QVBoxLayout(left_col_widget)
         left_layout.setContentsMargins(0,0,0,0)
@@ -93,7 +92,7 @@ class DashboardPage(QWidget):
         self.profile_card = self._create_profile_card()
         left_layout.addWidget(self.profile_card)
 
-        # A2. Tarjeta Música (Instancia del componente)
+        # A2. Tarjeta Música
         self.music_panel = MusicPlayerPanel(self.service, self.spotify)
         left_layout.addWidget(self.music_panel)
         
@@ -120,12 +119,11 @@ class DashboardPage(QWidget):
     # ==========================================
     def _create_profile_card(self):
         card = QFrame()
-        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 16px;")
-        # Altura fija para mantener consistencia
-        card.setFixedHeight(140) 
+        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
+        card.setFixedHeight(120) 
         
         layout = QHBoxLayout(card)
-        layout.setContentsMargins(20, 15, 20, 15)
+        layout.setContentsMargins(*LAYOUT["margins"])
         layout.setSpacing(LAYOUT["spacing"])
 
         # Avatar
@@ -189,7 +187,7 @@ class DashboardPage(QWidget):
 
     def _create_shortcuts_card(self):
         card = QFrame()
-        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 16px;")
+        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
         
         l = QVBoxLayout(card)
         l.setContentsMargins(*LAYOUT["margins"])
@@ -220,7 +218,7 @@ class DashboardPage(QWidget):
             grid.addWidget(btn, r, c)
             
         l.addLayout(grid)
-        l.addStretch() # Para que los botones queden arriba si la tarjeta es muy alta
+        l.addStretch()
         
         return card
 
@@ -236,9 +234,8 @@ class DashboardPage(QWidget):
         
         self.log_console.setStyleSheet(f"""
             QTextEdit {{
-                background-color: {THEME_DARK['Black_N3']}; color: #aaa; border-radius: 12px;
+                background-color: {THEME_DARK['Black_N2']}; color: #aaa; border-radius: 12px;
                 font-family: Consolas, monospace; font-size: 12px; white-space: pre; padding: 10px;
-                border: 1px solid {THEME_DARK['Black_N4']};
             }}
         """)
         self.main_layout.addWidget(self.log_console)
@@ -309,7 +306,7 @@ class DashboardPage(QWidget):
                 border: 1px solid {THEME_DARK['Black_N2']};
             }} 
             QPushButton:hover {{ 
-                background-color: {THEME_DARK['Black_N3']}; 
+                background-color: {THEME_DARK['Black_N2']}; 
                 border: 1px solid {hover_c}; 
             }}
         """)

@@ -98,7 +98,7 @@ class SettingsPage(QWidget):
     # ==========================================
     def _create_kick_card(self):
         card = QFrame()
-        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 16px;")
+        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
         l = QVBoxLayout(card)
         l.setContentsMargins(20, 20, 20, 20)
         l.setSpacing(10)
@@ -124,7 +124,7 @@ class SettingsPage(QWidget):
 
     def _create_system_card(self):
         card = QFrame()
-        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 16px;")
+        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
         l = QVBoxLayout(card)
         l.setContentsMargins(20, 20, 20, 20)
         l.setSpacing(10)
@@ -153,7 +153,7 @@ class SettingsPage(QWidget):
 
     def _create_spotify_card(self):
         card = QFrame()
-        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 16px;")
+        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
         l = QVBoxLayout(card)
         l.setContentsMargins(20, 20, 20, 20)
         l.setSpacing(10)
@@ -181,7 +181,7 @@ class SettingsPage(QWidget):
 
     def _create_points_card(self):
         card = QFrame()
-        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 16px;")
+        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
         l = QVBoxLayout(card)
         l.setContentsMargins(20, 20, 20, 20)
         l.setSpacing(15)

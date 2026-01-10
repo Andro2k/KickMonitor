@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QHeaderView, 
     QAbstractItemView, QPushButton, QScrollArea, QSizePolicy
 )
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt
 
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
@@ -40,7 +40,7 @@ class GamblingPage(QWidget):
         # 2. LAYOUT PRINCIPAL DEL CONTENIDO
         self.main_layout = QVBoxLayout(content)
         self.main_layout.setContentsMargins(*LAYOUT["margins"])
-        self.main_layout.setSpacing(20) # Espacio entre secciones
+        self.main_layout.setSpacing(LAYOUT["spacing"])
 
         # 3. CONSTRUCCIÓN
         self._setup_header()
@@ -65,13 +65,14 @@ class GamblingPage(QWidget):
         
         # Interruptor Maestro en la cabecera
         container = QWidget()
-        container.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 8px; border: 1px solid {THEME_DARK['Black_N4']};")
+        container.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 8px; border: 1px solid {THEME_DARK['Black_N4']};")
         c_layout = QHBoxLayout(container)
-        c_layout.setContentsMargins(10, 5, 15, 5)
+        c_layout.setContentsMargins(*LAYOUT["margins"])
         
         lbl = QLabel("Estado del Casino:", styleSheet="border:none; color:#aaa; font-weight:bold; font-size:12px;")
         
         self.chk_enabled = QCheckBox()
+        self.chk_enabled.setStyleSheet(get_switch_style())
         self.chk_enabled.setCursor(Qt.CursorShape.PointingHandCursor)
         self.chk_enabled.setStyleSheet(get_switch_style())
         self.chk_enabled.setChecked(self.service.get_status())
@@ -92,7 +93,7 @@ class GamblingPage(QWidget):
         cards_container.setStyleSheet("background: transparent;")
         
         # FlowLayout para que las tarjetas se acomoden automáticamente
-        self.flow_layout = FlowLayout(cards_container, margin=0, spacing=15)
+        self.flow_layout = FlowLayout(cards_container, margin=0, spacing=(LAYOUT["spacing"]))
         
         # 1. Tarjeta de Límites (Globales)
         self.flow_layout.addWidget(self._create_limits_card())
@@ -124,7 +125,7 @@ class GamblingPage(QWidget):
 
     def _setup_history_section(self):
         """Tarjeta ancha para la tabla de historial."""
-        self.main_layout.addSpacing(10)
+        self.main_layout.addSpacing(LAYOUT["spacing"])
         
         # Header de sección
         h_sec = QHBoxLayout()
@@ -132,12 +133,12 @@ class GamblingPage(QWidget):
         h_sec.addStretch()
         
         # Botón Borrar
-        btn_clean = QPushButton(" Limpiar Historial")
+        btn_clean = QPushButton("Limpiar Historial")
         btn_clean.setIcon(get_colored_icon("trash.svg", "#FF453A"))
         btn_clean.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_clean.setStyleSheet(f"""
             QPushButton {{
-                background-color: {THEME_DARK['Black_N3']}; color: {THEME_DARK['White_N1']};
+                background-color: {THEME_DARK['Black_N2']}; color: {THEME_DARK['White_N1']};
                 padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: bold; border: none;
             }}
             QPushButton:hover {{ background-color: rgba(255, 69, 58, 0.2); color: #FF453A; }}
@@ -149,7 +150,7 @@ class GamblingPage(QWidget):
 
         # Tarjeta Tabla
         card = QFrame()
-        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 16px;")
+        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
         l_card = QVBoxLayout(card)
         l_card.setContentsMargins(0,0,0,0)
         
@@ -184,16 +185,16 @@ class GamblingPage(QWidget):
         card = QFrame()
         card.setMinimumWidth(300)
         card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 12px;")
+        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
         
         l = QVBoxLayout(card)
-        l.setContentsMargins(15, 15, 15, 15)
-        l.setSpacing(10)
+        l.setContentsMargins(*LAYOUT["margins"])
+        l.setSpacing(LAYOUT["spacing"])
 
         # Header
         h = QHBoxLayout()
         ico = QLabel(); ico.setPixmap(get_icon("sliders.svg").pixmap(18,18)); ico.setStyleSheet("border:none; opacity:0.7;")
-        tit = QLabel("Límites Globales"); tit.setStyleSheet(f"font-weight:bold; color:{THEME_DARK['White_N1']}; border:none;")
+        tit = QLabel("Límites Globales"); tit.setStyleSheet(f"font-weight:bold; color:{THEME_DARK['NeonGreen_Main']}; border:none;")
         h.addWidget(ico); h.addWidget(tit); h.addStretch()
         l.addLayout(h)
 
@@ -222,10 +223,10 @@ class GamblingPage(QWidget):
         card = QFrame()
         card.setMinimumWidth(280)
         card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 12px;")
+        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
         
         l = QVBoxLayout(card)
-        l.setContentsMargins(15, 15, 15, 15)
+        l.setContentsMargins(*LAYOUT["margins"])
         l.setSpacing(8)
 
         # Header

@@ -105,7 +105,8 @@ def get_sheet(is_dark: bool = True) -> str:
     /* --- INPUTS --- */
     QLineEdit, QPlainTextEdit {{ 
         background-color: {c.Black_N2}; color: {c.White_N1}; 
-        border-radius: {r['input']}; padding: 4px; 
+        border-radius: {r['input']}; padding: 4px;
+        border: 1px solid {c.border};
     }}
     QLineEdit:focus, QPlainTextEdit:focus {{ 
         border: 1px solid {c.NeonGreen_Main}; background-color: {c.Black_N3}; 
@@ -150,7 +151,7 @@ r = Dims.radius
 STYLES = {
     "card": f"""
         QFrame {{
-            background-color: {c.Black_N3}; 
+            background-color: {c.Black_N2}; 
             border-radius: {r['card']}; 
         }}
     """,
@@ -170,7 +171,7 @@ STYLES = {
     """,
     "spinbox_modern": f"""
         QSpinBox, QDoubleSpinBox {{
-            background-color: {c.Black_N2};
+            background-color: {c.Black_N3};
             color: {c.White_N1};
             border-radius: {r['input']};
             padding: 6px 10px;
@@ -185,12 +186,12 @@ STYLES = {
         QSpinBox::up-button, QDoubleSpinBox::up-button {{
             subcontrol-origin: border; subcontrol-position: top right; width: 16px;
             border-left: 0.5px solid {c.border}; border-bottom: 0.5px solid {c.border}; 
-            border-top-right-radius: {r['input']}; background-color: {c.Black_N2};
+            border-top-right-radius: {r['input']}; background-color: {c.Black_N3};
         }}
         QSpinBox::down-button, QDoubleSpinBox::down-button {{
             subcontrol-origin: border; subcontrol-position: bottom right; width: 16px;
             border-left: 0.5px solid {c.border}; border-top: 0.5px solid {c.border};
-            border-bottom-right-radius: {r['input']}; background-color: {c.Black_N2};
+            border-bottom-right-radius: {r['input']}; background-color: {c.Black_N3};
         }}
         QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
             background-color: {c.Black_N1}; border: 0.5px solid {c.NeonGreen_Main}; 
@@ -199,7 +200,8 @@ STYLES = {
     "combobox": f"""
         /* --- ESTADO BASE --- */
         QComboBox {{
-            background-color: {c.Black_N2};
+            background-color: {c.Black_N3};
+            border: 1px solid {c.border};
             color: {c.White_N1};
             border-radius: {r['input']};
             padding: 6px;
@@ -222,7 +224,7 @@ STYLES = {
 
         /* --- LISTA DESPLEGABLE (POPUP) --- */
         QComboBox QAbstractItemView {{
-            background-color: {c.Black_N3};
+            background-color: {c.Black_N1};
             color: {c.White_N1};
             selection-background-color: {c.NeonGreen_Main};
             selection-color: {c.Black_Pure};
@@ -230,30 +232,21 @@ STYLES = {
         }}
     """,
     "list_clean": f"""
-        QListWidget {{ background-color: {c.Black_N3}; outline: none; }}
+        QListWidget {{ background-color: {c.Black_N2}; outline: none; }}
         QListWidget::item {{ border-bottom: 1px solid {c.Black_N4}; padding: 6px; }}
         QListWidget::item:hover {{ background: {c.White_Alpha_08}; }}
         QListWidget::item:selected {{ background: {c.Black_N4}; }}
     """,
     "table_clean": f"""
         QTableWidget {{
-            background-color: {c.Black_N3}; gridline-color: {c.Black_N4}; outline: none;
+            background-color: {c.Black_N2}; gridline-color: {c.Black_N4}; outline: none;
         }}
         QHeaderView::section {{
-            background-color: {c.Black_N2}; color: {c.Gray_N1}; border: none; border-bottom: 1px solid {c.border};
+            background-color: {c.Black_N3}; color: {c.Gray_N1}; border: none; border-bottom: 1px solid {c.border};
             padding: 8px; font-weight: bold; text-transform: uppercase; font-size: 11px;
         }}
         QTableWidget::item {{ padding: 6px; border-bottom: 1px solid {c.Black_N4}; }}
         QTableWidget::item:selected {{ background-color: {c.White_Alpha_08}; color: {c.NeonGreen_Main}; }}
-    """,
-    "tabs_base": f"""
-        QTabWidget::pane {{ border: 1px solid {c.border}; }}
-        QTabBar::tab {{
-            background: {c.Black_N2}; color: {c.Gray_N1}; padding: 10px 15px;
-            border-top-left-radius: 8px; border-top-right-radius: 8px; margin-right: 2px;
-        }}
-        QTabBar::tab:selected {{ background: {c.Black_N3}; color: {c.NeonGreen_Main}; border-bottom: 2px solid {c.NeonGreen_Main}; }}
-        QTabBar::tab:hover {{ color: {c.White_N1}; background: {c.White_Alpha_08}; }}
     """,
     "sidebar_btn": f"""
         QPushButton {{

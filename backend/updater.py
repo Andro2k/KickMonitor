@@ -15,8 +15,6 @@ def get_base_path():
         # Si es EXE (PyInstaller)
         return sys._MEIPASS
     else:
-        # Si es DEV (Python script), asumimos que updater.py está en /backend
-        # y queremos ir a la raiz del proyecto
         return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def get_local_version():
@@ -25,9 +23,6 @@ def get_local_version():
         base_path = get_base_path()
         path = os.path.join(base_path, "version.json")
         
-        # DEBUG: Imprimir ruta para verificar si falla
-        # print(f"[DEBUG] Buscando version.json en: {path}")
-
         if not os.path.exists(path):
             return "0.0.0"
 

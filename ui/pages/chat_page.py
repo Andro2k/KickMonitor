@@ -34,7 +34,6 @@ class ChatPage(QWidget):
         self._setup_header(l_content)
         
         # 2. AREA DE CONTROLES (RESPONSIVE FLOW)
-        # Usamos un widget contenedor para el FlowLayout
         controls_container = QWidget()
         controls_layout = FlowLayout(controls_container, margin=0, spacing=10)
         
@@ -72,9 +71,6 @@ class ChatPage(QWidget):
         h_box.addLayout(v_titles)
         h_box.addStretch()
         
-        # Botón Toggle Mute (Lo movemos al header para acceso rápido global, opcional)
-        # O lo dejamos en la tarjeta de acciones. Por diseño limpio, lo dejaré en acciones.
-        
         layout.addLayout(h_box)
 
     # ==========================================
@@ -84,11 +80,11 @@ class ChatPage(QWidget):
         """Tarjeta con: Selector de Voz, Velocidad, Volumen."""
         frame = QFrame()
         frame.setMinimumWidth(320)
-        frame.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 12px;")
+        frame.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
         
         l = QVBoxLayout(frame)
-        l.setContentsMargins(15, 15, 15, 15)
-        l.setSpacing(10)
+        l.setContentsMargins(*LAYOUT["margins"])
+        l.setSpacing(LAYOUT["spacing"])
 
         # Título
         h_head = QHBoxLayout()
@@ -118,11 +114,11 @@ class ChatPage(QWidget):
         """Tarjeta con: Comando, Checkbox, Test, Mute."""
         frame = QFrame()
         frame.setMinimumWidth(320)
-        frame.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 12px;")
+        frame.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
         
         l = QVBoxLayout(frame)
-        l.setContentsMargins(15, 15, 15, 15)
-        l.setSpacing(12)
+        l.setContentsMargins(*LAYOUT["margins"])
+        l.setSpacing(LAYOUT["spacing"])
 
         # Título
         l.addWidget(QLabel("Comportamiento", objectName="h3"))
@@ -209,7 +205,7 @@ class ChatPage(QWidget):
         self.txt.setPlaceholderText("Esperando mensajes de Kick...")
         self.txt.setStyleSheet(f"""
             QTextEdit {{
-                background-color: {THEME_DARK['Black_N3']};
+                background-color: {THEME_DARK['Black_N2']};
                 color: {THEME_DARK['White_N1']};
                 border: 1px solid {THEME_DARK['Black_N2']};
                 border-radius: 12px;

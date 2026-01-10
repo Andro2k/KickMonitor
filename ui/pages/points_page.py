@@ -48,7 +48,7 @@ class PointsPage(QWidget):
         # --- CAMBIO: Usamos QVBoxLayout simple en lugar de FlowLayout ---
         self.content_layout = QVBoxLayout(content)
         self.content_layout.setContentsMargins(*LAYOUT["margins"])
-        self.content_layout.setSpacing(15) # Espacio entre la barra de gestión y la tabla
+        self.content_layout.setSpacing(LAYOUT["spacing"])
 
         # 3. CONSTRUCCIÓN DE LA UI
         # A. Header (Título + Botones Exportar)
@@ -66,7 +66,7 @@ class PointsPage(QWidget):
     def _create_header(self):
         h_frame = QFrame()
         h_header = QHBoxLayout(h_frame)
-        h_header.setContentsMargins(0, 0, 0, 5) # Pequeño margen inferior
+        h_header.setContentsMargins(0, 0, 0, 0) # Pequeño margen inferior
         
         v_titles = QVBoxLayout()
         v_titles.setSpacing(2)
@@ -92,26 +92,15 @@ class PointsPage(QWidget):
         Se ve mucho mejor que el cuadrado grande anterior.
         """
         card = QFrame()
-        card.setStyleSheet(f"background: {THEME_DARK['Black_N3']}; border-radius: 12px;")
+        card.setStyleSheet(f"background: {THEME_DARK['Black_N2']}; border-radius: 12px;")
         
         # Usamos QHBoxLayout (Horizontal) para que quede en una línea
         l = QHBoxLayout(card)
-        l.setContentsMargins(15, 12, 15, 12)
-        l.setSpacing(15)
-
-        # Título pequeño a la izquierda
-        lbl_tit = QLabel("Gestión Rápida", objectName="h3")
-        lbl_tit.setStyleSheet("border:none; margin-right: 10px;")
-        l.addWidget(lbl_tit)
-
-        # Separador vertical
-        line = QFrame()
-        line.setFrameShape(QFrame.Shape.VLine)
-        line.setStyleSheet(f"color: {THEME_DARK['Black_N4']};")
-        l.addWidget(line)
+        l.setContentsMargins(*LAYOUT["margins"])
+        l.setSpacing(LAYOUT["spacing"])
 
         # Inputs en línea
-        l.addWidget(QLabel("Usuario:", styleSheet="color:#888; font-weight:bold; border:none;"))
+        l.addWidget(QLabel("Usuario:", styleSheet="color:#888; font-weight:bold; "))
         
         self.inp_manual_user = QLineEdit()
         self.inp_manual_user.setPlaceholderText("Ej: damir")
@@ -119,7 +108,7 @@ class PointsPage(QWidget):
         self.inp_manual_user.setStyleSheet(STYLES["input"])
         l.addWidget(self.inp_manual_user)
 
-        l.addWidget(QLabel("Puntos:", styleSheet="color:#888; font-weight:bold; border:none;"))
+        l.addWidget(QLabel("Puntos:", styleSheet="color:#888; font-weight:bold; "))
         
         self.spin_manual_pts = QSpinBox()
         self.spin_manual_pts.setRange(-100000, 100000)
@@ -155,7 +144,7 @@ class PointsPage(QWidget):
         card = QFrame()
         # Expanding vertical para que llene la pantalla
         card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        card.setStyleSheet(f"background: {THEME_DARK['Black_N3']}; border-radius: 12px;")
+        card.setStyleSheet(f"background: {THEME_DARK['Black_N2']}; border-radius: 12px;")
         
         l = QVBoxLayout(card)
         l.setContentsMargins(0,0,0,0)
@@ -165,8 +154,8 @@ class PointsPage(QWidget):
         bar = QFrame()
         bar.setStyleSheet(f"border-bottom: 1px solid {THEME_DARK['Black_N4']}; background: transparent;")
         h_bar = QHBoxLayout(bar)
-        h_bar.setContentsMargins(15, 10, 15, 10)
-        h_bar.setSpacing(10)
+        h_bar.setContentsMargins(*LAYOUT["margins"])
+        h_bar.setSpacing(LAYOUT["spacing"])
 
         lbl_search = QLabel()
         lbl_search.setPixmap(get_icon("search.svg").pixmap(16,16))
@@ -174,12 +163,11 @@ class PointsPage(QWidget):
         h_bar.addWidget(lbl_search)
 
         self.inp_search = QLineEdit()
+        self.inp_search.setStyleSheet(STYLES["input"])
         self.inp_search.setPlaceholderText("Buscar usuario...")
-        self.inp_search.setStyleSheet("background:transparent; border:none; color:white;")
+        self.inp_search.setStyleSheet("background:transparent; color:white;")
         self.inp_search.textChanged.connect(self._handle_search_changed)
         h_bar.addWidget(self.inp_search, stretch=1)
-        
-        h_bar.addWidget(QLabel("|", styleSheet="color:#444; border:none;"))
         
         self.combo_filter = QComboBox()
         self.combo_filter.setStyleSheet(STYLES["combobox"].replace(f"background-color: {THEME_DARK['Black_N2']}", "background-color: transparent"))
@@ -373,7 +361,7 @@ class PointsPage(QWidget):
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {THEME_DARK['Black_N3']}; color: {THEME_DARK['White_N1']};
+                background-color: {THEME_DARK['Black_N2']}; color: {THEME_DARK['White_N1']};
                 padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold;
                 border: 1px solid {THEME_DARK['Black_N4']};
             }}

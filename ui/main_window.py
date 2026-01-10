@@ -30,7 +30,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()      
         self.setWindowTitle("Kick Monitor")
-        self.resize(1150, 750)
+        self.resize(1000, 750)
         
         self.controller = MainController()
         

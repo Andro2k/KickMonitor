@@ -162,7 +162,7 @@ class CommandsPage(QWidget):
     def _setup_form(self, layout):
         """Formulario de creación rápida."""
         form_frame = QFrame()
-        form_frame.setStyleSheet(f"background: {THEME_DARK['Black_N3']}; border-radius: 10px; ")
+        form_frame.setStyleSheet(f"background: {THEME_DARK['Black_N2']}; border-radius: 10px; ")
         
         main_form_layout = QVBoxLayout(form_frame)
         main_form_layout.setContentsMargins(10, 10, 10, 10)
@@ -199,7 +199,7 @@ class CommandsPage(QWidget):
         btn_add = QPushButton("Agregar")
         btn_add.setIcon(get_icon("plus.svg"))
         btn_add.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_add.setStyleSheet(f"QPushButton {{ background-color: {THEME_DARK['Black_N3']};  padding: 8px 15px; border-radius: {RADIUS['button']}; }} QPushButton:hover {{ background-color: {THEME_DARK['NeonGreen_Dark']}; border-color: {THEME_DARK['NeonGreen_Main']};}}")
+        btn_add.setStyleSheet(f"QPushButton {{ background-color: {THEME_DARK['Black_N2']};  padding: 8px 15px; border-radius: {RADIUS['button']}; }} QPushButton:hover {{ background-color: {THEME_DARK['NeonGreen_Dark']}; border-color: {THEME_DARK['NeonGreen_Main']};}}")
         btn_add.clicked.connect(self._handle_add_command)
 
         input_layout.addWidget(self.txt_trigger)
@@ -374,7 +374,7 @@ class CommandsPage(QWidget):
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {THEME_DARK['Black_N3']};
+                background-color: {THEME_DARK['Black_N2']};
                 color: {THEME_DARK['White_N1']};
                 
                 padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold;

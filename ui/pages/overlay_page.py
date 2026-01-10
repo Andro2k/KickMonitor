@@ -131,7 +131,7 @@ class OverlayPage(QWidget):
     def _setup_toolbar(self, layout):
         """Barra con buscador y filtros."""
         bar = QFrame()
-        bar.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 10px; ")
+        bar.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 10px; ")
         h_bar = QHBoxLayout(bar)
         h_bar.setContentsMargins(*LAYOUT["margins"])
         h_bar.setSpacing(LAYOUT["spacing"])
@@ -371,7 +371,7 @@ class OverlayPage(QWidget):
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {THEME_DARK['Black_N3']};
+                background-color: {THEME_DARK['Black_N2']};
                 color: {THEME_DARK['White_N1']};
                 
                 padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold;
