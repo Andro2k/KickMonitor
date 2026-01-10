@@ -19,3 +19,4 @@ exporter.txt
 installer/*.exe
 build.py
 backend/credentials.py
+requirements.txt
