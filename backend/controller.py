@@ -24,6 +24,7 @@ from backend.handlers.chat_handler import ChatHandler
 from backend.handlers.music_handler import MusicHandler
 from backend.handlers.game_handler import GameHandler
 from backend.handlers.alert_handler import AlertHandler
+from ui.dialogs.update_modal import UpdateModal
 
 class MainController(QObject):
     """
@@ -368,12 +369,38 @@ class MainController(QObject):
         self.updater.update_available.connect(self.ask_user_to_update)
         self.updater.start()
 
+    # En backend/controller.py
+    
+    # ... (dentro de MainController)
+
     def ask_user_to_update(self, new_ver, url, notes):
-        self.start_download(url)
+        """
+        Se ejecuta cuando UpdateCheckerWorker encuentra una versión nueva.
+        Lanza el modal y espera la decisión del usuario.
+        """
+        # IMPORTANTE: Necesitas pasar un 'parent' visual si es posible para que el modal
+        # aparezca centrado sobre la app. Si no tienes referencia a la ventana principal aquí,
+        # usa None, pero aparecerá en el centro de la pantalla.
+        modal = UpdateModal(new_ver, notes, parent=None) 
+        
+        if modal.exec():
+            # El usuario dio click en "Actualizar"
+            self.toast_signal.emit("Sistema", "Descargando actualización...", "Status_Green")
+            self.start_download(url)
+        else:
+            # El usuario dio click en "Más tarde"
+            self.emit_log(Log.system("El usuario pospuso la actualización."))
 
     def start_download(self, url):
         self.downloader = UpdateDownloaderWorker(url)
-        # Conectar señal de progreso a una barra si quieres
-        self.downloader.error.connect(lambda e: print(f"Error descarga: {e}"))
+        
+        # Conexiones
+        self.downloader.progress.connect(self._on_update_progress) # <--- NUEVO
+        self.downloader.error.connect(lambda e: self.toast_signal.emit("Error Update", str(e), "Status_Red"))
+        
         self.downloader.start()
-        # Recuerda: cuando termine, la app se cerrará sola (sys.exit)
+
+    def _on_update_progress(self, percent):
+        """Muestra el progreso en los logs o podrías actualizar una barra en la UI."""
+        if percent % 10 == 0: # Para no saturar el log
+            self.emit_log(Log.system(f"Descargando actualización: {percent}%"))

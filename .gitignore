@@ -17,4 +17,5 @@ session.json
 *.spotify_cache
 exporter.txt
 installer/*.exe
+build.py
 backend/credentials.py
