@@ -9,7 +9,7 @@ from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve
 from ui.theme import LAYOUT, THEME_DARK, STYLES, get_switch_style
 from ui.components.toast import ToastNotification
 from ui.utils import get_icon, get_colored_icon
-from services.alerts_service import AlertsService
+from backend.services.alerts_service import AlertsService
 from ui.components.flow_layout import FlowLayout  # <--- IMPORTAMOS
 
 # =========================================================================
@@ -50,7 +50,7 @@ class BaseAccordionCard(QFrame):
                 border: 1px solid {THEME_DARK['border']};
             }}
             QFrame#Content {{
-                background-color: {THEME_DARK['Black_N3']};
+                background-color: {THEME_DARK['Black_N2']};
                 border-top: 1px solid {THEME_DARK['border']};
                 border-bottom-left-radius: 12px;
                 border-bottom-right-radius: 12px;

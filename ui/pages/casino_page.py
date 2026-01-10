@@ -13,7 +13,7 @@ from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
 from ui.utils import get_icon, get_colored_icon
 from ui.theme import LAYOUT, THEME_DARK, STYLES, get_switch_style
-from services.gambling_service import GamblingService
+from backend.services.gambling_service import GamblingService
 from ui.components.flow_layout import FlowLayout # <--- IMPORTAMOS
 
 class GamblingPage(QWidget):

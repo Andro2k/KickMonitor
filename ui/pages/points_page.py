@@ -13,7 +13,7 @@ from ui.theme import LAYOUT, THEME_DARK, STYLES, get_switch_style
 from ui.utils import get_icon, get_colored_icon
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
-from services.points_service import PointsService
+from backend.services.points_service import PointsService
 # (Eliminamos FlowLayout porque ya no lo usaremos aquí)
 
 class PointsPage(QWidget):

@@ -16,7 +16,7 @@ from PyQt6.QtGui import QDesktopServices
 from backend.db_controller import DBHandler 
 from backend.logger import Log
 from backend.paths import get_app_data_path
-from services.oauth_service import OAuthService
+from backend.services.oauth_service import OAuthService
 
 # ==========================================
 # CONSTANTES & CONFIGURACIÓN
@@ -180,7 +180,7 @@ class KickBotWorker(QThread):
             # Servicio temporal para recibir el callback
             oauth_service = OAuthService(port=8080)
             
-            QDesktopServices.openUrl(QUrl(auth_data["auth_url"]))
+            QDesktopbackend.services.openUrl(QUrl(auth_data["auth_url"]))
             code = await oauth_service.wait_for_code(timeout=60)
             
             if not code: 

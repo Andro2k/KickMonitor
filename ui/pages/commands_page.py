@@ -12,7 +12,7 @@ from ui.theme import LAYOUT, THEME_DARK, STYLES, RADIUS, get_switch_style
 from ui.utils import get_icon
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
-from services.commands_service import CommandsService
+from backend.services.commands_service import CommandsService
 
 # ==========================================
 #      MODAL DE EDICIÓN (MULTILÍNEA)

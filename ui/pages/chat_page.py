@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import QSize, Qt
 from ui.theme import LAYOUT, THEME_DARK, STYLES
 from ui.utils import get_icon, get_colored_icon
-from services.chat_service import ChatService
+from backend.services.chat_service import ChatService
 from ui.components.flow_layout import FlowLayout # <--- IMPORTANTE
 
 class ChatPage(QWidget):

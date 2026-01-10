@@ -9,7 +9,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QUrl, QSize
 from PyQt6.QtGui import QPixmap, QPainter, QPainterPath
 from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 
-from services.dashboard_service import DashboardService
+from backend.services.dashboard_service import DashboardService
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
 from ui.dialogs.connection_modal import ConnectionModal

@@ -13,7 +13,7 @@ from ui.components.toast import ToastNotification
 from ui.components.media_item_widget import MediaItemWidget
 from ui.utils import get_icon
 from ui.theme import LAYOUT, STYLES, THEME_DARK, get_switch_style
-from services.overlay_service import OverlayService
+from backend.services.overlay_service import OverlayService
 
 class OverlayPage(QWidget):
     def __init__(self, server_worker, db_handler, parent=None):

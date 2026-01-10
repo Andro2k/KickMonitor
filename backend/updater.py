@@ -1,52 +1,37 @@
 # backend/updater.py
-import json
 import sys
 import os
-import subprocess
 import requests
 import tempfile
 from PyQt6.QtCore import QThread, pyqtSignal
 from packaging import version 
 
-# --- CORRECCIÓN 1: Rutas Robustas ---
-def get_base_path():
-    """Devuelve la ruta base correcta tanto en DEV como en EXE (Frozen)"""
-    if getattr(sys, 'frozen', False):
-        # Si es EXE (PyInstaller)
-        return sys._MEIPASS
-    else:
-        return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# =========================================================================
+# CONFIGURACIÓN DE VERSIÓN
+# =========================================================================
+# IMPORTANTE: Cambia este valor MANUALMENTE antes de compilar una nueva versión.
+# Al ser una constante, garantizamos que el EXE siempre sepa qué versión es.
+INTERNAL_VERSION = "1.7.4"
 
-def get_local_version():
-    """Lee la versión desde el archivo version.json"""
-    try:
-        base_path = get_base_path()
-        path = os.path.join(base_path, "version.json")
-        
-        if not os.path.exists(path):
-            return "0.0.0"
-
-        with open(path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            return data.get("version", "0.0.0")
-    except Exception as e:
-        print(f"Error leyendo versión local: {e}")
-        return "0.0.0"
-
-CURRENT_VERSION = get_local_version()
+CURRENT_VERSION = INTERNAL_VERSION
 UPDATE_JSON_URL = "https://raw.githubusercontent.com/Andro2k/KickMonitor/refs/heads/main/version.json"
 
-# --- WORKER CHECKER (Sin cambios mayores, solo validación) ---
+# =========================================================================
+# WORKER 1: VERIFICADOR DE ACTUALIZACIONES
+# =========================================================================
 class UpdateCheckerWorker(QThread):
-    update_available = pyqtSignal(str, str, str)
+    update_available = pyqtSignal(str, str, str) # version, url, changelog
     no_update = pyqtSignal()
     error = pyqtSignal(str)
 
     def run(self):
         try:
+            # 1. Consultar JSON remoto
+            print(f"[UPDATER] Buscando actualizaciones en: {UPDATE_JSON_URL}")
             resp = requests.get(UPDATE_JSON_URL, timeout=10)
+            
             if resp.status_code != 200:
-                self.error.emit("No se pudo conectar al servidor.")
+                self.error.emit(f"Error servidor: {resp.status_code}")
                 return
 
             data = resp.json()
@@ -54,18 +39,22 @@ class UpdateCheckerWorker(QThread):
             url = data.get("url", "")
             changelog = data.get("changelog", "")
 
-            # Comparamos versiones
-            # print(f"[SYSTEM] Local: {CURRENT_VERSION} vs Remota: {remote_ver}") # Log para debug
-            
+            # 2. Comparar versiones
+            # Usamos packaging.version para comparaciones robustas (ej: 1.7.10 > 1.7.2)
             if version.parse(remote_ver) > version.parse(CURRENT_VERSION):
+                print(f"[UPDATER] Actualización encontrada: {remote_ver}")
                 self.update_available.emit(remote_ver, url, changelog)
             else:
+                print(f"[UPDATER] Sistema actualizado ({CURRENT_VERSION})")
                 self.no_update.emit()
 
         except Exception as e:
-            self.error.emit(f"Error buscando: {str(e)}")
+            print(f"[UPDATER] Error check: {e}")
+            self.error.emit(f"Error de conexión: {str(e)}")
 
-# --- WORKER DOWNLOADER (Corrección del lanzador) ---
+# =========================================================================
+# WORKER 2: DESCARGADOR E INSTALADOR
+# =========================================================================
 class UpdateDownloaderWorker(QThread):
     progress = pyqtSignal(int)
     finished = pyqtSignal()
@@ -78,10 +67,13 @@ class UpdateDownloaderWorker(QThread):
 
     def run(self):
         try:
+            # 1. Preparar ruta temporal
             temp_dir = tempfile.gettempdir()
-            # Usamos un nombre fijo para evitar basura, o dinámico si prefieres
             self.installer_path = os.path.join(temp_dir, "KickMonitor_Update.exe")
+            
+            print(f"[UPDATER] Descargando en: {self.installer_path}")
 
+            # 2. Descargar con stream para barra de progreso
             with requests.get(self.url, stream=True) as r:
                 r.raise_for_status()
                 total_length = int(r.headers.get('content-length', 0))
@@ -92,34 +84,32 @@ class UpdateDownloaderWorker(QThread):
                         if chunk:
                             dl += len(chunk)
                             f.write(chunk)
+                            
+                            # Calcular porcentaje
                             if total_length > 0:
                                 percent = int((dl / total_length) * 100)
                                 self.progress.emit(percent)
 
+            # 3. Lanzar instalación
             self._launch_installer()
             self.finished.emit()
 
         except Exception as e:
-            self.error.emit(str(e))
+            print(f"[UPDATER] Error download: {e}")
+            self.error.emit(f"Error en descarga: {str(e)}")
 
     def _launch_installer(self):
+        """Ejecuta el instalador y cierra la app actual."""
         if os.path.exists(self.installer_path):
-            print(f"[SYSTEM] Ejecutando instalador: {self.installer_path}")
-            
-            # --- CORRECCIÓN 2: Ejecución Visible y Desacoplada ---
-            # Quitamos /VERYSILENT para que el usuario vea el instalador y pueda aceptar permisos de Admin.
-            # Usamos ShellExecute (os.startfile) o Popen con shell=True para despegar el proceso.
+            print(f"[UPDATER] Ejecutando instalador...")
             
             try:
-                # Opción recomendada para Windows: os.startfile
-                # Esto ejecuta el .exe como si le dieras doble clic.
                 os.startfile(self.installer_path)
-                
-                # Cerramos la app actual para liberar archivos (DB, logs, etc)
-                # Damos un pequeño respiro para asegurar que el comando salió
                 QThread.msleep(500) 
                 sys.exit(0)
                 
             except Exception as e:
-                print(f"Error lanzando instalador: {e}")
+                print(f"[UPDATER] Error lanzando EXE: {e}")
                 self.error.emit(f"No se pudo abrir el instalador: {e}")
+        else:
+            self.error.emit("El archivo descargado no existe.")

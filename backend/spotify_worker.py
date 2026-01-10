@@ -152,7 +152,7 @@ class SpotifyWorker(QObject):
             self.login_thread.start()
             # Abrir navegador del usuario
             auth_url = self.auth_manager.get_authorize_url()
-            QDesktopServices.openUrl(QUrl(auth_url))
+            QDesktopbackend.services.openUrl(QUrl(auth_url))
             self.status_msg.emit(Log.warning("Esperando autorización en el navegador..."))
             
         except Exception as e:

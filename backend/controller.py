@@ -19,7 +19,7 @@ from backend.workers import FollowMonitorWorker
 
 # --- LÓGICA DE NEGOCIO (SERVICIOS Y HANDLERS) ---
 from backend.casino import CasinoSystem
-from services.commands_service import CommandsService
+from backend.services.commands_service import CommandsService
 from backend.handlers.chat_handler import ChatHandler
 from backend.handlers.music_handler import MusicHandler
 from backend.handlers.game_handler import GameHandler

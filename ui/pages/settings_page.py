@@ -11,7 +11,7 @@ from ui.components.toast import ToastNotification
 from ui.dialogs.connection_modal import ConnectionModal
 from ui.utils import get_icon
 from ui.theme import LAYOUT, THEME_DARK, STYLES
-from services.settings_service import SettingsService
+from backend.services.settings_service import SettingsService
 from ui.components.flow_layout import FlowLayout
 
 class SettingsPage(QWidget):
