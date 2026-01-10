@@ -84,7 +84,7 @@ class SettingsPage(QWidget):
         row = QHBoxLayout()
         row.setSpacing(LAYOUT["spacing"])
         row.addWidget(self._create_api_card())
-        row.addWidget(self._create_system_card()) # <--- NUEVA TARJETA DE SISTEMA
+        row.addWidget(self._create_system_card())
         self.content_layout.addLayout(row)
 
     # ==========================================
@@ -120,7 +120,9 @@ class SettingsPage(QWidget):
         self._add_card_header(card, "settings.svg", "Sistema") 
         
         # Versión actual obtenida del Controller
-        ver = getattr(self.controller, "VERSION", "Desconocida")
+        ver = getattr(self.controller, "VERSION", "0.0.0")
+        if ver == "0.0.0":
+            ver = "Dev / No detectada"
         lbl_ver = QLabel(f"Versión Actual: v{ver}")
         lbl_ver.setStyleSheet("color: #AAA; font-size: 13px; border: none; margin-bottom: 5px;")
         card.layout.addWidget(lbl_ver)

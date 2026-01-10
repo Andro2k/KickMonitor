@@ -6,44 +6,52 @@ import subprocess
 import requests
 import tempfile
 from PyQt6.QtCore import QThread, pyqtSignal
-from packaging import version # Recomendado: pip install packaging
+from packaging import version 
 
-def get_resource_path(relative_path):
-    """Obtiene la ruta absoluta al recurso, funciona para dev y PyInstaller"""
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
+# --- CORRECCIÓN 1: Rutas Robustas ---
+def get_base_path():
+    """Devuelve la ruta base correcta tanto en DEV como en EXE (Frozen)"""
+    if getattr(sys, 'frozen', False):
+        # Si es EXE (PyInstaller)
+        return sys._MEIPASS
+    else:
+        # Si es DEV (Python script), asumimos que updater.py está en /backend
+        # y queremos ir a la raiz del proyecto
+        return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def get_local_version():
-    """Lee la versión desde el archivo version.json incluido en el EXE"""
+    """Lee la versión desde el archivo version.json"""
     try:
-        path = get_resource_path("version.json")
-        with open(path, 'r') as f:
+        base_path = get_base_path()
+        path = os.path.join(base_path, "version.json")
+        
+        # DEBUG: Imprimir ruta para verificar si falla
+        # print(f"[DEBUG] Buscando version.json en: {path}")
+
+        if not os.path.exists(path):
+            return "0.0.0"
+
+        with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
             return data.get("version", "0.0.0")
     except Exception as e:
         print(f"Error leyendo versión local: {e}")
         return "0.0.0"
 
-# --- CAMBIO AQUÍ ---
-# Ya no escribimos el número a mano:
 CURRENT_VERSION = get_local_version()
-# URL RAW donde tienes tu json (ejemplo GitHub)
 UPDATE_JSON_URL = "https://raw.githubusercontent.com/Andro2k/KickMonitor/refs/heads/main/version.json"
 
+# --- WORKER CHECKER (Sin cambios mayores, solo validación) ---
 class UpdateCheckerWorker(QThread):
-    update_available = pyqtSignal(str, str, str) # version, url, changelog
+    update_available = pyqtSignal(str, str, str)
     no_update = pyqtSignal()
     error = pyqtSignal(str)
 
     def run(self):
         try:
-            # 1. Consultar versión remota
             resp = requests.get(UPDATE_JSON_URL, timeout=10)
             if resp.status_code != 200:
-                self.error.emit("No se pudo conectar al servidor de actualizaciones.")
+                self.error.emit("No se pudo conectar al servidor.")
                 return
 
             data = resp.json()
@@ -51,15 +59,18 @@ class UpdateCheckerWorker(QThread):
             url = data.get("url", "")
             changelog = data.get("changelog", "")
 
-            # 2. Comparar versiones
+            # Comparamos versiones
+            print(f"[SYSTEM] Local: {CURRENT_VERSION} vs Remota: {remote_ver}") # Log para debug
+            
             if version.parse(remote_ver) > version.parse(CURRENT_VERSION):
                 self.update_available.emit(remote_ver, url, changelog)
             else:
                 self.no_update.emit()
 
         except Exception as e:
-            self.error.emit(f"Error buscando actualizaciones: {str(e)}")
+            self.error.emit(f"Error buscando: {str(e)}")
 
+# --- WORKER DOWNLOADER (Corrección del lanzador) ---
 class UpdateDownloaderWorker(QThread):
     progress = pyqtSignal(int)
     finished = pyqtSignal()
@@ -72,11 +83,10 @@ class UpdateDownloaderWorker(QThread):
 
     def run(self):
         try:
-            # 1. Crear ruta temporal para el instalador
             temp_dir = tempfile.gettempdir()
+            # Usamos un nombre fijo para evitar basura, o dinámico si prefieres
             self.installer_path = os.path.join(temp_dir, "KickMonitor_Update.exe")
 
-            # 2. Descargar con stream para barra de progreso
             with requests.get(self.url, stream=True) as r:
                 r.raise_for_status()
                 total_length = int(r.headers.get('content-length', 0))
@@ -91,7 +101,6 @@ class UpdateDownloaderWorker(QThread):
                                 percent = int((dl / total_length) * 100)
                                 self.progress.emit(percent)
 
-            # 3. Ejecutar instalador y cerrar app
             self._launch_installer()
             self.finished.emit()
 
@@ -100,8 +109,22 @@ class UpdateDownloaderWorker(QThread):
 
     def _launch_installer(self):
         if os.path.exists(self.installer_path):
-            # subprocess.Popen lanza el proceso y NO espera a que termine
-            subprocess.Popen([self.installer_path, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"])
-            # CERRAR LA APP ACTUAL INMEDIATAMENTE
-            # Esto es vital para que el instalador pueda sobrescribir el .exe
-            sys.exit(0)
+            print(f"[SYSTEM] Ejecutando instalador: {self.installer_path}")
+            
+            # --- CORRECCIÓN 2: Ejecución Visible y Desacoplada ---
+            # Quitamos /VERYSILENT para que el usuario vea el instalador y pueda aceptar permisos de Admin.
+            # Usamos ShellExecute (os.startfile) o Popen con shell=True para despegar el proceso.
+            
+            try:
+                # Opción recomendada para Windows: os.startfile
+                # Esto ejecuta el .exe como si le dieras doble clic.
+                os.startfile(self.installer_path)
+                
+                # Cerramos la app actual para liberar archivos (DB, logs, etc)
+                # Damos un pequeño respiro para asegurar que el comando salió
+                QThread.msleep(500) 
+                sys.exit(0)
+                
+            except Exception as e:
+                print(f"Error lanzando instalador: {e}")
+                self.error.emit(f"No se pudo abrir el instalador: {e}")
