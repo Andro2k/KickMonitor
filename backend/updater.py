@@ -105,7 +105,7 @@ class UpdateDownloaderWorker(QThread):
             
             try:
                 os.startfile(self.installer_path)
-                QThread.msleep(500) 
+                QThread.msleep(1000) 
                 sys.exit(0)
                 
             except Exception as e:
