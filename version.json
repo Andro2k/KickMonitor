@@ -1,5 +1,5 @@
 {
-    "version": "1.7.2",
-    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.7.2/KickMonitor_Setup_v1.7.2.exe",
-    "changelog": "<ul><li>Agregado modal de confirmación.</li><li>Corregido error en Spotify.</li></ul>"
+    "version": "1.7.3",
+    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.7.3/KickMonitor_Setup_v1.7.3.exe",
+    "changelog": "<ul><li><b>NUEVO:</b> Menú lateral (Sidebar) plegable con perfil de usuario integrado.</li><li><b>MEJORA:</b> Diseño responsivo (Flow Layout) en Dashboard, Ajustes, Alertas y Overlay.</li><li><b>REDDISEÑO:</b> Página de Casino unificada (sin pestañas) y Página de Puntos con gestión rápida.</li><li><b>FIX:</b> Corrección de errores en iconos y optimización de código.</li></ul>"
 }
