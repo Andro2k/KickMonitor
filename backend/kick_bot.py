@@ -180,7 +180,7 @@ class KickBotWorker(QThread):
             # Servicio temporal para recibir el callback
             oauth_service = OAuthService(port=8080)
             
-            QDesktopbackend.services.openUrl(QUrl(auth_data["auth_url"]))
+            QDesktopServices.openUrl(QUrl(auth_data["auth_url"]))
             code = await oauth_service.wait_for_code(timeout=60)
             
             if not code: 
