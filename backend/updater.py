@@ -60,7 +60,7 @@ class UpdateCheckerWorker(QThread):
             changelog = data.get("changelog", "")
 
             # Comparamos versiones
-            print(f"[SYSTEM] Local: {CURRENT_VERSION} vs Remota: {remote_ver}") # Log para debug
+            # print(f"[SYSTEM] Local: {CURRENT_VERSION} vs Remota: {remote_ver}") # Log para debug
             
             if version.parse(remote_ver) > version.parse(CURRENT_VERSION):
                 self.update_available.emit(remote_ver, url, changelog)
