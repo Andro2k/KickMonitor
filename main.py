@@ -2,12 +2,12 @@
 
 import os
 import sys
-import ctypes  # <--- 1. NECESARIO PARA WINDOWS
-from PyQt6.QtWidgets import QApplication
-from PyQt6.QtGui import QIcon  # <--- 2. NECESARIO PARA EL ICONO
+import ctypes
+from PyQt6.QtWidgets import QApplication, QMessageBox # <--- 1. AGREGAMOS QMessageBox
+from PyQt6.QtGui import QIcon
 
 from ui.main_window import MainWindow
-from ui.utils import resource_path  # <--- 3. IMPORTAMOS TU FUNCIÓN DE RUTAS
+from ui.utils import resource_path
 
 # --- FIX PARA "LOST SYS.STDIN" Y "ATTRIBUTE ERROR" ---
 if sys.platform.startswith('win'):
@@ -21,7 +21,8 @@ if sys.platform.startswith('win'):
 if not hasattr(sys, '_MEIPASS'):
     pass
 
-myappid = 'kickmonitor.bot.v2.0' 
+# Configurar ID de Windows para la barra de tareas
+myappid = 'kickmonitor.v1.7.4' 
 try:
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except ImportError:
@@ -30,6 +31,27 @@ except ImportError:
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     
+    # --- PROTECCIÓN DE INSTANCIA ÚNICA (NUEVO) ---
+    # Creamos un identificador único. Si cambias de versión, puedes mantenerlo igual.
+    mutex_id = "KickMonitor_Instance_Mutex_Unique_ID"
+    
+    # Intentamos crear el Mutex en el Kernel de Windows
+    mutex = ctypes.windll.kernel32.CreateMutexW(None, False, mutex_id)
+    
+    # Si el error es 183 (ERROR_ALREADY_EXISTS), ya hay una instancia abierta
+    if ctypes.windll.kernel32.GetLastError() == 183:
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle("KickMonitor")
+        msg.setText("La aplicación ya se está ejecutando.")
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+        # Aseguramos que el popup tenga el icono correcto también
+        msg.setWindowIcon(QIcon(resource_path("icon.ico"))) 
+        msg.exec()
+        sys.exit(0)
+    # ---------------------------------------------
+
+    # Cargar icono de la aplicación
     icon_path = resource_path("icon.ico") 
     app.setWindowIcon(QIcon(icon_path))
     
