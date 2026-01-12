@@ -7,7 +7,6 @@ from PyQt6.QtCore import Qt
 from ui.theme import LAYOUT, THEME_DARK
 from backend.services.alerts_service import AlertsService
 from ui.components.flow_layout import FlowLayout
-# Importamos los componentes refactorizados
 from ui.components.alert_cards import AlertCard, TimerCard
 
 class AlertsPage(QWidget):
@@ -39,8 +38,7 @@ class AlertsPage(QWidget):
         events_container = QWidget()
         events_container.setStyleSheet("background: transparent;")
         # Usamos FlowLayout para que las cards se acomoden solas
-        events_flow = FlowLayout(events_container, margin=0, spacing=15)
-        
+        events_flow = FlowLayout(events_container, margin=0, spacing=(LAYOUT["spacing"]))
         # Tarjetas de Eventos
         events_flow.addWidget(AlertCard(self.service, "Nuevo Seguidor", "follow", "Mensaje al seguir.", "{user}, {count}"))
         events_flow.addWidget(AlertCard(self.service, "Suscripción", "subscription", "Mensaje al suscribirse.", "{user}, {months}"))
@@ -56,8 +54,8 @@ class AlertsPage(QWidget):
         timers_container = QWidget()
         timers_container.setStyleSheet("background: transparent;")
         # Otro FlowLayout independiente para esta sección
-        timers_flow = FlowLayout(timers_container, margin=0, spacing=15)
-        
+        timers_flow = FlowLayout(timers_container, margin=0, spacing=(LAYOUT["spacing"]))
+        # Tarjetas de Timers
         timers_flow.addWidget(TimerCard(self.service, "Redes Sociales", "redes", "Ej: Sígueme en Twitter..."))
         timers_flow.addWidget(TimerCard(self.service, "Discord / Comunidad", "discord", "Ej: Únete al server..."))
         timers_flow.addWidget(TimerCard(self.service, "Promo / Reglas", "promo", "Ej: Respetar normas..."))

@@ -104,22 +104,19 @@ class FlowLayout(QLayout):
             x = rect.x()
             count = len(row_items)
             
-            # Espacio sobrante para repartir
             available_space = width - used_width
             extra_per_item = int(available_space / count) if count > 0 else 0
             
             for i, item in enumerate(row_items):
-                # El ancho será su tamaño base + la porción extra
                 w = item.sizeHint().width() + extra_per_item
                 
-                # Ajuste fino para el último item (por redondeo de enteros)
                 if i == count - 1:
                     remaining_width = (rect.x() + width) - x
                     w = remaining_width
                 
                 if not test_only:
-                    # Estiramos también la altura para que todas las cards de la fila sean iguales
-                    item.setGeometry(QRect(QPoint(x, y), QSize(w, row_height)))
+                    current_h = item.sizeHint().height() 
+                    item.setGeometry(QRect(QPoint(x, y), QSize(w, current_h)))
                 
                 x += w + spacing
                 

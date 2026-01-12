@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QSpinBox, QSizePolicy
 )
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve
-from ui.theme import THEME_DARK, STYLES, get_switch_style
+from ui.theme import LAYOUT, THEME_DARK, STYLES, get_switch_style
 from ui.components.toast import ToastNotification
 from ui.utils import get_icon
 
@@ -51,7 +51,7 @@ class BaseAccordionCard(QFrame):
         self.header.mousePressEvent = self.toggle_expand
         
         h_layout = QHBoxLayout(self.header)
-        h_layout.setContentsMargins(15, 12, 15, 12)
+        h_layout.setContentsMargins(*LAYOUT["margins"])
         
         # Icono Estado
         self.status_indicator = QLabel("●")
@@ -101,7 +101,7 @@ class BaseAccordionCard(QFrame):
             self.anim.setEndValue(0)
         else:
             # Calcular altura necesaria
-            target_h = self.content_layout.sizeHint().height() + 20 # +Padding
+            target_h = self.content_layout.sizeHint().height() + 20
             self.anim.setStartValue(0)
             self.anim.setEndValue(target_h)
             
@@ -188,7 +188,7 @@ class TimerCard(BaseAccordionCard):
         self.spin.setRange(1, 120)
         self.spin.setValue(interval)
         self.spin.setSuffix(" min")
-        self.spin.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; color: white; padding: 4px; border-radius: 4px;")
+        self.spin.setStyleSheet(f"{STYLES['spinbox_modern']};")
         
         row_conf.addWidget(QLabel("Intervalo:"))
         row_conf.addWidget(self.spin)

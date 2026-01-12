@@ -31,7 +31,7 @@ class Sidebar(QFrame):
         self.setStyleSheet(STYLES["sidebar_container"])
         
         # Dimensiones
-        self.full_width = 184
+        self.full_width = 174
         self.mini_width = 64
         self.is_collapsed = False
         self.buttons = []
@@ -132,7 +132,7 @@ class Sidebar(QFrame):
         self.lbl_avatar = QLabel()
         self.lbl_avatar.setFixedSize(32, 32)
         self.lbl_avatar.setStyleSheet(f"background-color: {THEME_DARK['Black_N4']}; border-radius: 16px;")
-        self.lbl_avatar.setPixmap(get_icon("user.svg").pixmap(16, 16)) # Icono por defecto
+        self.lbl_avatar.setPixmap(get_icon("user.svg").pixmap(56,56)) # Icono por defecto
         self.lbl_avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_avatar.setScaledContents(True)
 
@@ -167,22 +167,31 @@ class Sidebar(QFrame):
         reply.deleteLater()
 
     def _set_circular_avatar(self, pixmap):
-        size = 32
-        # Escalar
-        pixmap = pixmap.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
+        visual_size = 48
+        scale_factor = 4
+        actual_size = visual_size * scale_factor
+
+        pixmap = pixmap.scaled(
+            actual_size, 
+            actual_size, 
+            Qt.AspectRatioMode.KeepAspectRatioByExpanding, 
+            Qt.TransformationMode.SmoothTransformation
+        )
         
-        # Crear lienzo transparente
-        rounded = QPixmap(size, size)
+        rounded = QPixmap(actual_size, actual_size)
         rounded.fill(Qt.GlobalColor.transparent)
         
-        # Pintar círculo
         painter = QPainter(rounded)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+        
         path = QPainterPath()
-        path.addEllipse(0, 0, size, size)
+        path.addEllipse(0, 0, actual_size, actual_size)
         painter.setClipPath(path)
         painter.drawPixmap(0, 0, pixmap)
         painter.end()
+        
+        rounded.setDevicePixelRatio(scale_factor)
         
         self.lbl_avatar.setPixmap(rounded)
 
