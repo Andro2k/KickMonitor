@@ -9,8 +9,8 @@ from typing import Optional, Set, Dict, Any
 from aiohttp import web, WSMsgType
 from PyQt6.QtCore import QThread, pyqtSignal
 
-from backend.db_controller import DBHandler
-from backend.logger import Log 
+from backend.core.db_controller import DBHandler
+from backend.utils.logger import Log 
 
 # ==========================================
 # 1. CONSTANTES & CONFIGURACIÓN

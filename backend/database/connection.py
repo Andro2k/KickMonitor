@@ -4,7 +4,7 @@ import os
 import sys
 from PyQt6.QtCore import QMutex, QMutexLocker
 
-from backend.paths import get_app_data_path
+from backend.utils.paths import get_app_data_path
 
 class DatabaseConnection:
     def __init__(self, db_name="kick_data.db"):

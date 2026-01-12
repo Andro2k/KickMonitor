@@ -4,7 +4,7 @@ from typing import Dict, Any, List, Tuple
 
 # Intentar cargar credenciales locales (dev/pre-carga)
 try:
-    from backend.credentials import KICK_CREDS, SPOTIFY_CREDS
+    from backend.config.credentials import KICK_CREDS, SPOTIFY_CREDS
 except ImportError:
     KICK_CREDS, SPOTIFY_CREDS = {}, {}
 

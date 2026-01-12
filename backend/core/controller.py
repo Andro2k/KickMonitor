@@ -7,18 +7,18 @@ from typing import Optional
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer, QThread
 
 # --- INFRAESTRUCTURA Y WORKERS ---
-from backend.db_controller import DBHandler
+from backend.core.db_controller import DBHandler
 from backend.handlers.antibot_handler import AntibotHandler
-from backend.logger import Log
-from backend.overlay_server import OverlayServerWorker
-from backend.kick_bot import KickBotWorker   
-from backend.spotify_worker import SpotifyWorker
-from backend.tts import TTSWorker   
-from backend.updater import CURRENT_VERSION, UpdateCheckerWorker, UpdateDownloaderWorker
-from backend.workers import FollowMonitorWorker
+from backend.utils.logger import Log
+from backend.workers.overlay_server import OverlayServerWorker
+from backend.core.kick_bot import KickBotWorker   
+from backend.workers.spotify_worker import SpotifyWorker
+from backend.workers.tts import TTSWorker   
+from backend.workers.updater import CURRENT_VERSION, UpdateCheckerWorker, UpdateDownloaderWorker
+from backend.workers.workers import FollowMonitorWorker
 
 # --- LÓGICA DE NEGOCIO (SERVICIOS Y HANDLERS) ---
-from backend.casino import CasinoSystem
+from backend.domain.casino import CasinoSystem
 from backend.services.commands_service import CommandsService
 from backend.handlers.chat_handler import ChatHandler
 from backend.handlers.music_handler import MusicHandler

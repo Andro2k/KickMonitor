@@ -11,8 +11,8 @@ from PyQt6.QtGui import QDesktopServices
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
-from backend.logger import Log
-from backend.paths import get_app_data_path
+from backend.utils.logger import Log
+from backend.utils.paths import get_app_data_path
 
 # ==========================================
 # CONFIGURACIÓN

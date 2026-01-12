@@ -1,7 +1,7 @@
 # backend/handlers/music_handler.py
 
 from typing import Callable
-from backend.logger import Log
+from backend.utils.logger import Log
 
 class MusicHandler:
     """

@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QIcon
 # Backend
-from backend.controller import MainController
+from backend.core.controller import MainController
 
 # UI Components
 from ui.components.sidebar import Sidebar

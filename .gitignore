@@ -18,5 +18,5 @@ session.json
 exporter.txt
 installer/*.exe
 build.py
-backend/credentials.py
+backend/config/credentials.py
 requirements.txt

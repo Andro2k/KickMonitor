@@ -13,9 +13,9 @@ from PyQt6.QtCore import QThread, pyqtSignal, QUrl
 from PyQt6.QtGui import QDesktopServices
 
 # --- MÓDULOS INTERNOS ---
-from backend.db_controller import DBHandler 
-from backend.logger import Log
-from backend.paths import get_app_data_path
+from backend.core.db_controller import DBHandler 
+from backend.utils.logger import Log
+from backend.utils.paths import get_app_data_path
 from backend.services.oauth_service import OAuthService
 
 # ==========================================
