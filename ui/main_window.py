@@ -87,7 +87,6 @@ class MainWindow(QMainWindow):
 
         # 1. SIDEBAR (Componente Nuevo)
         self.sidebar = Sidebar()
-        # self.sidebar.setFixedWidth(240) # Ancho inicial
         self.sidebar.page_selected.connect(self.switch_page)
         
         # 2. CONTENIDO (Stack)
@@ -136,7 +135,6 @@ class MainWindow(QMainWindow):
         self.controller.gamble_result_signal.connect(self.ui_gamble.add_history_entry)
         self.controller.username_needed.connect(self.prompt_username)
 
-    # --- MÉTODOS AUXILIARES (Sin cambios mayores) ---
     def prompt_username(self):
         dialog = UsernameInputDialog(self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -162,7 +160,7 @@ class MainWindow(QMainWindow):
             self.ui_chat.lbl_status.setText("Error")
 
     def append_chat_message(self, timestamp, real_user, display_content):
-        c_user = "#00E701" # Kick green default
+        c_user = "#00E701"
         current_streamer = self.controller.db.get("kick_username")
         if current_streamer and real_user.lower() == current_streamer.lower(): 
             c_user = "#FFD700"
