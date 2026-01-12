@@ -246,51 +246,30 @@ class KickBotWorker(QThread):
     # REGIÓN 4: DESCUBRIMIENTO DE USUARIO Y CANAL
     # =========================================================================
     async def _detect_user_and_channel(self) -> bool:
-        """Estrategia en cascada para encontrar IDs: Caché -> API -> Scraper."""
+        """
+        Obtiene los IDs del canal basándose estrictamente en la configuración local.
+        Ya no intenta adivinar el usuario mediante la API.
+        """
+        # 1. Recuperar usuario de la configuración (DB)
         target_user = self.config.get('kick_username') 
-        # 1. Caché DB
-        if target_user:
-            self.log_received.emit(Log.debug(f"Verificando caché para '{target_user}'."))
-            if self._load_from_cache(target_user):
-                self.log_received.emit(Log.success("Arranque rápido exitoso (Caché)."))
-                return True
-        # 2. API Autodetección (Endpoint /user)
+        
         if not target_user:
-            target_user = await self._detect_user_via_api()
-            if target_user:
-                self.config['kick_username'] = target_user
-                self.db.set("kick_username", target_user)
-        if not target_user: 
+            # Esto no debería pasar si la UI hizo su trabajo
+            self.log_received.emit(Log.error("Falta configurar el nombre de usuario del canal."))
             return False
-        # 3. Obtener IDs de Canal
+
+        self.log_received.emit(Log.info(f"Cargando datos para el canal: {target_user}"))
+
+        # 2. Intentar cargar IDs desde caché (DB) para arranque rápido
+        if self._load_from_cache(target_user):
+            self.log_received.emit(Log.success("Datos de canal cargados desde caché."))
+            return True
+
+        # 3. Si no están en caché, consultamos la info PÚBLICA del canal
         if await self._fetch_channel_data(target_user): 
             return True
-        # 4. Último intento (Caché parcial)
-        return self._load_from_cache(target_user)
-
-    async def _detect_user_via_api(self) -> Optional[str]:
-        """Consulta /api/v1/user usando el token actual."""
-        self.log_received.emit(Log.info("Intentando autodetectar usuario vía API."))
-        token = getattr(self.api, 'access_token', None)
-        if not token: return None
-
-        headers = {
-            "Authorization": f"Bearer {token}", 
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-        }
-        
-        try:
-            resp = await self.loop.run_in_executor(
-                None, 
-                lambda: self.scraper.get(f"{KICK_API_BASE}/user", headers=headers)
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                return data.get('username') or data.get('data', {}).get('username')
-        except Exception as e:
-            self.log_received.emit(Log.debug(f"Fallo autodetección API: {e}"))
-        return None
+            
+        return False
 
     async def _fetch_channel_data(self, target_user: str) -> bool:
         """Obtiene chatroom_id y broadcaster_id del canal."""

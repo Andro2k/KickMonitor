@@ -356,10 +356,32 @@ class DashboardPage(QWidget):
     # HANDLERS
     # ==========================================
     def _handle_kick_connect_click(self):
+        # 1. Si ya estamos conectados (botón en verde), desconectamos
         if self.btn_connect.isChecked():
-            if self._check_creds("kick"): self.connect_signal.emit()
-            else: self.btn_connect.setChecked(False)
-        else: self.connect_signal.emit()
+            pass 
+
+        # 2. Lógica de CONEXIÓN
+        if not self._check_creds("kick"):
+            self.btn_connect.setChecked(False)
+            return
+
+        current_user = self.service.db.get("kick_username")
+        
+        if not current_user:
+            # Si no hay usuario, abrimos el modal PRIMERO
+            from ui.dialogs.username_input import UsernameInputDialog
+            dlg = UsernameInputDialog(self)
+            if dlg.exec():
+                # Guardamos el usuario formateado (rebeca-arenas) en la DB
+                self.service.db.set("kick_username", dlg.username)
+                # Ahora sí emitimos la señal para iniciar el bot
+                self.connect_signal.emit()
+            else:
+                # Si cancela, desmarcamos el botón
+                self.btn_connect.setChecked(False)
+        else:
+            # Si ya tenemos usuario y credenciales, conectamos directo
+            self.connect_signal.emit()
 
     def _toggle_spotify_connection(self):
         if self.spotify.is_active:
