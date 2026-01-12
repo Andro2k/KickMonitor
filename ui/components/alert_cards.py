@@ -24,7 +24,7 @@ class BaseAccordionCard(QFrame):
         
         # --- CONFIG RESPONSIVA ---
         self.setMinimumWidth(320)  # Ancho mínimo antes de bajar de línea
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         # -------------------------
         
         self.is_expanded = False
