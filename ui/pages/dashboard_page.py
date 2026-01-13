@@ -106,7 +106,7 @@ class DashboardPage(QWidget):
         
         # Configuración clave para que se estire
         self.shortcuts_card.setMinimumWidth(300)
-        self.shortcuts_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.shortcuts_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         
         # Añadimos la columna derecha al FlowLayout
         grid_layout.addWidget(self.shortcuts_card)

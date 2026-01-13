@@ -132,14 +132,20 @@ def get_sheet(is_dark: bool = True) -> str:
     }}
 
     /* --- SCROLLBARS --- */
+    
+    /* VERTICAL */
     QScrollBar:vertical {{ background: {c.Black_N1}; width: 8px; margin: 0; }}
     QScrollBar::handle:vertical {{ background: #444; border-radius: {r['scroll']}; min-height: 20px; }}
     QScrollBar::handle:vertical:hover {{ background: {c.NeonGreen_Main}; }}
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
+    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: none; }}
+
+    /* HORIZONTAL */
     QScrollBar:horizontal {{ background: {c.Black_N1}; height: 8px; margin: 0; }}
     QScrollBar::handle:horizontal {{ background: #444; border-radius: {r['scroll']}; min-width: 20px; }}
     QScrollBar::handle:horizontal:hover {{ background: {c.NeonGreen_Main}; }}
     QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{ width: 0; }}
+    QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{ background: none; }}
     """
 
 # ==========================================

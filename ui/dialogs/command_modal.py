@@ -81,15 +81,7 @@ class ModalEditCommand(QDialog):
         self.spin_cd = QSpinBox()
         self.spin_cd.setRange(0, 3600)
         self.spin_cd.setValue(cooldown)
-        self.spin_cd.setStyleSheet(f"""
-            QSpinBox {{
-                background-color: {THEME_DARK['Black_N3']};
-                color: white;
-                border: 1px solid {THEME_DARK['Gray_Border']};
-                border-radius: 8px;
-                padding: 5px;
-            }}
-        """)
+        self.spin_cd.setStyleSheet(STYLES["spinbox_modern"])
         row_cd.addWidget(self.spin_cd)
         row_cd.addStretch()
         layout.addLayout(row_cd)

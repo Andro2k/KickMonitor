@@ -19,12 +19,12 @@ class OverlayPage(QWidget):
     def __init__(self, server_worker, db_handler, parent=None):
         super().__init__(parent)
         self.service = OverlayService(db_handler, server_worker)
-        self.full_media_list = [] # Guardamos la lista completa aquí
+        self.full_media_list = [] 
         self.search_text = ""
         self.filter_mode = "Todos"
         self.init_ui()
 
-        # Cargar lista con un ligero retraso para no bloquear el inicio de la app
+        # Cargar lista con un ligero retraso
         QTimer.singleShot(100, self.load_data)
 
     # ==========================================
@@ -36,7 +36,7 @@ class OverlayPage(QWidget):
         layout.setSpacing(LAYOUT["spacing"])
 
         self._setup_header(layout)
-        self._setup_info_cards(layout)
+        self._setup_config_section(layout)
         self._setup_toolbar(layout)
         self._setup_media_list(layout)
 
@@ -52,23 +52,7 @@ class OverlayPage(QWidget):
         
         h_head.addStretch()
 
-        # Switches Globales
-        self.chk_rand = QCheckBox("Posición Aleatoria")
-        self.chk_rand.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.chk_rand.setStyleSheet(get_switch_style())
-        self.chk_rand.setChecked(self.service.db.get_bool("random_pos"))
-        self.chk_rand.toggled.connect(self.service.set_random_pos)
-        h_head.addWidget(self.chk_rand)
-        h_head.addSpacing(10)
-
-        self.chk_on = QCheckBox("Overlay Activo")
-        self.chk_on.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.chk_on.setStyleSheet(get_switch_style())
-        self.chk_on.setChecked(self.service.is_overlay_active())
-        self.chk_on.toggled.connect(self._handle_toggle_global)
-        h_head.addWidget(self.chk_on)
-        h_head.addSpacing(10)
-
+        # Botones Exportar/Importar (Los switches se movieron abajo)
         btn_export = self._create_top_btn("download.svg", "Exportar", self._handle_export)
         btn_import = self._create_top_btn("upload.svg", "Importar", self._handle_import)
         h_head.addWidget(btn_export)
@@ -76,14 +60,27 @@ class OverlayPage(QWidget):
         
         layout.addLayout(h_head)
 
-    def _setup_info_cards(self, layout):
-        h_cards = QHBoxLayout()
+    def _setup_config_section(self, layout):
+        """
+        Organiza las tarjetas en dos columnas, alineadas arriba y con la misma altura total.
+        """
+        # --- 1. DEFINIR ALTURAS ---
+        card_height = 40 
+        right_height = (card_height * 2) + LAYOUT["spacing"]
 
-        # --- Card 1: URL para OBS ---
+        h_container = QHBoxLayout()
+        h_container.setSpacing(LAYOUT["spacing"])
+        
+        # --- COLUMNA IZQUIERDA ---
+        v_left = QVBoxLayout()
+        v_left.setSpacing(LAYOUT["spacing"])
+
+        # Card URL OBS
         c_url = Card(self)
+        c_url.setFixedHeight(card_height)
+        
         l_url = QHBoxLayout()
         l_url.setContentsMargins(0,0,0,0)
-        
         self.txt_url = QLineEdit(self.service.get_local_ip_url())
         self.txt_url.setReadOnly(True)
         self.txt_url.setStyleSheet(STYLES["url_readonly"])
@@ -103,16 +100,18 @@ class OverlayPage(QWidget):
         l_url.addWidget(btn_eye)
         l_url.addWidget(btn_copy)
         c_url.layout.addLayout(l_url)
-        h_cards.addWidget(c_url)
-
-        # --- Card 2: Carpeta Multimedia ---
+        
+        # Card Carpeta Multimedia
         c_dir = Card(self)
+        c_dir.setFixedHeight(card_height)
+
         l_dir = QHBoxLayout()
         l_dir.setContentsMargins(0,0,0,0)
         
         current_path = self.service.get_media_folder() or "Sin carpeta seleccionada"
         self.lbl_path = QLabel(current_path)
         self.lbl_path.setWordWrap(False)
+        self.lbl_path.setStyleSheet("color: #aaa; font-style: italic;")
         
         btn_f = self._create_tool_btn("folder.svg", self._handle_pick_folder, "Elegir Carpeta")
         btn_r = self._create_tool_btn("refresh-cw.svg", self.load_data, "Recargar Lista")
@@ -124,9 +123,43 @@ class OverlayPage(QWidget):
         l_dir.addWidget(btn_r)
         l_dir.addWidget(btn_x)
         c_dir.layout.addLayout(l_dir)
-        h_cards.addWidget(c_dir)
+
+        v_left.addWidget(c_url)
+        v_left.addWidget(c_dir)
+
+        # --- COLUMNA DERECHA ---
+        c_opts = Card(self)
+        c_opts.setFixedWidth(180)
+        c_opts.setFixedHeight(right_height)
         
-        layout.addLayout(h_cards)
+        lbl_opts = QLabel("Ajustes Globales")
+        lbl_opts.setStyleSheet(f"color: {THEME_DARK['Gray_N2']}; font-weight: bold; font-size: 12px; margin-bottom: 5px;")
+        c_opts.layout.addWidget(lbl_opts)
+
+        # Switch Random
+        self.chk_rand = QCheckBox("Posición Aleatoria")
+        self.chk_rand.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.chk_rand.setStyleSheet(get_switch_style())
+        self.chk_rand.setChecked(self.service.db.get_bool("random_pos"))
+        self.chk_rand.toggled.connect(self.service.set_random_pos)
+        c_opts.layout.addWidget(self.chk_rand)
+
+        c_opts.layout.addSpacing(LAYOUT["spacing"])
+
+        # Switch Active
+        self.chk_on = QCheckBox("Overlay Activo")
+        self.chk_on.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.chk_on.setStyleSheet(get_switch_style())
+        self.chk_on.setChecked(self.service.is_overlay_active())
+        self.chk_on.toggled.connect(self._handle_toggle_global)
+        c_opts.layout.addWidget(self.chk_on)
+        
+        c_opts.layout.addStretch() 
+
+        h_container.addLayout(v_left, stretch=1) 
+        h_container.addWidget(c_opts, stretch=0, alignment=Qt.AlignmentFlag.AlignTop) 
+        
+        layout.addLayout(h_container)
 
     def _setup_toolbar(self, layout):
         """Barra con buscador y filtros."""
@@ -151,7 +184,7 @@ class OverlayPage(QWidget):
         
         # Label Filtro
         lbl_filter = QLabel("Filtrar:", objectName="normal")
-        lbl_filter.setStyleSheet("border: none; background: transparent;") # Aseguramos sin borde y fondo transparente
+        lbl_filter.setStyleSheet("border: none; background: transparent;")
         h_bar.addWidget(lbl_filter)
         
         # Combo Box
@@ -172,15 +205,13 @@ class OverlayPage(QWidget):
         layout.addWidget(self.list_widget)
 
     # ==========================================
-    # 2. LÓGICA DE NEGOCIO
+    # 2. LÓGICA DE NEGOCIO (Igual que antes)
     # ==========================================
     def load_data(self):
-        """1. Carga datos del disco/DB a memoria."""
         self.full_media_list = self.service.get_media_files_with_config()
-        self.render_list() # 2. Llama al renderizado
+        self.render_list()
 
     def render_list(self):
-        """2. Filtra los datos en memoria y dibuja la lista."""
         self.list_widget.clear()
         
         for item in self.full_media_list:
@@ -189,19 +220,17 @@ class OverlayPage(QWidget):
             ftype = item["type"]
             is_active = bool(item["config"].get("active", 0))
 
-            # --- FILTRO BÚSQUEDA ---
+            # Filtros
             if self.search_text:
-                # Busca en nombre de archivo O en el comando
                 if (self.search_text not in fname) and (self.search_text not in cmd):
                     continue
             
-            # --- FILTRO COMBO ---
             if self.filter_mode == "Activos" and not is_active: continue
             if self.filter_mode == "Desactivados" and is_active: continue
             if self.filter_mode == "Video" and ftype != "video": continue
             if self.filter_mode == "Audio" and ftype != "audio": continue
 
-            # --- DIBUJAR ---
+            # Dibujar
             w_item = QListWidgetItem(self.list_widget)
             w_item.setSizeHint(QSize(0, 70))
             
@@ -209,68 +238,42 @@ class OverlayPage(QWidget):
             self.list_widget.setItemWidget(w_item, widget)
     
     def save_item(self, filename, ftype, data, silent=False):
-        # ========================================================
-        # 1. SANITIZACIÓN (Limpieza de entrada)
-        # ========================================================
+        # Sanitización y guardado
         raw_cmd = data.get("cmd", "").strip()
-        
         if raw_cmd:
-            # A. Reemplazar espacios por guiones bajos
             raw_cmd = raw_cmd.replace(" ", "_")
-            
-            # B. Agregar prefijo "!" si falta
-            if not raw_cmd.startswith("!"):
-                raw_cmd = "!" + raw_cmd
-            
-            # C. Guardamos la versión corregida en el diccionario 'data'
+            if not raw_cmd.startswith("!"): raw_cmd = "!" + raw_cmd
             data["cmd"] = raw_cmd.lower()
 
-        # Usamos esta variable limpia para las comparaciones
         new_cmd = data["cmd"]
-
-        # ========================================================
-        # 2. VALIDACIÓN DE DUPLICADOS (Con comando ya limpio)
-        # ========================================================
+        # Validación duplicados
         if new_cmd:
             for item in self.full_media_list:
                 existing_file = item["filename"]
                 existing_config = item["config"]
                 existing_cmd = existing_config.get("cmd", "").lower()
                 
-                # Chequeamos contra el comando ya limpio (!oh_my_god)
                 if existing_file != filename and existing_cmd == new_cmd:
                     msg = (f"El comando '{new_cmd}' ya se usa en: {existing_file}.\n\n"
                            "Si continúas, el otro archivo perderá este comando.\n"
                            "¿Deseas sobrescribirlo?")
-                    
                     if not ModalConfirm(self, "⚠️ Comando Duplicado", msg).exec():
-                        # Si cancela, recargamos DB para borrar cambios visuales falsos
                         self.load_data()
                         return False 
-                    
-                    # Si acepta, borramos el comando del archivo "rival"
                     existing_config["cmd"] = ""
                     existing_config["active"] = 0
                     break 
 
-        # ========================================================
-        # 3. GUARDADO EN BASE DE DATOS
-        # ========================================================
         success, msg = self.service.save_trigger(filename, ftype, data)
-        
         if not silent:
             type_msg = "Status_Green" if success else "Status_Red"
             ToastNotification(self, "Guardado" if success else "Error", msg, type_msg).show_toast()
         
-        # 4. Actualizar memoria (Lista local)
         for item in self.full_media_list:
             if item["filename"] == filename:
                 item["config"] = data 
                 break
-        
-        # 5. Refrescar la vista
         self.render_list()
-        
         return success
 
     def preview_item(self, filename, ftype, config):
@@ -313,7 +316,6 @@ class OverlayPage(QWidget):
     def _handle_export(self):
         path, _ = QFileDialog.getSaveFileName(self, "Exportar Alertas", "alertas_backup.csv", "CSV Files (*.csv)")
         if not path: return
-        
         if self.service.export_csv(path):
             ToastNotification(self, "Exportado", "Configuración guardada exitosamente.", "Status_Green").show_toast()
         else:
@@ -322,29 +324,18 @@ class OverlayPage(QWidget):
     def _handle_import(self):
         path, _ = QFileDialog.getOpenFileName(self, "Importar Alertas", "", "CSV Files (*.csv)")
         if not path: return
-        
         if not ModalConfirm(self, "Importar", "Esto sobrescribirá comandos existentes. ¿Continuar?").exec():
             return
-
-        # Llamamos al servicio
         ok, fail, missing = self.service.import_csv(path)
-        
         self.load_data()
-        
-        # --- AVISO INTELIGENTE DE ARCHIVOS FALTANTES ---
         if fail == 0 and not missing:
             ToastNotification(self, "Éxito", f"Se importaron {ok} alertas correctamente.", "Status_Green").show_toast()
         else:
-            # Construimos un mensaje de advertencia
             if missing:
                 limit_show = 5
                 files_str = "\n- ".join(missing[:limit_show])
                 if len(missing) > limit_show: files_str += f"\n... y {len(missing)-limit_show} más."
-                
-                # Mostramos un modal porque el toast es muy pequeño para la lista
-                ModalConfirm(self, "Archivos Faltantes", 
-                             f"La configuración se cargó, pero NO encuentro estos archivos en tu carpeta:\n\n- {files_str}").exec()
-            
+                ModalConfirm(self, "Archivos Faltantes", f"La configuración se cargó, pero NO encuentro estos archivos:\n\n- {files_str}").exec()
             ToastNotification(self, "Importación con Avisos", f"OK: {ok} | Errores: {fail}", "Status_Yellow").show_toast()
 
     def _handle_search_changed(self, text):
@@ -355,7 +346,7 @@ class OverlayPage(QWidget):
         self.filter_mode = self.combo_filter.currentText()
         self.render_list()
 
-    # Helpers de botones
+    # Helpers
     def _create_tool_btn(self, icon, func, tooltip):
         btn = QPushButton()
         btn.setIcon(get_icon(icon))
@@ -365,7 +356,6 @@ class OverlayPage(QWidget):
         return btn
 
     def _create_top_btn(self, icon, text, func):
-        """Botón con texto e icono para la cabecera."""
         btn = QPushButton("  " + text)
         btn.setIcon(get_icon(icon))
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -373,7 +363,6 @@ class OverlayPage(QWidget):
             QPushButton {{
                 background-color: {THEME_DARK['Black_N2']};
                 color: {THEME_DARK['White_N1']};
-                
                 padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold;
             }}
             QPushButton:hover {{ 

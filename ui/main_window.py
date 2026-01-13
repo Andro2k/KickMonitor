@@ -33,7 +33,7 @@ class MainWindow(QMainWindow):
         self._setup_app_id()     
         self.setWindowIcon(QIcon(resource_path("icon.ico")))
         self.setWindowTitle("Kick Monitor")
-        self.resize(1000, 750)
+        self.resize(1000, 650)
         
         self.controller = MainController()
         
