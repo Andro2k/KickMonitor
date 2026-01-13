@@ -1,34 +1,22 @@
 # services/dashboard_service.py
 
 from typing import Dict, Any, List, Tuple
-
-# Intentar cargar credenciales locales (dev/pre-carga)
 try:
     from backend.config.credentials import KICK_CREDS, SPOTIFY_CREDS
 except ImportError:
     KICK_CREDS, SPOTIFY_CREDS = {}, {}
 
 class DashboardService:
-    """
-    Servicio de Datos para el Dashboard.
-    Maneja la lógica de presentación del perfil, configuración rápida y credenciales.
-    """
-
     def __init__(self, db_handler):
         self.db = db_handler
 
-    # =========================================================================
-    # REGIÓN 1: DATOS DE PERFIL Y ESTADÍSTICAS
-    # =========================================================================
+    # --- PERFIL Y ESTADÍSTICAS ---
     def get_profile_data(self) -> Dict[str, Any]:
-        """Obtiene datos formateados para la tarjeta de perfil."""
         target_user = self.db.get("kick_username")
-        
         display_name = target_user or "Streamer"
         followers = 0
         pic_url = ""
         
-        # Recuperar datos cacheados si existen
         if target_user:
             user_data = self.db.get_kick_user(target_user)
             if user_data:
@@ -42,20 +30,57 @@ class DashboardService:
             "pic_url": pic_url
         }
 
-    # =========================================================================
-    # REGIÓN 2: CONFIGURACIÓN GENERAL (AUTO-CONNECT)
-    # =========================================================================
+    def get_kick_username(self) -> str:
+        return self.db.get("kick_username")
+
+    def set_kick_username(self, username: str):
+        self.db.set("kick_username", username)
+
+    # --- CONFIGURACIÓN DE CONEXIÓN ---
     def get_auto_connect_state(self) -> bool:
         return self.db.get_bool("auto_connect")
 
     def set_auto_connect_state(self, enabled: bool):
         self.db.set("auto_connect", enabled)
 
-    # =========================================================================
-    # REGIÓN 3: CONFIGURACIÓN DE COMANDOS MUSICALES
-    # =========================================================================
+    def is_spotify_enabled(self) -> bool:
+        return self.db.get_bool("spotify_enabled")
+
+    def set_spotify_enabled(self, enabled: bool):
+        self.db.set("spotify_enabled", "1" if enabled else "0")
+
+    # --- GESTIÓN DE CREDENCIALES ---
+    def has_credentials(self, service_type: str) -> bool:
+        """Verifica si existen credenciales guardadas para el servicio."""
+        key = "client_id" if service_type == "kick" else "spotify_client_id"
+        return bool(self.db.get(key))
+
+    def get_default_creds(self, service_type: str) -> Dict[str, str]:
+        creds_map = {"kick": KICK_CREDS, "spotify": SPOTIFY_CREDS}
+        target = creds_map.get(service_type, {})
+        if target and all(v for v in target.values()):
+            return target
+        return {}
+
+    def apply_creds(self, creds: Dict[str, str]):
+        for key, value in creds.items():
+            if value: self.db.set(key, value)
+
+    # --- DATOS DE INTERFAZ (Listas Estáticas) ---
+    def get_shortcuts_data(self) -> List[Tuple[str, str, int]]:
+        """Retorna la lista de accesos directos: (Icono, Texto, IndexPagina)."""
+        return [
+            ("chat.svg", "Chat", 1), 
+            ("terminal.svg", "Comandos", 2),
+            ("bell.svg", "Alertas", 3), 
+            ("layers.svg", "Overlay", 4), 
+            ("users.svg", "Usuarios", 5), 
+            ("casino.svg", "Casino", 6), 
+            ("settings.svg", "Ajustes", 7)
+        ]
+
+    # --- COMANDOS DE MÚSICA ---
     def get_music_commands_list(self) -> List[Tuple[str, str, str]]:
-        """Define la estructura de la grilla de comandos: (KeyDB, Default, Label)."""
         return [
             ("music_cmd_song", "!song", "Canción Actual"),
             ("music_cmd_request", "!sr", "Pedir Canción"),
@@ -70,29 +95,7 @@ class DashboardService:
         self.db.set(key, value)
 
     def get_command_active(self, key: str) -> bool:
-        # Por defecto activo (si no existe o es "1")
         return self.db.get(f"{key}_active") != "0"
 
     def save_command_active(self, key: str, is_active: bool):
         self.db.set(f"{key}_active", "1" if is_active else "0")
-
-    # =========================================================================
-    # REGIÓN 4: GESTIÓN DE CREDENCIALES
-    # =========================================================================
-    def get_default_creds(self, service_type: str) -> Dict[str, str]:
-        """Recupera credenciales hardcodeadas si existen (para desarrollo)."""
-        creds_map = {
-            "kick": KICK_CREDS,
-            "spotify": SPOTIFY_CREDS
-        }
-        target = creds_map.get(service_type, {})
-        
-        if target and all(v for v in target.values()):
-            return target
-        return {}
-
-    def apply_creds(self, creds: Dict[str, str]):
-        """Persiste un set de credenciales en la base de datos."""
-        for key, value in creds.items():
-            if value: 
-                self.db.set(key, value)

@@ -1,6 +1,6 @@
 # ui/factories.py
-from PyQt6.QtWidgets import QPushButton, QWidget, QHBoxLayout, QCheckBox, QFrame, QVBoxLayout, QLabel, QLineEdit
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtWidgets import QPushButton, QWidget, QHBoxLayout, QCheckBox, QSizePolicy, QVBoxLayout, QLabel, QLineEdit
+from PyQt6.QtCore import Qt
 from ui.theme import STYLES, THEME_DARK, get_switch_style
 from ui.utils import get_icon
 
@@ -137,3 +137,65 @@ def create_styled_input(placeholder: str = "", is_cmd: bool = False, callback=No
             inp.textChanged.connect(callback)
             
     return inp
+
+def create_dashboard_action_btn(text: str, icon_name: str, func=None) -> QPushButton:
+    """
+    Crea el botón ancho de acción principal (Ej: Conectar Kick, Spotify).
+    """
+    btn = QPushButton(text)
+    btn.setIcon(get_icon(icon_name))
+    btn.setCheckable(True)
+    btn.setCursor(Qt.CursorShape.PointingHandCursor)
+    btn.setFixedHeight(32)
+    btn.setMinimumWidth(160)
+    
+    # Estilo base (luego la UI lo cambia dinámicamente si es necesario)
+    btn.setStyleSheet(f"""
+        QPushButton {{ 
+            background-color: {THEME_DARK['Black_N3']}; 
+            color: {THEME_DARK['White_N1']}; 
+            border-radius: 8px; 
+            font-weight: bold; font-size: 13px; text-align: left; padding-left: 15px; 
+            border: 1px solid {THEME_DARK['border']};
+        }}
+    """)
+    
+    if func:
+        btn.clicked.connect(func)
+    return btn
+
+def create_shortcut_btn(text: str, icon_name: str, func=None) -> QPushButton:
+    """
+    Crea el botón cuadrado vertical para el grid de accesos directos.
+    Estructura: [ Icono ]
+                [ Texto ]
+    """
+    btn = QPushButton()
+    btn.setCursor(Qt.CursorShape.PointingHandCursor)
+    btn.setMinimumHeight(70)
+    # Importante: Expanding horizontal para llenar la celda del grid
+    btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    
+    l = QVBoxLayout(btn)
+    l.setSpacing(4)
+    l.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    
+    ico = QLabel()
+    ico.setPixmap(get_icon(icon_name).pixmap(24,24))
+    ico.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    ico.setStyleSheet("border:none; background:transparent;")
+    
+    lbl = QLabel(text)
+    lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    lbl.setStyleSheet("border:none; font-weight:600; font-size:11px; background:transparent;")
+    
+    l.addWidget(ico)
+    l.addWidget(lbl)
+    
+    # Usa el estilo definido en theme.py
+    btn.setStyleSheet(STYLES.get("btn_shortcut", ""))
+    
+    if func:
+        btn.clicked.connect(func)
+        
+    return btn

@@ -139,15 +139,7 @@ class AlertCard(BaseAccordionCard):
         btn_save = QPushButton(" Guardar Cambios")
         btn_save.setIcon(get_icon("save.svg"))
         btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_save.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {THEME_DARK['Black_N3']};
-                color: {THEME_DARK['White_N1']};
-                border: 1px solid {THEME_DARK['Gray_Border']};
-                border-radius: 6px; padding: 6px;
-            }}
-            QPushButton:hover {{ border-color: {THEME_DARK['NeonGreen_Main']}; color: {THEME_DARK['NeonGreen_Main']}; }}
-        """)
+        btn_save.setStyleSheet(STYLES["btn_solid_primary"])
         btn_save.clicked.connect(self._save)
 
         # Layout Contenido
@@ -209,7 +201,7 @@ class TimerCard(BaseAccordionCard):
         btn_save = QPushButton(" Guardar")
         btn_save.setIcon(get_icon("save.svg"))
         btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_save.setStyleSheet(STYLES["sidebar_btn"]) # Reusamos estilo
+        btn_save.setStyleSheet(STYLES["btn_solid_primary"])
         btn_save.clicked.connect(self._save)
         
         footer = QHBoxLayout()

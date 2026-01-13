@@ -6,7 +6,6 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from ui.theme import LAYOUT, STYLES, THEME_DARK
-from ui.utils import get_icon
 
 class ModalEditMedia(QDialog):
     def __init__(self, parent, filename, ftype, data):

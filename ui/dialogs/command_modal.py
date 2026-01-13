@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QPlainTextEdit
 )
 from PyQt6.QtCore import Qt
-from ui.theme import LAYOUT, THEME_DARK, STYLES, RADIUS
+from ui.theme import LAYOUT, THEME_DARK, STYLES
 
 class ModalEditCommand(QDialog):
     def __init__(self, parent=None, trigger="", response="", cooldown=5):
@@ -95,22 +95,12 @@ class ModalEditCommand(QDialog):
         btn_cancel = QPushButton("Cancelar")
         btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_cancel.clicked.connect(self.reject)
-        btn_cancel.setStyleSheet(f"""
-            QPushButton {{ color: {THEME_DARK['Gray_N1']}; background: transparent; border: none; font-weight: bold; }}
-            QPushButton:hover {{ color: white; }}
-        """)
+        btn_cancel.setStyleSheet(STYLES["btn_outlined"])
         
         btn_save = QPushButton("Guardar")
         btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_save.clicked.connect(self._save)
-        btn_save.setStyleSheet(f"""
-            QPushButton {{ 
-                background-color: {THEME_DARK['NeonGreen_Main']}; 
-                color: {THEME_DARK['Black_N1']}; 
-                border-radius: 8px; padding: 8px 20px; font-weight: bold; border: none;
-            }}
-            QPushButton:hover {{ background-color: {THEME_DARK['NeonGreen_Light']}; }}
-        """)
+        btn_save.setStyleSheet(STYLES["btn_solid_primary"])
         
         h_btns.addWidget(btn_cancel)
         h_btns.addWidget(btn_save)

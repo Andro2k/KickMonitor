@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (QDialog, QFrame, QVBoxLayout, QHBoxLayout, QLabel,
                              QLineEdit, QPushButton)
 from PyQt6.QtCore import Qt
 from ui.utils import get_icon
-from ui.theme import THEME_DARK, LAYOUT
+from ui.theme import STYLES, THEME_DARK, LAYOUT
 
 class UsernameInputDialog(QDialog):
     def __init__(self, parent=None):
@@ -84,20 +84,7 @@ class UsernameInputDialog(QDialog):
         btn_cancel = QPushButton("Cancelar")
         btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_cancel.setFixedHeight(45)
-        btn_cancel.setStyleSheet(f"""
-            QPushButton {{
-                background-color: transparent;
-                color: {THEME_DARK['White_N1']};
-                border: 1px solid {THEME_DARK['Gray_N2']};
-                border-radius: 8px;
-                font-size: 13px;
-                font-weight: 600;
-            }}
-            QPushButton:hover {{
-                background-color: {THEME_DARK['Black_N4']};
-                border: 1px solid {THEME_DARK['White_N1']};
-            }}
-        """)
+        btn_cancel.setStyleSheet(STYLES["btn_outlined"])
         btn_cancel.clicked.connect(self.reject) # Cierra el diálogo retornando "Rejected"
 
         # Botón GUARDAR (Estilo Sólido / Primario)
@@ -105,17 +92,7 @@ class UsernameInputDialog(QDialog):
         btn_save.setDefault(True)
         btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_save.setFixedHeight(45)
-        btn_save.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {THEME_DARK['NeonGreen_Main']};
-                color: black;
-                font-weight: bold;
-                font-size: 13px;
-                border-radius: 8px;
-                border: none;
-            }}
-            QPushButton:hover {{ background-color: {THEME_DARK['NeonGreen_Light']}; }}
-        """)
+        btn_save.setStyleSheet(STYLES["btn_solid_primary"])
         btn_save.clicked.connect(self._on_save)
 
         # Añadir botones al layout horizontal

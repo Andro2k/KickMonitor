@@ -1,11 +1,10 @@
 # ui/pages/alerts_page.py
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QScrollArea
+    QWidget, QVBoxLayout, QScrollArea
 )
-from PyQt6.QtCore import Qt
 from ui.factories import create_page_header
-from ui.theme import LAYOUT, THEME_DARK
+from ui.theme import LAYOUT
 from backend.services.alerts_service import AlertsService
 from ui.components.flow_layout import FlowLayout
 from ui.components.alert_cards import AlertCard, TimerCard

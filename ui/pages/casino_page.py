@@ -4,7 +4,7 @@ from datetime import datetime
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QCheckBox, QFrame, QTableWidget, QTableWidgetItem, 
-    QHeaderView, QAbstractItemView, QPushButton, QScrollArea, QSizePolicy
+    QHeaderView, QAbstractItemView, QPushButton, QScrollArea
 )
 from PyQt6.QtCore import Qt
 

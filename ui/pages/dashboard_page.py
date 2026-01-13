@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QFrame, QGridLayout, QDialog,
     QTextEdit, QSizePolicy, QScrollArea
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QUrl, QSize
+from PyQt6.QtCore import Qt, pyqtSignal, QUrl
 from PyQt6.QtGui import QPixmap, QPainter, QPainterPath
 from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 
@@ -14,10 +14,12 @@ from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
 from ui.dialogs.connection_modal import ConnectionModal
 from ui.theme import LAYOUT, STYLES, THEME_DARK
-from ui.utils import get_colored_icon, get_icon
+from ui.utils import crop_to_square, get_colored_icon, get_icon, get_rounded_pixmap
 
+# --- IMPORTS NUEVOS ---
 from ui.components.flow_layout import FlowLayout
 from ui.components.music_player import MusicPlayerPanel
+from ui.factories import create_card_header, create_dashboard_action_btn, create_shortcut_btn # Usamos factory para headers
 
 class DashboardPage(QWidget):
     navigate_signal = pyqtSignal(int) 
@@ -28,6 +30,7 @@ class DashboardPage(QWidget):
         self.service = DashboardService(db_handler)
         self.spotify = spotify_worker 
         
+        # Network Manager para imágenes (Se mantiene en UI porque es visual)
         self.nam = QNetworkAccessManager(self)
         self.nam.finished.connect(self._on_download_finished)
         self._current_art_url = None
@@ -54,7 +57,6 @@ class DashboardPage(QWidget):
         scroll.setStyleSheet("background: transparent; border: none;")
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
-        # 2. Contenedor del contenido
         content = QWidget()
         content.setStyleSheet("background: transparent;")
         self.main_layout = QVBoxLayout(content)
@@ -68,58 +70,42 @@ class DashboardPage(QWidget):
         outer_layout.addWidget(scroll)
 
     def _setup_top_grid_section(self):
-        """
-        Crea un FlowLayout que contiene:
-        - Columna Izquierda: Perfil + Música
-        - Columna Derecha: Accesos Directos
-        """
         grid_container = QWidget()
-        # Usamos FlowLayout para que si la pantalla es muy estrecha, la columna derecha baje.
+        # FlowLayout para respuesta responsiva
         grid_layout = FlowLayout(grid_container, margin=0, spacing=(LAYOUT["spacing"]))
 
-        # ---------------------------------------------------------
         # A. COLUMNA IZQUIERDA (Perfil + Música)
-        # ---------------------------------------------------------
-        left_col_widget = QWidget()
-        left_col_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        left_col_widget.setMinimumWidth(380)
+        left_col = QWidget()
+        left_col.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        left_col.setMinimumWidth(380)
         
-        left_layout = QVBoxLayout(left_col_widget)
-        left_layout.setContentsMargins(0,0,0,0)
-        left_layout.setSpacing(LAYOUT["spacing"])
+        left_l = QVBoxLayout(left_col)
+        left_l.setContentsMargins(0,0,0,0)
+        left_l.setSpacing(LAYOUT["spacing"])
 
-        # A1. Tarjeta Perfil
         self.profile_card = self._create_profile_card()
-        left_layout.addWidget(self.profile_card)
+        left_l.addWidget(self.profile_card)
 
-        # A2. Tarjeta Música
         self.music_panel = MusicPlayerPanel(self.service, self.spotify)
-        left_layout.addWidget(self.music_panel)
+        left_l.addWidget(self.music_panel)
         
-        # Añadimos la columna izquierda al FlowLayout
-        grid_layout.addWidget(left_col_widget)
+        grid_layout.addWidget(left_col)
 
-        # ---------------------------------------------------------
         # B. COLUMNA DERECHA (Accesos Directos)
-        # ---------------------------------------------------------
         self.shortcuts_card = self._create_shortcuts_card()
-        
-        # Configuración clave para que se estire
         self.shortcuts_card.setMinimumWidth(300)
-        self.shortcuts_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.shortcuts_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding) # Expanding vertical
         
-        # Añadimos la columna derecha al FlowLayout
         grid_layout.addWidget(self.shortcuts_card)
 
-        # Agregamos todo el contenedor superior al layout principal
         self.main_layout.addWidget(grid_container)
 
     # ==========================================
-    # CREADORES DE TARJETAS
+    # CREADORES DE TARJETAS (Actualizado)
     # ==========================================
     def _create_profile_card(self):
         card = QFrame()
-        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
+        card.setStyleSheet(STYLES["card_large"])
         card.setFixedHeight(120) 
         
         layout = QHBoxLayout(card)
@@ -131,29 +117,28 @@ class DashboardPage(QWidget):
         self.lbl_avatar.setFixedSize(100, 100)
         self.lbl_avatar.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 50px;")
         
-        # Textos (Nombre y Estado)
+        # Info
         info = QVBoxLayout()
         info.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         info.setSpacing(4)
         
         self.lbl_welcome = QLabel("Cargando...", objectName="h2")
         self.lbl_welcome.setStyleSheet("border:none;")
-        
         self.lbl_stats = QLabel("...", objectName="normal")
         self.lbl_stats.setStyleSheet(f"color: {THEME_DARK['Gray_N1']}; border:none;")
         
         info.addWidget(self.lbl_welcome)
         info.addWidget(self.lbl_stats)
         
-        # Botones de Acción (Lado derecho de la tarjeta)
+        # Acciones
         actions = QVBoxLayout()
         actions.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         actions.setSpacing(8)
         
-        # Fila Kick
         kick_row = QHBoxLayout()
-        self.btn_connect = self._create_main_action_btn("Kick: Offline", "kick.svg")
-        self.btn_connect.clicked.connect(self._handle_kick_connect_click)
+        
+        # --- USO DE FACTORY ---
+        self.btn_connect = create_dashboard_action_btn("Kick: Offline", "kick.svg", self._handle_kick_connect_click)
         
         self.btn_auto = QPushButton()
         self.btn_auto.setCheckable(True)
@@ -170,9 +155,8 @@ class DashboardPage(QWidget):
         kick_row.addWidget(self.btn_connect)
         kick_row.addWidget(self.btn_auto)
         
-        # Botón Spotify
-        self.btn_spotify = self._create_main_action_btn("Spotify", "spotify.svg")
-        self.btn_spotify.clicked.connect(self._toggle_spotify_connection)
+        # --- USO DE FACTORY ---
+        self.btn_spotify = create_dashboard_action_btn("Spotify", "spotify.svg", self._toggle_spotify_connection)
         self._update_spotify_btn_style(False)
 
         actions.addLayout(kick_row)
@@ -180,57 +164,50 @@ class DashboardPage(QWidget):
 
         layout.addWidget(self.lbl_avatar)
         layout.addLayout(info)
-        layout.addStretch() # Empuja acciones a la derecha
+        layout.addStretch()
         layout.addLayout(actions)
         
         return card
 
     def _create_shortcuts_card(self):
         card = QFrame()
-        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
-        card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        card.setStyleSheet(STYLES["card_large"])
+        
         l = QVBoxLayout(card)
         l.setContentsMargins(*LAYOUT["margins"])
         l.setSpacing(LAYOUT["spacing"])
         
-        l.addWidget(QLabel("Accesos Directos", objectName="h3"))
+        l.addWidget(create_card_header("Accesos Directos"))
         l.addStretch()
         
-        # Grid de botones
         grid = QGridLayout()
         grid.setSpacing(LAYOUT["spacing"])
         
-        shortcuts = [
-            ("chat.svg", "Chat", 1), 
-            ("terminal.svg", "Comandos", 2),
-            ("bell.svg", "Alertas", 3), 
-            ("layers.svg", "Overlay", 4), 
-            ("users.svg", "Usuarios", 5), 
-            ("casino.svg", "Casino", 6), 
-            ("settings.svg", "Ajustes", 7)
-        ]
-
+        shortcuts = self.service.get_shortcuts_data()
         cols = 3 
         
         for i, (icon, txt, idx) in enumerate(shortcuts):
-            btn = self._create_shortcut_btn(icon, txt)
-            btn.clicked.connect(lambda _, x=idx: self.navigate_signal.emit(x))
+            # --- USO DE FACTORY ---
+            btn = create_shortcut_btn(txt, icon, lambda _, x=idx: self.navigate_signal.emit(x))
+            
             r, c = divmod(i, cols)
             grid.addWidget(btn, r, c)
             
         l.addLayout(grid)
+        l.addStretch()
         
         return card
 
     def _setup_log_section(self):
-        self.main_layout.addWidget(QLabel("Registros del Sistema", objectName="h3"))
+        # Header Factory
+        self.main_layout.addWidget(create_card_header("Registros del Sistema"))
         
         self.log_console = QTextEdit()
         self.log_console.setReadOnly(True)
         self.log_console.setPlaceholderText("Esperando conexión...")
         self.log_console.setMinimumHeight(150)
         self.log_console.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding)    
-        self.log_console.setStyleSheet(STYLES["text_edit_console"])
+        self.log_console.setStyleSheet(STYLES["text_edit_console"]) # Estilo del theme
 
         self.main_layout.addWidget(self.log_console)
 
@@ -250,52 +227,62 @@ class DashboardPage(QWidget):
             self._start_download(art_url, "music_art")
         self.music_panel.update_state(title, artist, None, prog, dur, is_playing)
 
-    def _on_download_finished(self, reply):
-        if reply.error() == QNetworkReply.NetworkError.NoError:
-            tag = reply.request().attribute(QNetworkRequest.Attribute.User)
-            data = reply.readAll()
-            pix = QPixmap(); pix.loadFromData(data)
-            if not pix.isNull():
-                if tag == "avatar": self._set_rounded_avatar(pix) 
-                elif tag == "music_art":
-                    r_pix = self._round_image(pix, radius=10)
-                    self.music_panel.lbl_art.setPixmap(r_pix)
-        reply.deleteLater()
+    # ==========================================
+    # HANDLERS (Simplificados)
+    # ==========================================
+    def _handle_kick_connect_click(self):
+        # 1. Si ya está conectado (botón presionado), no hacer nada (la desconexión la maneja el controlador global normalmente o un botón stop)
+        if self.btn_connect.isChecked():
+            pass 
+
+        # 2. Verificar Credenciales (Delegado al servicio + Modal si falla)
+        if not self._ensure_credentials("kick"):
+            self.btn_connect.setChecked(False)
+            return
+
+        # 3. Verificar Usuario
+        current_user = self.service.get_kick_username()
+        if not current_user:
+            from ui.dialogs.user_modal import UsernameInputDialog
+            dlg = UsernameInputDialog(self)
+            if dlg.exec():
+                self.service.set_kick_username(dlg.username)
+                self.connect_signal.emit()
+            else:
+                self.btn_connect.setChecked(False)
+        else:
+            self.connect_signal.emit()
+
+    def _toggle_spotify_connection(self):
+        if self.spotify.is_active:
+            if ModalConfirm(self, "Desconectar", "¿Detener Spotify?").exec():
+                self.service.set_spotify_enabled(False)
+                self.spotify.sig_do_disconnect.emit()
+        else:
+            if self._ensure_credentials("spotify"):
+                self.service.set_spotify_enabled(True)
+                self.spotify.sig_do_auth.emit()
+
+    def _ensure_credentials(self, s_type):
+        """Lógica de UI para pedir credenciales si faltan."""
+        if self.service.has_credentials(s_type):
+            return True
+            
+        defaults = self.service.get_default_creds(s_type)
+        if defaults and ModalConfirm(self, "Configuración", f"¿Usar credenciales default?").exec():
+            self.service.apply_creds(defaults)
+            return True
+            
+        worker = self.spotify if s_type == "spotify" else None
+        return ConnectionModal(self.service.db, service_type=s_type, worker=worker, parent=self).exec() == QDialog.DialogCode.Accepted
+
+    def _toggle_auto_connect(self, checked):
+        self.service.set_auto_connect_state(checked)
+        self._update_auto_btn_style(checked)
 
     # ==========================================
-    # HELPERS
+    # HELPERS VISUALES
     # ==========================================
-    def _create_main_action_btn(self, text, icon):
-        btn = QPushButton(text); btn.setIcon(get_icon(icon))
-        btn.setCheckable(True); btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setFixedHeight(32); btn.setMinimumWidth(160)
-        return btn
-
-    def _create_shortcut_btn(self, icon, text):
-        btn = QPushButton()
-        btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setMinimumHeight(70)
-        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        
-        l = QVBoxLayout(btn)
-        l.setSpacing(4)
-        l.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        ico = QLabel()
-        ico.setPixmap(get_icon(icon).pixmap(24,24))
-        ico.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        ico.setStyleSheet("border:none; background:transparent;")
-        
-        lbl = QLabel(text)
-        lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lbl.setStyleSheet("border:none; font-weight:600; font-size:11px; background:transparent;")
-        
-        l.addWidget(ico)
-        l.addWidget(lbl)
-        
-        btn.setStyleSheet(STYLES["btn_outlined"])
-        return btn
-
     def _update_auto_btn_style(self, checked):
         bg = "rgba(83, 252, 24, 0.15)" if checked else THEME_DARK['Black_N3']
         bc = THEME_DARK['NeonGreen_Main'] if checked else THEME_DARK['border']
@@ -304,7 +291,6 @@ class DashboardPage(QWidget):
     def _update_spotify_btn_style(self, active):
         bg = "#1DB954" if active else THEME_DARK['Black_N3']
         fg = "black" if active else THEME_DARK['White_N1']
-        border = "#1DB954" if active else THEME_DARK['border']
         txt = "Spotify: On" if active else "Conectar Spotify"
         
         self.btn_spotify.setIcon(get_colored_icon("spotify.svg", fg))
@@ -330,82 +316,35 @@ class DashboardPage(QWidget):
             }}
         """)
 
-    def append_log(self, text):
-        self.log_console.append(text)
-        self.log_console.verticalScrollBar().setValue(self.log_console.verticalScrollBar().maximum())
-
-    # ==========================================
-    # HANDLERS
-    # ==========================================
-    def _handle_kick_connect_click(self):
-        # 1. Si ya estamos conectados (botón en verde), desconectamos
-        if self.btn_connect.isChecked():
-            pass 
-
-        # 2. Lógica de CONEXIÓN
-        if not self._check_creds("kick"):
-            self.btn_connect.setChecked(False)
-            return
-
-        current_user = self.service.db.get("kick_username")
-        
-        if not current_user:
-            # Si no hay usuario, abrimos el modal PRIMERO
-            from ui.dialogs.user_modal import UsernameInputDialog
-            dlg = UsernameInputDialog(self)
-            if dlg.exec():
-                # Guardamos el usuario formateado (rebeca-arenas) en la DB
-                self.service.db.set("kick_username", dlg.username)
-                # Ahora sí emitimos la señal para iniciar el bot
-                self.connect_signal.emit()
-            else:
-                # Si cancela, desmarcamos el botón
-                self.btn_connect.setChecked(False)
-        else:
-            # Si ya tenemos usuario y credenciales, conectamos directo
-            self.connect_signal.emit()
-
-    def _toggle_spotify_connection(self):
-        if self.spotify.is_active:
-            if ModalConfirm(self, "Desconectar", "¿Detener Spotify?").exec() == QDialog.DialogCode.Accepted:
-                self.service.db.set("spotify_enabled", "0"); self.spotify.sig_do_disconnect.emit()
-        else:
-            if self._check_creds("spotify"):
-                self.service.db.set("spotify_enabled", "1"); self.spotify.sig_do_auth.emit()
-
-    def _toggle_auto_connect(self, checked):
-        self.service.set_auto_connect_state(checked); self._update_auto_btn_style(checked)
-
-    def _check_creds(self, s_type):
-        key = "client_id" if s_type == "kick" else "spotify_client_id"
-        if self.service.db.get(key): return True
-        defaults = self.service.get_default_creds(s_type)
-        if defaults and ModalConfirm(self, "Configuración", f"¿Usar credenciales default?").exec():
-            self.service.apply_creds(defaults); return True
-        worker = self.spotify if s_type == "spotify" else None
-        return ConnectionModal(self.service.db, service_type=s_type, worker=worker, parent=self).exec() == QDialog.DialogCode.Accepted
-
     def _handle_spotify_status_alert(self, msg):
         if any(x in msg for x in ["❌", "Error", "Cancelado"]):
             ToastNotification(self, "Spotify", msg, "Status_Red").show_toast()
             self._update_spotify_btn_style(False)
 
+    def append_log(self, text):
+        self.log_console.append(text)
+        self.log_console.verticalScrollBar().setValue(self.log_console.verticalScrollBar().maximum())
+
+    # --- NETWORK HELPERS (Se mantienen en UI porque manejan Pixmaps) ---
     def _start_download(self, url, tag):
         req = QNetworkRequest(QUrl(url)); req.setAttribute(QNetworkRequest.Attribute.User, tag)
         self.nam.get(req)
 
-    def _set_rounded_avatar(self, pix):
-        s = 100; pix = pix.scaled(s, s, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
-        r = QPixmap(s, s); r.fill(Qt.GlobalColor.transparent)
-        p = QPainter(r); p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        path = QPainterPath(); path.addEllipse(0, 0, s, s)
-        p.setClipPath(path); p.drawPixmap(0, 0, pix); p.end()
-        self.lbl_avatar.setPixmap(r)
+    def _on_download_finished(self, reply):
+        if reply.error() == QNetworkReply.NetworkError.NoError:
+            tag = reply.request().attribute(QNetworkRequest.Attribute.User)
+            data = reply.readAll()
+            pix = QPixmap(); pix.loadFromData(data)
+            
+            if not pix.isNull():
+                if tag == "avatar": 
+                    # Cuadrado 100x100 -> Círculo
+                    sq_pix = crop_to_square(pix, 100)
+                    self.lbl_avatar.setPixmap(get_rounded_pixmap(sq_pix, is_circle=True))
+                elif tag == "music_art":
+                    # Redondeado radio 10
+                    self.music_panel.lbl_art.setPixmap(get_rounded_pixmap(pix, radius=10))
+                    
+        reply.deleteLater()
 
-    def _round_image(self, pix, radius=12):
-        if pix.isNull(): return pix
-        r = QPixmap(pix.size()); r.fill(Qt.GlobalColor.transparent)
-        p = QPainter(r); p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        path = QPainterPath(); path.addRoundedRect(0, 0, pix.width(), pix.height(), radius, radius)
-        p.setClipPath(path); p.drawPixmap(0, 0, pix); p.end()
-        return r
+    

@@ -1,9 +1,9 @@
 # ui/pages/commands_page.py
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+    QWidget, QVBoxLayout, QHBoxLayout, 
     QTableWidget, QTableWidgetItem, QHeaderView, 
-    QPushButton, QFrame,QFileDialog, QDialog, QAbstractItemView
+    QFrame,QFileDialog, QDialog, QAbstractItemView
 )
 from PyQt6.QtCore import Qt
 from ui.factories import create_icon_btn, create_nav_btn, create_page_header

@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QSizePolicy
 )
 from PyQt6.QtGui import QDesktopServices
-from PyQt6.QtCore import Qt, QSize, pyqtSignal, QUrl
+from PyQt6.QtCore import Qt, pyqtSignal, QUrl
 
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification

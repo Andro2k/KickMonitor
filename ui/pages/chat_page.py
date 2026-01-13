@@ -5,12 +5,12 @@ from PyQt6.QtWidgets import (
     QPushButton, QCheckBox, QFrame, QComboBox, QSlider, QLineEdit,
     QSizePolicy, QGridLayout
 )
-from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtCore import Qt
 from ui.factories import create_page_header
 from ui.theme import LAYOUT, THEME_DARK, STYLES
 from ui.utils import get_icon, get_colored_icon
 from backend.services.chat_service import ChatService
-from ui.components.flow_layout import FlowLayout # <--- IMPORTANTE
+from ui.components.flow_layout import FlowLayout
 
 class ChatPage(QWidget):
     def __init__(self, db, tts_worker, parent=None):
