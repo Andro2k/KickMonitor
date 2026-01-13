@@ -12,7 +12,7 @@ from packaging import version
 # =========================================================================
 # IMPORTANTE: Cambia este valor MANUALMENTE antes de compilar una nueva versión.
 # Al ser una constante, garantizamos que el EXE siempre sepa qué versión es.
-INTERNAL_VERSION = "1.7.5"
+INTERNAL_VERSION = "1.8.0"
 
 CURRENT_VERSION = INTERNAL_VERSION
 UPDATE_JSON_URL = "https://raw.githubusercontent.com/Andro2k/KickMonitor/refs/heads/main/version.json"

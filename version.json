@@ -1,5 +1,5 @@
 {
-    "version": "1.7.5",
-    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.7.5/KickMonitor_Setup_v1.7.5.exe",
-    "changelog": "<ul><li><b>SISTEMA:</b> Nuevo núcleo 'DataManager' que valida cabeceras de CSV para prevenir errores de importación.</li><li><b>VISUAL:</b> Eliminado el efecto de 'malla' en los scrollbars y corregida la alineación superior en la página de Overlay.</li><li><b>PUNTOS:</b> Refactorización completa (lógica movida al servicio) y nueva barra de gestión manual compacta.</li><li><b>OVERLAY:</b> Ajuste de altura en tarjetas y nuevo reporte de archivos multimedia faltantes al importar.</li></ul>"
+    "version": "1.8.0",
+    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.8.0/KickMonitor_Setup_v1.8.0.exe",
+    "changelog": "<ul><li><b>ARQUITECTURA:</b> Implementación de sistema 'Factories' para componentes UI, reduciendo código repetitivo y centralizando estilos.</li><li><b>VISUAL:</b> Nuevo tema 'Midnight / Deep Black' (#050505) y rediseño completo del Reproductor de Música (Layout Horizontal).</li><li><b>DASHBOARD:</b> FlowLayout inteligente con altura dinámica (stretch) para alinear perfectamente la tarjeta de Accesos Directos.</li><li><b>UX:</b> Estandarización de Headers en todas las páginas y distinción visual entre inputs de búsqueda y comandos.</li></ul>"
 }
