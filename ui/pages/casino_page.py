@@ -15,10 +15,7 @@ from ui.utils import get_icon, get_colored_icon
 from ui.theme import LAYOUT, THEME_DARK, STYLES, get_switch_style
 from backend.services.gambling_service import GamblingService
 from ui.components.flow_layout import FlowLayout 
-
-# --- IMPORTACIÓN NUEVA ---
 from ui.components.casino_cards import GameConfigCard, LimitsCard
-# -------------------------
 
 class GamblingPage(QWidget):
     def __init__(self, db_handler, controller=None, parent=None):
@@ -67,7 +64,7 @@ class GamblingPage(QWidget):
         
         # Interruptor Maestro
         container = QWidget()
-        container.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 8px; border: 1px solid {THEME_DARK['Black_N4']};")
+        container.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 8px;")
         c_layout = QHBoxLayout(container)
         c_layout.setContentsMargins(15, 8, 15, 8)
         
@@ -145,15 +142,9 @@ class GamblingPage(QWidget):
         h_sec.addStretch()
         
         btn_clean = QPushButton("Limpiar Historial")
-        btn_clean.setIcon(get_colored_icon("trash.svg", "#FF453A"))
+        btn_clean.setIcon(get_icon("trash.svg"))
         btn_clean.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_clean.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {THEME_DARK['Black_N2']}; color: {THEME_DARK['White_N1']};
-                padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: bold; border: none;
-            }}
-            QPushButton:hover {{ background-color: rgba(255, 69, 58, 0.2); color: #FF453A; }}
-        """)
+        btn_clean.setStyleSheet(STYLES["btn_danger_outlined"])
         btn_clean.clicked.connect(self._handler_clear_history)
         h_sec.addWidget(btn_clean)
         

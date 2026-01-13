@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
     QScrollArea, QSizePolicy, QSpinBox
 )
 from PyQt6.QtCore import Qt, QTimer
-from ui.factories import create_icon_btn, create_nav_btn, create_page_header, create_switch_widget
+from ui.factories import create_icon_btn, create_nav_btn, create_page_header, create_styled_input, create_switch_widget
 from ui.theme import LAYOUT, THEME_DARK, STYLES, get_switch_style
 from ui.utils import get_icon, get_colored_icon
 from ui.components.modals import ModalConfirm
@@ -97,7 +97,7 @@ class PointsPage(QWidget):
         self.inp_manual_user = QLineEdit()
         self.inp_manual_user.setPlaceholderText("Ej: damir")
         self.inp_manual_user.setFixedWidth(150)
-        self.inp_manual_user.setStyleSheet(STYLES["input"])
+        self.inp_manual_user.setStyleSheet(STYLES["input_readonly"])
         l.addWidget(self.inp_manual_user)
 
         l.addWidget(QLabel("Puntos:", styleSheet="color:#888; font-weight:bold; "))
@@ -137,7 +137,7 @@ class PointsPage(QWidget):
 
         # Toolbar Interna (Buscador y Filtros)
         bar = QFrame()
-        bar.setStyleSheet(f"border-bottom: 1px solid {THEME_DARK['Black_N4']}; background: transparent;")
+        bar.setStyleSheet(f"border: 1px solid {THEME_DARK['Black_N4']};")
         h_bar = QHBoxLayout(bar)
         h_bar.setContentsMargins(*LAYOUT["margins"])
         h_bar.setSpacing(LAYOUT["spacing"])
@@ -147,11 +147,7 @@ class PointsPage(QWidget):
         lbl_search.setStyleSheet("opacity: 0.5; border:none;")
         h_bar.addWidget(lbl_search)
 
-        self.inp_search = QLineEdit()
-        self.inp_search.setStyleSheet(STYLES["input"])
-        self.inp_search.setPlaceholderText("Buscar usuario...")
-        self.inp_search.setStyleSheet("background:transparent; color:white;")
-        self.inp_search.textChanged.connect(self._handle_search_changed)
+        self.inp_search = create_styled_input("Buscar usuario...", is_cmd=False, callback=self._handle_search_changed)
         h_bar.addWidget(self.inp_search, stretch=1)
         
         self.combo_filter = QComboBox()

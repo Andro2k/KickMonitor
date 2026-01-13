@@ -3,13 +3,12 @@
 import os
 import sys
 import ctypes
-from PyQt6.QtWidgets import QApplication, QMessageBox # <--- 1. AGREGAMOS QMessageBox
+from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtGui import QIcon
 
 from ui.main_window import MainWindow
 from ui.utils import resource_path
 
-# --- FIX PARA "LOST SYS.STDIN" Y "ATTRIBUTE ERROR" ---
 if sys.platform.startswith('win'):
     if sys.stdin is None:
         sys.stdin = open(os.devnull, "r")
@@ -33,7 +32,7 @@ if __name__ == "__main__":
     
     # --- PROTECCIÓN DE INSTANCIA ÚNICA (NUEVO) ---
     # Creamos un identificador único. Si cambias de versión, puedes mantenerlo igual.
-    mutex_id = "KickMonitor_Instance_Mutex_Unique_ID"
+    mutex_id = "3E28ED4F-E3D1-466D-8140-E080992D5092"
     
     # Intentamos crear el Mutex en el Kernel de Windows
     mutex = ctypes.windll.kernel32.CreateMutexW(None, False, mutex_id)
@@ -45,14 +44,14 @@ if __name__ == "__main__":
         msg.setWindowTitle("KickMonitor")
         msg.setText("La aplicación ya se está ejecutando.")
         msg.setStandardButtons(QMessageBox.StandardButton.Ok)
-        # Aseguramos que el popup tenga el icono correcto también
         msg.setWindowIcon(QIcon(resource_path("icon.ico"))) 
         msg.exec()
         sys.exit(0)
     # ---------------------------------------------
 
     # Cargar icono de la aplicación
-    icon_path = resource_path("icon.ico") 
+    basedir = os.path.dirname(os.path.abspath(__file__))
+    icon_path = os.path.join(basedir, "icon.ico")
     app.setWindowIcon(QIcon(icon_path))
     
     w = MainWindow()

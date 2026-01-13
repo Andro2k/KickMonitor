@@ -129,7 +129,7 @@ class ChatPage(QWidget):
         self.txt_cmd_tts.setPlaceholderText("!voz")
         self.txt_cmd_tts.setFixedWidth(80)
         self.txt_cmd_tts.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.txt_cmd_tts.setStyleSheet(STYLES["input_cmd"])
+        self.txt_cmd_tts.setStyleSheet(STYLES["input_readonly"])
         self.txt_cmd_tts.editingFinished.connect(self._handle_command_saved)
         
         row_top.addWidget(QLabel("Trigger:", styleSheet="color:#aaa; font-weight:bold;"))
@@ -140,7 +140,7 @@ class ChatPage(QWidget):
         btn_test = QPushButton(" Test Audio")
         btn_test.setIcon(get_icon("play-circle.svg"))
         btn_test.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_test.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 6px; padding: 6px 12px;")
+        btn_test.setStyleSheet(STYLES["btn_nav"])
         btn_test.clicked.connect(self._handle_test_audio)
         
         self.voice_btn = QPushButton()
