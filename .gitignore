@@ -19,5 +19,4 @@ exporter.txt
 installer/*.exe
 build.py
 backend/config/credentials.py
-requirements.txt
 *.csv   
