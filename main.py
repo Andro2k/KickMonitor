@@ -22,7 +22,7 @@ if not hasattr(sys, '_MEIPASS'):
     pass
 
 # Configurar ID de Windows para la barra de tareas
-myappid = 'kickmonitor.v1.7.4' 
+myappid = 'kickmonitor.v1.7.5' 
 try:
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except ImportError:
