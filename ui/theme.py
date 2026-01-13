@@ -22,8 +22,8 @@ class Palette:
     """
     # --- 1. Paleta Base ---
     Black_N0       = "#0B0B0C"
-    Black_N1       = "#1E1E1E"
-    Black_N2       = "#252525"
+    Black_N1       = "#1E1E1E" #050505
+    Black_N2       = "#252525" #191919
     Black_N3       = "#2D2D2D"
     Black_N4       = "#3E3E3E"
     Black_Pure     = "#000000"

@@ -1,4 +1,4 @@
-# ui/dialogs/username_input.py
+# ui/dialogs/user_modal.py
 
 from PyQt6.QtWidgets import (QDialog, QFrame, QVBoxLayout, QHBoxLayout, QLabel, 
                              QLineEdit, QPushButton)
@@ -61,6 +61,7 @@ class UsernameInputDialog(QDialog):
         self.txt_user.setPlaceholderText("Nombre del canal (Ej: rebeca arenas)")
         self.txt_user.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.txt_user.setFixedHeight(40)
+        self.txt_user.returnPressed.connect(self._on_save)
         self.txt_user.setStyleSheet(f"""
             QLineEdit {{
                 background-color: {THEME_DARK['Black_N4']};
@@ -101,6 +102,7 @@ class UsernameInputDialog(QDialog):
 
         # Botón GUARDAR (Estilo Sólido / Primario)
         btn_save = QPushButton("Confirmar")
+        btn_save.setDefault(True)
         btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_save.setFixedHeight(45)
         btn_save.setStyleSheet(f"""

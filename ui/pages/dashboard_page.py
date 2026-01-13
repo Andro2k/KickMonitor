@@ -369,7 +369,7 @@ class DashboardPage(QWidget):
         
         if not current_user:
             # Si no hay usuario, abrimos el modal PRIMERO
-            from ui.dialogs.username_input import UsernameInputDialog
+            from ui.dialogs.user_modal import UsernameInputDialog
             dlg = UsernameInputDialog(self)
             if dlg.exec():
                 # Guardamos el usuario formateado (rebeca-arenas) en la DB

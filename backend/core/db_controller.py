@@ -1,5 +1,6 @@
 # backend/db_controller.py
 
+import os
 from typing import List, Optional, Any, Dict
 from PyQt6.QtCore import QMutexLocker 
 
@@ -209,3 +210,40 @@ class DBHandler:
     def get_timer(self, name): return self.automations.get_timer(name)
     def get_due_timers(self, current_time): return self.automations.get_due_timers(current_time)
     def update_timer_run(self, name, ts): return self.automations.update_timer_run(name, ts)
+
+    # =========================================================================
+    # REGIÓN 7: GESTIÓN DE DATOS Y MANTENIMIENTO (NUEVO)
+    # =========================================================================
+    def get_db_path(self) -> str:
+        """Retorna la ruta absoluta del archivo de base de datos."""
+        return os.path.abspath(self.conn_handler.db_path)
+
+    def factory_reset_user(self):
+        """
+        Borra credenciales de Kick y Spotify, y elimina al usuario actual.
+        No toca la configuración del sistema ni la economía.
+        """
+        keys_to_wipe = [
+            "kick_username", "chatroom_id", "client_id", "client_secret", 
+            "access_token", "refresh_token", 
+            "spotify_client_id", "spotify_secret", "spotify_enabled"
+        ]
+        
+        with QMutexLocker(self.conn_handler.mutex):
+            # 1. Limpiar Settings
+            for key in keys_to_wipe:
+                self.conn_handler.conn.execute("UPDATE settings SET value='' WHERE key=?", (key,))
+            
+            # 2. Borrar tabla de streamers (Opcional, si quieres olvidar los datos del perfil)
+            self.conn_handler.conn.execute("DELETE FROM kick_streamer")
+            self.conn_handler.conn.commit()
+
+    def wipe_economy_data(self):
+        """
+        Reinicia la economía: Pone puntos a 0 para todos y borra historial de apuestas.
+        Mantiene a los usuarios registrados (para no perder roles/bans).
+        """
+        with QMutexLocker(self.conn_handler.mutex):
+            self.conn_handler.conn.execute("UPDATE data_users SET points = 0")
+            self.conn_handler.conn.execute("DELETE FROM gamble_history")
+            self.conn_handler.conn.commit()

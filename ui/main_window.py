@@ -14,7 +14,7 @@ from ui.components.sidebar import Sidebar
 from ui.theme import get_sheet
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
-from ui.dialogs.username_input import UsernameInputDialog
+from ui.dialogs.user_modal import UsernameInputDialog
 
 # Páginas
 from ui.pages.alerts_page import AlertsPage
