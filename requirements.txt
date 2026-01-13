@@ -1,0 +1,20 @@
+# --- Interfaz Gráfica ---
+PyQt6
+
+# --- Kick & Redes (Core del Bot) ---
+kickpython
+curl_cffi
+requests
+aiohttp
+aiohttp_cors
+packaging
+
+# --- Multimedia y Funcionalidades ---
+pyttsx3
+spotipy
+
+# --- Dependencias de Sistema (Windows) ---
+pywin32
+
+# --- Compilación ---
+pyinstaller
