@@ -7,7 +7,6 @@ from ui.utils import get_icon
 def create_nav_btn(text: str, icon_name: str, func=None) -> QPushButton:
     """
     Crea el botón estándar de la cabecera (Ej: Importar, Exportar, Nuevo).
-    Usa el estilo 'btn_nav' definido en theme.py.
     """
     btn = QPushButton("  " + text)
     if icon_name:

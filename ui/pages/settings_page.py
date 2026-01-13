@@ -11,7 +11,7 @@ from PyQt6.QtCore import Qt, QSize, pyqtSignal, QUrl
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
 from ui.dialogs.connection_modal import ConnectionModal
-from ui.factories import create_card_header, create_page_header
+from ui.factories import create_card_header, create_nav_btn, create_page_header
 from ui.utils import get_icon
 from ui.theme import LAYOUT, THEME_DARK, STYLES
 from backend.services.settings_service import SettingsService
@@ -104,8 +104,8 @@ class SettingsPage(QWidget):
         card = QFrame()
         card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
         l = QVBoxLayout(card)
-        l.setContentsMargins(20, 20, 20, 20)
-        l.setSpacing(10)
+        l.setContentsMargins(*LAYOUT["margins"])
+        l.setSpacing(LAYOUT["spacing"])
 
         l.addWidget(create_card_header("Credenciales Kick", "kick.svg"))
         
@@ -124,8 +124,8 @@ class SettingsPage(QWidget):
         card = QFrame()
         card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
         l = QVBoxLayout(card)
-        l.setContentsMargins(20, 20, 20, 20)
-        l.setSpacing(10)
+        l.setContentsMargins(*LAYOUT["margins"])
+        l.setSpacing(LAYOUT["spacing"])
 
         l.addWidget(create_card_header("Sistema", "settings.svg"))
 
@@ -145,8 +145,8 @@ class SettingsPage(QWidget):
         card = QFrame()
         card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
         l = QVBoxLayout(card)
-        l.setContentsMargins(20, 20, 20, 20)
-        l.setSpacing(10)
+        l.setContentsMargins(*LAYOUT["margins"])
+        l.setSpacing(LAYOUT["spacing"])
 
         l.addWidget(create_card_header("Spotify", "spotify.svg"))
 
@@ -167,12 +167,12 @@ class SettingsPage(QWidget):
         card = QFrame()
         card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
         l = QVBoxLayout(card)
-        l.setContentsMargins(20, 20, 20, 20)
+        l.setContentsMargins(*LAYOUT["margins"])
         l.setSpacing(15)
         l.addWidget(create_card_header("Sistema de Puntos", "users.svg"))
 
         grid = QGridLayout()
-        grid.setSpacing(10)
+        grid.setSpacing(LAYOUT["spacing"])
 
         # Helpers interno
         def add_field(row, col, label, widget):
@@ -231,7 +231,7 @@ class SettingsPage(QWidget):
         btn_open.setToolTip("Abrir carpeta")
         btn_open.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_open.setFixedSize(32, 32)
-        btn_open.setStyleSheet(STYLES["sidebar_btn"])
+        btn_open.setStyleSheet(STYLES["btn_nav"])
         btn_open.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(db_info["folder"])))
 
         row_path.addWidget(self.txt_path)
@@ -242,49 +242,29 @@ class SettingsPage(QWidget):
         
         # B. ACCIONES PELIGROSAS (GRID)
         grid = QGridLayout()
-        grid.setSpacing(10)
+        grid.setSpacing(LAYOUT["spacing"])
 
         # Botón 1: Backup
-        btn_backup = self._create_action_btn("Crear Backup", "save.svg", "#2196F3")
-        btn_backup.clicked.connect(self._handle_backup)
+        btn_backup = create_nav_btn("Crear Backup", "save.svg", self._handle_backup)
         grid.addWidget(btn_backup, 0, 0)
 
         # Botón 2: Reiniciar Economía
-        btn_reset_eco = self._create_action_btn("Reiniciar Economía", "refresh-cw.svg", "#FF9800")
-        btn_reset_eco.clicked.connect(self._handle_reset_economy)
+        btn_reset_eco = create_nav_btn("Reiniciar Economía", "refresh-cw.svg", self._handle_reset_economy)
         grid.addWidget(btn_reset_eco, 0, 1)
 
         # Botón 3: Desvincular Cuenta (ROJO)
-        btn_unlink = self._create_action_btn("Desvincular Cuenta", "log-out.svg", "#ef5350", is_danger=True)
+        btn_unlink = self._create_action_btn("Desvincular Cuenta", "log-out.svg", is_danger=True)
         btn_unlink.clicked.connect(self._handle_unlink_account)
-        grid.addWidget(btn_unlink, 1, 0, 1, 2) # Ocupa 2 columnas
+        grid.addWidget(btn_unlink, 1, 0, 1, 2)
 
         l.addLayout(grid)
         l.addStretch()
         return card
     
-    def _create_action_btn(self, text, icon, color, is_danger=False):
+    def _create_action_btn(self, text, icon, is_danger=False):
         btn = QPushButton(text)
         btn.setIcon(get_icon(icon))
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        
-        border_color = color
-        
-        base_style = f"""
-            QPushButton {{
-                background-color: {THEME_DARK['Black_N3']};
-                color: {THEME_DARK['White_N1']};
-                border: 1px solid {THEME_DARK['Black_N1']};
-                border-radius: 8px;
-                padding: 10px;
-                font-weight: 600;
-            }}
-            QPushButton:hover {{
-                border: 1px solid {border_color};
-                background-color: {THEME_DARK['Black_N4']};
-            }}
-        """
-        
         if is_danger:
              base_style = (STYLES["btn_danger_outlined"])
             

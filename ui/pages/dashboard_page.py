@@ -129,7 +129,7 @@ class DashboardPage(QWidget):
         # Avatar
         self.lbl_avatar = QLabel()
         self.lbl_avatar.setFixedSize(100, 100)
-        self.lbl_avatar.setStyleSheet(f"background-color: {THEME_DARK['Black_N4']}; border-radius: 50px;")
+        self.lbl_avatar.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 50px;")
         
         # Textos (Nombre y Estado)
         info = QVBoxLayout()
@@ -157,7 +157,7 @@ class DashboardPage(QWidget):
         
         self.btn_auto = QPushButton()
         self.btn_auto.setCheckable(True)
-        self.btn_auto.setFixedSize(38, 38)
+        self.btn_auto.setFixedSize(32, 32)
         self.btn_auto.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_auto.setIcon(get_icon("plug.svg"))
         self.btn_auto.setToolTip("Auto-conectar al inicio")
@@ -219,7 +219,6 @@ class DashboardPage(QWidget):
             grid.addWidget(btn, r, c)
             
         l.addLayout(grid)
-        # l.addStretch()
         
         return card
 
@@ -230,10 +229,9 @@ class DashboardPage(QWidget):
         self.log_console.setReadOnly(True)
         self.log_console.setPlaceholderText("Esperando conexión...")
         self.log_console.setMinimumHeight(150)
-        # Hacemos que el log no crezca infinitamente, pero tenga una altura base buena
-        self.log_console.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding)
-        
+        self.log_console.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding)    
         self.log_console.setStyleSheet(STYLES["text_edit_console"])
+
         self.main_layout.addWidget(self.log_console)
 
     # ==========================================
@@ -270,13 +268,13 @@ class DashboardPage(QWidget):
     def _create_main_action_btn(self, text, icon):
         btn = QPushButton(text); btn.setIcon(get_icon(icon))
         btn.setCheckable(True); btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setFixedHeight(38); btn.setMinimumWidth(160)
+        btn.setFixedHeight(32); btn.setMinimumWidth(160)
         return btn
 
     def _create_shortcut_btn(self, icon, text):
         btn = QPushButton()
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setMinimumHeight(70) # Botones un poco más altos
+        btn.setMinimumHeight(70)
         btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         
         l = QVBoxLayout(btn)
@@ -299,12 +297,12 @@ class DashboardPage(QWidget):
         return btn
 
     def _update_auto_btn_style(self, checked):
-        bg = "rgba(83, 252, 24, 0.15)" if checked else THEME_DARK['Black_N4']
+        bg = "rgba(83, 252, 24, 0.15)" if checked else THEME_DARK['Black_N3']
         bc = THEME_DARK['NeonGreen_Main'] if checked else THEME_DARK['border']
         self.btn_auto.setStyleSheet(f"QPushButton {{ background-color: {bg}; border: 1px solid {bc}; border-radius: 8px; }}")
 
     def _update_spotify_btn_style(self, active):
-        bg = "#1DB954" if active else THEME_DARK['Black_N4']
+        bg = "#1DB954" if active else THEME_DARK['Black_N3']
         fg = "black" if active else THEME_DARK['White_N1']
         border = "#1DB954" if active else THEME_DARK['border']
         txt = "Spotify: On" if active else "Conectar Spotify"
@@ -313,24 +311,22 @@ class DashboardPage(QWidget):
         self.btn_spotify.setText(txt)
         self.btn_spotify.setStyleSheet(f"""
             QPushButton {{ 
-                background-color: {bg}; color: {fg}; 
-                border: 1px solid {border}; border-radius: 8px; 
+                background-color: {bg}; color: {fg}; border-radius: 8px; 
                 font-weight: bold; font-size: 13px; text-align: left; padding-left: 15px; 
             }}
         """)
 
     def update_connection_state(self, connected):
         self.btn_connect.setChecked(connected)
-        bg = THEME_DARK['NeonGreen_Main'] if connected else THEME_DARK['Black_N4']
+        bg = THEME_DARK['NeonGreen_Main'] if connected else THEME_DARK['Black_N3']
         fg = "black" if connected else THEME_DARK['White_N1']
         msg = "Bot Conectado" if connected else "Conectar Bot"
         self.btn_connect.setIcon(get_colored_icon("kick.svg", fg))
         self.btn_connect.setText(msg)
         self.btn_connect.setStyleSheet(f"""
             QPushButton {{ 
-                background-color: {bg}; color: {fg}; 
-                border-radius: 8px; font-weight: bold; font-size: 13px; 
-                text-align: left; padding-left: 15px; 
+                background-color: {bg}; color: {fg}; border-radius: 8px; 
+                font-weight: bold; font-size: 13px; text-align: left; padding-left: 15px; 
             }}
         """)
 

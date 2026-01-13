@@ -189,7 +189,7 @@ STYLES = {
     "input_cmd": f"""
         QLineEdit {{ 
             background: {c.Black_N3}; color: {c.NeonGreen_Main}; font-weight: bold; font-family: Consolas;
-            border-radius: 4px; padding: 4px; border: 1px solid {c.border};
+            border-radius: 4px; padding: 6px 10px; border: 1px solid {c.border};
         }}
         QLineEdit:focus {{ border-color: {c.NeonGreen_Main}; }}
     """,
@@ -244,7 +244,7 @@ STYLES = {
     # Botón delineado (Configurar, Gestionar)
     "btn_outlined": f"""
         QPushButton {{ 
-            background-color: {c.Black_N4}; color: {c.White_N1}; 
+            background-color: {c.Black_N3}; color: {c.White_N1}; 
             border: 1px solid {c.Gray_Border}; border-radius: 8px; padding: 8px;
         }} 
         QPushButton:hover {{ border-color: {c.NeonGreen_Main}; color: {c.White_N1}; }}
