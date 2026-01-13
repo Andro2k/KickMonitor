@@ -4,6 +4,8 @@ import time
 import csv
 from typing import List, Tuple, Dict, Optional
 
+from backend.utils.data_manager import DataManager
+
 class CommandsService:
     """
     Servicio de gestión de Comandos Personalizados.
@@ -40,62 +42,38 @@ class CommandsService:
     # REGIÓN 2: PERSISTENCIA (IMPORTAR / EXPORTAR CSV)
     # =========================================================================
     def export_csv(self, path: str) -> bool:
-        """Exporta la base de datos de comandos a un archivo CSV."""
-        try:
-            # Data: [(trigger, response, is_active, cooldown), ...]
-            data = self.db.get_all_commands()
-            
-            with open(path, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                writer.writerow(["trigger", "response", "is_active", "cooldown"])
-                
-                for row in data:
-                    writer.writerow([row[0], row[1], row[2], row[3]])
-            return True
-        except Exception as e:
-            print(f"[Export Error] {e}")
-            return False
+        headers = ["Trigger", "Response", "Is_Active", "Cooldown"]
+        data_rows = self.db.get_all_commands() # Tu DB ya devuelve tuplas en orden
+        return DataManager.export_csv(path, headers, data_rows)
 
     def import_csv(self, path: str) -> Tuple[int, int]:
-        """
-        Importa comandos desde un CSV externo.
-        Retorna: (Cantidad Importados, Cantidad Fallidos)
-        """
+        # Validamos que sea un CSV de comandos
+        required = ["trigger", "response"]
+        rows, error = DataManager.import_csv(path, required)
+        
+        if rows is None:
+            print(f"[Import Error] {error}")
+            return 0, 0 # O podrías lanzar excepción para avisar a la UI
+
         count_ok = 0
         count_fail = 0
-        
-        try:
-            with open(path, 'r', encoding='utf-8') as f:
-                reader = csv.reader(f)
-                headers = next(reader, []) # Saltar cabecera
-                
-                if len(headers) < 2: 
-                    return 0, 0
 
-                for row in reader:
-                    if len(row) < 2:
-                        count_fail += 1
-                        continue
-                    
-                    try:
-                        trig = row[0]
-                        resp = row[1]
-                        # Índices flexibles por si el CSV es antiguo
-                        active = int(row[2]) if len(row) > 2 and row[2].isdigit() else 1
-                        cd = int(row[3]) if len(row) > 3 and row[3].isdigit() else 5                        
-                        # 1. Guardar (Upsert)
-                        self.add_or_update_command(trig, resp, cd)                      
-                        # 2. Restaurar estado (add_or_update lo activa por defecto)
-                        if active == 0:
-                            self.toggle_status(trig, False)
-                        
-                        count_ok += 1
-                    except:
-                        count_fail += 1
-            return count_ok, count_fail
-        except Exception as e:
-            print(f"[Import Error] {e}")
-            return 0, 0
+        for row in rows:
+            try:
+                trig = row["trigger"]
+                resp = row["response"]
+                # Parseo seguro
+                act = int(row.get("is_active", 1))
+                cd = int(row.get("cooldown", 5))
+
+                self.add_or_update_command(trig, resp, cd)
+                if act == 0:
+                    self.toggle_status(trig, False)
+                count_ok += 1
+            except:
+                count_fail += 1
+        
+        return count_ok, count_fail
 
     # =========================================================================
     # REGIÓN 3: LÓGICA DE EJECUCIÓN (RUNTIME)

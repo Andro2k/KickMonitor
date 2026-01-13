@@ -6,6 +6,8 @@ import socket
 from urllib.parse import quote
 from typing import List, Dict, Any, Tuple
 
+from backend.utils.data_manager import DataManager
+
 class OverlayService:
     """
     Servicio de Lógica para el Overlay Multimedia.
@@ -146,108 +148,80 @@ class OverlayService:
     # REGIÓN 3: PERSISTENCIA CSV (IMPORTAR / EXPORTAR)
     # =========================================================================
     def export_csv(self, path: str) -> bool:
-        """Exporta la configuración a CSV calculando el tipo de archivo real."""
-        try:
-            data_map = self.db.get_all_triggers()
-            
-            with open(path, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                writer.writerow(["Comando", "Archivo", "Tipo", "Duracion", "Escala", "Activo", "Costo", "Volumen"])
-                
-                for filename, cfg in data_map.items():
-                    # Recalcular tipo basado en extensión para consistencia
-                    ext = os.path.splitext(filename)[1].lower()
-                    
-                    if ext in self.VIDEO_EXTS: ftype = "video"
-                    elif ext in self.AUDIO_EXTS: ftype = "audio"
-                    else: ftype = cfg.get("type", "audio")
-                    
-                    writer.writerow([
-                        cfg.get("cmd", ""), filename, ftype,
-                        cfg.get("dur", 0), cfg.get("scale", 1.0),
-                        cfg.get("active", 1), cfg.get("cost", 0),
-                        cfg.get("volume", 100)
-                    ])
-            return True
-        except Exception as e:
-            print(f"[Export Error] {e}")
-            return False
+        headers = ["Comando", "Archivo", "Tipo", "Duracion", "Escala", "Activo", "Costo", "Volumen"]
+        data_rows = []
+        
+        triggers = self.db.get_all_triggers()
+        for filename, cfg in triggers.items():
+            # Lógica para determinar tipo (igual que tenías)
+            ext = os.path.splitext(filename)[1].lower()
+            if ext in self.VIDEO_EXTS: ftype = "video"
+            elif ext in self.AUDIO_EXTS: ftype = "audio"
+            else: ftype = cfg.get("type", "audio")
 
+            data_rows.append([
+                cfg.get("cmd", ""), filename, ftype,
+                cfg.get("dur", 0), cfg.get("scale", 1.0),
+                cfg.get("active", 1), cfg.get("cost", 0),
+                cfg.get("volume", 100)
+            ])
+            
+        return DataManager.export_csv(path, headers, data_rows)
+
+    # --- NUEVA LÓGICA DE IMPORTAR ---
     def import_csv(self, path: str) -> Tuple[int, int, List[str]]:
-        """Importa triggers forzando la detección del tipo de archivo real."""
+        # 1. Definimos qué columnas SON OBLIGATORIAS para considerar este CSV válido
+        required = ["comando", "archivo"] 
+        
+        # 2. Usamos el DataManager
+        rows, error_msg = DataManager.import_csv(path, required)
+        
+        if rows is None:
+            # Si hay error (ej: cabeceras mal), retornamos 0 importados y el mensaje como error en la lista
+            return 0, 0, [error_msg]
+
+        # 3. Procesamos los datos ya validados
         count_ok = 0
         count_fail = 0
         missing_files = []
         media_folder = self.get_media_folder()
 
-        try:
-            with open(path, 'r', encoding='utf-8') as f:
-                reader = csv.reader(f)
-                headers = next(reader, [])
+        for row in rows:
+            try:
+                # Nota: DataManager devuelve claves en minúscula
+                cmd = row.get("comando") or row.get("command")
+                filename = row.get("archivo") or row.get("file")
                 
-                # Validación básica de cabeceras
-                h_lower = [h.lower() for h in headers]
-                valid_overlay = ("comando" in h_lower or "command" in h_lower) and \
-                                ("archivo" in h_lower or "file" in h_lower)
+                if not cmd or not filename:
+                    count_fail += 1; continue
+
+                # Parseo seguro con defaults
+                try:
+                    dur = int(float(row.get("duracion", 0)))
+                    scale = float(row.get("escala", 1.0))
+                    active = int(row.get("activo", 1))
+                    cost = int(row.get("costo", 0))
+                    vol = int(row.get("volumen", 100))
+                except ValueError:
+                    dur, scale, active, cost, vol = 0, 1.0, 1, 0, 100
+
+                # Determinar tipo real por extensión
+                ext = os.path.splitext(filename)[1].lower()
+                real_type = "video" if ext in self.VIDEO_EXTS else "audio"
+
+                # Guardar en DB
+                self.db.set_trigger(cmd, filename, real_type, dur, scale, active, cost, vol)
+
+                # Check existencia física
+                if media_folder:
+                    if not os.path.exists(os.path.join(media_folder, filename)):
+                        missing_files.append(filename)
                 
-                if not valid_overlay:
-                    return 0, 0, ["El archivo no es un CSV de Alertas válido."]
+                count_ok += 1
+            except Exception:
+                count_fail += 1
 
-                # Detección de formato (columnas nuevas vs viejas)
-                is_new_format = "tipo" in h_lower or "type" in h_lower or len(headers) >= 8
-
-                for row in reader:
-                    if len(row) < 2:
-                        count_fail += 1; continue
-                        
-                    try:
-                        cmd = row[0]
-                        filename = row[1]
-                        
-                        # Valores Default
-                        dur, scale, active, cost, vol = 0, 1.0, 1, 0, 100
-
-                        try:
-                            if is_new_format and len(row) >= 8:
-                                dur = int(float(row[3]))
-                                scale = float(row[4])
-                                active = int(row[5])
-                                cost = int(row[6])
-                                vol = int(row[7])
-                            else:
-                                # Fallback formato legacy
-                                dur = int(float(row[2])) if len(row) > 2 else 0
-                                scale = float(row[3]) if len(row) > 3 else 1.0
-                                active = int(row[4]) if len(row) > 4 else 1
-                                cost = int(row[5]) if len(row) > 5 else 0
-                                vol = int(row[6]) if len(row) > 6 else 100
-                        except ValueError:
-                            pass # Usamos defaults si falla el parseo numérico
-
-                        # --- CORRECCIÓN DE TIPO ---
-                        # Ignoramos la columna 'tipo' del CSV y confiamos en la extensión real
-                        ext = os.path.splitext(filename)[1].lower()
-                        real_type = "video" if ext in self.VIDEO_EXTS else "audio"
-                        
-                        # Guardamos en DB con argumentos posicionales (orden del Facade)
-                        # Facade: set_trigger(cmd, file, ftype, dur, sc, act, cost, vol)
-                        self.db.set_trigger(cmd, filename, real_type, dur, scale, active, cost, vol)
-                        
-                        # Verificación de existencia física (para reporte de errores)
-                        if media_folder:
-                            full_path = os.path.join(media_folder, filename)
-                            if not os.path.exists(full_path):
-                                missing_files.append(filename)
-                        
-                        count_ok += 1
-                    except Exception:
-                        count_fail += 1
-                        
-            return count_ok, count_fail, missing_files
-            
-        except Exception as e:
-            print(f"[Import Error] {e}")
-            return 0, 0, [str(e)]
+        return count_ok, count_fail, missing_files
 
     # =========================================================================
     # REGIÓN 4: PREVISUALIZACIÓN (TEST)

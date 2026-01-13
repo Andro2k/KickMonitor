@@ -44,20 +44,20 @@ class OverlayPage(QWidget):
         h_head = QHBoxLayout()
         
         # Títulos
-        v_tit = QVBoxLayout()
-        v_tit.setSpacing(2)
-        v_tit.addWidget(QLabel("Control de Triggers", objectName="h2"))
-        v_tit.addWidget(QLabel("Configura tus alertas visuales y sonoras.", objectName="subtitle"))
-        h_head.addLayout(v_tit)
-        
+        v_titles = QVBoxLayout()
+        v_titles.setSpacing(LAYOUT["spacing"])
+        v_titles.addWidget(QLabel("Control de Triggers", objectName="h2"))
+        v_titles.addWidget(QLabel("Configura tus alertas visuales y sonoras.", objectName="subtitle"))
+        h_head.addLayout(v_titles)
         h_head.addStretch()
 
         # Botones Exportar/Importar (Los switches se movieron abajo)
-        btn_export = self._create_top_btn("download.svg", "Exportar", self._handle_export)
         btn_import = self._create_top_btn("upload.svg", "Importar", self._handle_import)
-        h_head.addWidget(btn_export)
-        h_head.addWidget(btn_import)
+        btn_export = self._create_top_btn("download.svg", "Exportar", self._handle_export)
         
+        h_head.addWidget(btn_import)
+        h_head.addWidget(btn_export)
+
         layout.addLayout(h_head)
 
     def _setup_config_section(self, layout):
@@ -316,6 +316,8 @@ class OverlayPage(QWidget):
     def _handle_export(self):
         path, _ = QFileDialog.getSaveFileName(self, "Exportar Alertas", "alertas_backup.csv", "CSV Files (*.csv)")
         if not path: return
+        
+        # El servicio ahora usa DataManager para escribir limpiamente
         if self.service.export_csv(path):
             ToastNotification(self, "Exportado", "Configuración guardada exitosamente.", "Status_Green").show_toast()
         else:
@@ -324,19 +326,36 @@ class OverlayPage(QWidget):
     def _handle_import(self):
         path, _ = QFileDialog.getOpenFileName(self, "Importar Alertas", "", "CSV Files (*.csv)")
         if not path: return
+        
         if not ModalConfirm(self, "Importar", "Esto sobrescribirá comandos existentes. ¿Continuar?").exec():
             return
-        ok, fail, missing = self.service.import_csv(path)
+            
+        # El servicio retorna: (ok, fail, lista_errores_o_faltantes)
+        ok, fail, missing_list = self.service.import_csv(path) 
         self.load_data()
-        if fail == 0 and not missing:
-            ToastNotification(self, "Éxito", f"Se importaron {ok} alertas correctamente.", "Status_Green").show_toast()
-        else:
-            if missing:
-                limit_show = 5
-                files_str = "\n- ".join(missing[:limit_show])
-                if len(missing) > limit_show: files_str += f"\n... y {len(missing)-limit_show} más."
-                ModalConfirm(self, "Archivos Faltantes", f"La configuración se cargó, pero NO encuentro estos archivos:\n\n- {files_str}").exec()
-            ToastNotification(self, "Importación con Avisos", f"OK: {ok} | Errores: {fail}", "Status_Yellow").show_toast()
+        
+        # CASO 1: Archivo Inválido (DataManager devolvió error en la lista y 0 importados)
+        # Esto ocurre si subes el CSV de puntos en lugar del de overlay
+        if ok == 0 and fail == 0 and missing_list:
+             error_msg = missing_list[0] # El mensaje del DataManager
+             ToastNotification(self, "Archivo Incorrecto", error_msg, "Status_Red").show_toast()
+             return
+
+        # CASO 2: Archivos Multimedia Faltantes (La importación funcionó, pero faltan archivos)
+        if missing_list:
+             limit_show = 5
+             files_str = "\n- ".join(missing_list[:limit_show])
+             if len(missing_list) > limit_show: 
+                 files_str += f"\n... y {len(missing_list)-limit_show} más."
+             
+             ModalConfirm(self, "Archivos Faltantes", f"Se cargó la config, pero NO encuentro estos archivos en la carpeta:\n\n- {files_str}").exec()
+             
+        # Notificación Final
+        if ok > 0:
+            type_msg = "Status_Green" if fail == 0 else "Status_Yellow"
+            ToastNotification(self, "Éxito", f"Se importaron {ok} alertas. (Ignorados: {fail})", type_msg).show_toast()
+        elif fail > 0 and ok == 0:
+            ToastNotification(self, "Error", "No se pudo importar ninguna alerta válida.", "Status_Red").show_toast()
 
     def _handle_search_changed(self, text):
         self.search_text = text.lower().strip()
@@ -361,8 +380,7 @@ class OverlayPage(QWidget):
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {THEME_DARK['Black_N2']};
-                color: {THEME_DARK['White_N1']};
+                background-color: {THEME_DARK['Black_N2']}; color: {THEME_DARK['White_N1']};
                 padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold;
             }}
             QPushButton:hover {{ 

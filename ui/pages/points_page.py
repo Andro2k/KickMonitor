@@ -14,7 +14,6 @@ from ui.utils import get_icon, get_colored_icon
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
 from backend.services.points_service import PointsService
-# (Eliminamos FlowLayout porque ya no lo usaremos aquí)
 
 class PointsPage(QWidget):
     def __init__(self, db_handler, parent=None):
@@ -52,11 +51,9 @@ class PointsPage(QWidget):
 
         # 3. CONSTRUCCIÓN DE LA UI
         # A. Header (Título + Botones Exportar)
-        self.content_layout.addWidget(self._create_header())
-        
+        self.content_layout.addWidget(self._create_header()) 
         # B. Barra de Gestión Manual (Compacta)
         self.content_layout.addWidget(self._create_manual_strip())
-
         # C. Tabla de Usuarios (Expansible)
         self.content_layout.addWidget(self._create_table_card())
         
@@ -66,20 +63,20 @@ class PointsPage(QWidget):
     def _create_header(self):
         h_frame = QFrame()
         h_header = QHBoxLayout(h_frame)
-        h_header.setContentsMargins(0, 0, 0, 0) # Pequeño margen inferior
+        h_header.setContentsMargins(0, 0, 0, 0)
         
         v_titles = QVBoxLayout()
-        v_titles.setSpacing(2)
+        v_titles.setSpacing(LAYOUT["spacing"])
         v_titles.addWidget(QLabel("Tabla de Usuarios", objectName="h2"))
         v_titles.addWidget(QLabel("Gestión de puntos y estado de usuarios.", objectName="subtitle"))
         h_header.addLayout(v_titles)
         h_header.addStretch()
         
-        btn_export = self._create_top_btn("download.svg", "Exportar", self._handle_export_csv)
         btn_import = self._create_top_btn("upload.svg", "Importar", self._handle_import_csv)
+        btn_export = self._create_top_btn("download.svg", "Exportar", self._handle_export_csv)
         
+        h_header.addWidget(btn_import)       
         h_header.addWidget(btn_export)
-        h_header.addWidget(btn_import)
         
         return h_frame
 
@@ -89,7 +86,6 @@ class PointsPage(QWidget):
     def _create_manual_strip(self):
         """
         Crea una barra horizontal compacta para agregar/quitar puntos.
-        Se ve mucho mejor que el cuadrado grande anterior.
         """
         card = QFrame()
         card.setStyleSheet(f"background: {THEME_DARK['Black_N2']}; border-radius: 12px;")
@@ -117,7 +113,7 @@ class PointsPage(QWidget):
         self.spin_manual_pts.setStyleSheet(STYLES["spinbox_modern"])
         l.addWidget(self.spin_manual_pts)
 
-        l.addStretch() # Empuja el botón a la derecha
+        l.addStretch()
 
         # Botón Aplicar
         btn_apply = QPushButton(" Aplicar")
@@ -275,7 +271,7 @@ class PointsPage(QWidget):
             ToastNotification(self, "Error", "Ingresa un usuario", "Status_Yellow").show_toast()
             return
             
-        new_total = self.service.db.add_points(user, qty) 
+        new_total = self.service.add_manual_points(user, qty)
         ToastNotification(self, "Puntos", f"{user}: {qty:+} pts (Total: {new_total})", "Status_Green").show_toast()
         self.inp_manual_user.clear()
         self.load_table_data()
@@ -307,17 +303,11 @@ class PointsPage(QWidget):
         path, _ = QFileDialog.getSaveFileName(self, "Exportar Puntos", "data_users.csv", "CSV Files (*.csv)")
         if not path: return
 
-        try:
-            users = self.service.get_users_data()
-            with open(path, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                writer.writerow(["username", "points", "last_seen", "is_paused", "is_muted", "role"])
-                for u in users:
-                    role_val = u[5] if u[5] else "user"
-                    writer.writerow([u[0], u[1], str(u[2]), int(u[3]), int(u[4]), role_val])
+        # La UI solo llama al servicio y muestra el resultado
+        if self.service.export_points_csv(path):
             ToastNotification(self, "Exportado", f"Datos guardados en {path}", "Status_Green").show_toast()
-        except Exception as e:
-            ToastNotification(self, "Error Exportar", str(e), "Status_Red").show_toast()
+        else:
+            ToastNotification(self, "Error", "No se pudo escribir el archivo.", "Status_Red").show_toast()
 
     def _handle_import_csv(self):
         path, _ = QFileDialog.getOpenFileName(self, "Importar Puntos", "", "CSV Files (*.csv)")
@@ -326,31 +316,16 @@ class PointsPage(QWidget):
         if not ModalConfirm(self, "Importar Datos", "Esto sobrescribirá puntos y roles. ¿Continuar?").exec():
             return
 
-        count = 0
-        try:
-            with open(path, 'r', encoding='utf-8') as f:
-                reader = csv.reader(f)
-                next(reader, None)
-                for row in reader:
-                    if len(row) >= 2:
-                        user = row[0].strip()
-                        try:
-                            target_points = int(row[1])
-                            current = self.service.db.get_points(user)
-                            diff = target_points - current
-                            self.service.db.add_points(user, diff)
-                            if len(row) >= 5:
-                                self.service.toggle_pause(user, int(row[3]) == 1)
-                                self.service.toggle_mute(user, int(row[4]) == 1)
-                            if len(row) >= 6:
-                                self.service.db.update_user_role(user, row[5].strip())
-                            count += 1
-                        except ValueError: continue 
+        success, title, msg = self.service.import_points_csv(path)
+        
+        msg_type = "Status_Green" if success else "Status_Red"
+        if success and "Errores" in msg and not msg.endswith("(Errores: 0)"):
+             msg_type = "Status_Yellow" # Advertencia si hubo algunos fallos parciales
 
+        ToastNotification(self, title, msg, msg_type).show_toast()
+        
+        if success:
             self.load_table_data()
-            ToastNotification(self, "Importación", f"{count} usuarios actualizados.", "Status_Green").show_toast()
-        except Exception as e:
-            ToastNotification(self, "Error Importar", str(e), "Status_Red").show_toast()
 
     # ==========================================
     # HELPERS
@@ -363,7 +338,6 @@ class PointsPage(QWidget):
             QPushButton {{
                 background-color: {THEME_DARK['Black_N2']}; color: {THEME_DARK['White_N1']};
                 padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold;
-                border: 1px solid {THEME_DARK['Black_N4']};
             }}
             QPushButton:hover {{ 
                 background-color: {THEME_DARK['Black_N4']}; 

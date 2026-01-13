@@ -31,7 +31,7 @@ class CommandsPage(QWidget):
         content = QWidget()
         l_content = QVBoxLayout(content)
         l_content.setContentsMargins(*LAYOUT["margins"])
-        l_content.setSpacing(15)
+        l_content.setSpacing(LAYOUT["spacing"])
         
         # 1. HEADER (Título y Botón Agregar)
         header = QHBoxLayout()
@@ -43,11 +43,8 @@ class CommandsPage(QWidget):
         header.addStretch()
         
         btn_import = self._create_top_btn("upload.svg", "Importar", lambda: self._handle_import())
-        btn_import.setStyleSheet(btn_import.styleSheet() + f"background-color: {THEME_DARK['Black_N3']};") # Un poco más oscuro
-        
         btn_export = self._create_top_btn("download.svg", "Exportar", lambda: self._handle_export())
-        btn_export.setStyleSheet(btn_export.styleSheet() + f"background-color: {THEME_DARK['Black_N3']};")
-        
+
         header.addWidget(btn_import)
         header.addWidget(btn_export)
         
@@ -167,12 +164,13 @@ class CommandsPage(QWidget):
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {THEME_DARK['Black_N2']};
-                color: {THEME_DARK['White_N1']};
-                padding: 6px; border-radius: 6px; font-size: 12px; font-weight: bold;
-                border: 1px solid {THEME_DARK['Gray_Border']};
+                background-color: {THEME_DARK['Black_N2']}; color: {THEME_DARK['White_N1']};
+                padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold;
             }}
-            QPushButton:hover {{ border-color: {THEME_DARK['NeonGreen_Main']}; color: {THEME_DARK['NeonGreen_Main']}; }}
+            QPushButton:hover {{ 
+                background-color: {THEME_DARK['Black_N4']}; 
+                border-color: {THEME_DARK['NeonGreen_Main']}; 
+            }}
         """)
         btn.clicked.connect(func)
         return btn
@@ -191,23 +189,30 @@ class CommandsPage(QWidget):
     
     # --- IMPORTAR / EXPORTAR ---
     def _handle_export(self):
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "Exportar Comandos", "comandos.csv", "CSV Files (*.csv)"
-        )
-        if file_path:
-            if self.service.export_csv(file_path):
-                ToastNotification(self, "Exportar", "Archivo guardado con éxito", "Status_Green").show_toast()
-            else:
-                ToastNotification(self, "Error", "No se pudo exportar el archivo", "Status_Red").show_toast()
+        file_path, _ = QFileDialog.getSaveFileName(self, "Exportar Comandos", "comandos.csv", "CSV Files (*.csv)")
+        if not file_path: return
+        
+        if self.service.export_csv(file_path):
+            ToastNotification(self, "Exportar", "Archivo guardado con éxito", "Status_Green").show_toast()
+        else:
+            ToastNotification(self, "Error", "No se pudo exportar el archivo", "Status_Red").show_toast()
 
     def _handle_import(self):
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "Importar Comandos", "", "CSV Files (*.csv)"
-        )
-        if file_path:
-            if ModalConfirm(self, "Importar CSV", "¿Deseas importar? Esto podría sobrescribir comandos existentes.").exec():
-                ok, fail = self.service.import_csv(file_path)
-                self.load_data() # Recargar tabla
-                
-                msg_type = "Status_Green" if fail == 0 else "Status_Yellow"
-                ToastNotification(self, "Importación", f"Importados: {ok} | Fallidos: {fail}", msg_type).show_toast()
+        file_path, _ = QFileDialog.getOpenFileName(self, "Importar Comandos", "", "CSV Files (*.csv)")
+        if not file_path: return
+        
+        if not ModalConfirm(self, "Importar CSV", "¿Deseas importar? Esto podría sobrescribir comandos existentes.").exec():
+            return
+            
+        # Delegamos al servicio. Si el archivo es incorrecto, retorna 0,0
+        ok, fail = self.service.import_csv(file_path)
+        
+        self.load_data() 
+        
+        # Validación de cabeceras
+        if ok == 0 and fail == 0:
+            # Si ambos son 0, significa que DataManager rechazó el archivo por cabeceras incorrectas
+            ToastNotification(self, "Archivo Incorrecto", "El CSV no tiene las columnas 'Trigger' y 'Response'.", "Status_Red").show_toast()
+        else:
+            msg_type = "Status_Green" if fail == 0 else "Status_Yellow"
+            ToastNotification(self, "Importación", f"Importados: {ok} | Fallidos: {fail}", msg_type).show_toast()
