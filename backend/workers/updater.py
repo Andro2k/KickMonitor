@@ -1,4 +1,5 @@
 # backend/updater.py
+import subprocess
 import sys
 import os
 import requests
@@ -99,17 +100,24 @@ class UpdateDownloaderWorker(QThread):
             self.error.emit(f"Error en descarga: {str(e)}")
 
     def _launch_installer(self):
-        """Ejecuta el instalador y cierra la app actual."""
+        """Ejecuta el instalador de forma independiente y cierra la app actual."""
         if os.path.exists(self.installer_path):
             # print(f"[UPDATER] Ejecutando instalador...")
             
             try:
-                os.startfile(self.installer_path)
+                # 2. FIX PARA PYINSTALLER:
+                # Usamos Popen en lugar de os.startfile.
+                # 'close_fds=True' y 'shell=True' ayudan a desvincular el proceso.
+                subprocess.Popen([self.installer_path], shell=True, close_fds=True)
+                
+                # Damos un pequeño respiro para asegurar que el comando se envió al SO
                 QThread.msleep(1000) 
+                
+                # Cerramos la aplicación
                 sys.exit(0)
                 
             except Exception as e:
-                #  print(f"[UPDATER] Error lanzando EXE: {e}")
+                # print(f"[UPDATER] Error lanzando EXE: {e}")
                 self.error.emit(f"No se pudo abrir el instalador: {e}")
         else:
             self.error.emit("El archivo descargado no existe.")
