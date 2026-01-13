@@ -13,7 +13,7 @@ from backend.services.dashboard_service import DashboardService
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
 from ui.dialogs.connection_modal import ConnectionModal
-from ui.theme import LAYOUT, THEME_DARK
+from ui.theme import LAYOUT, STYLES, THEME_DARK
 from ui.utils import get_colored_icon, get_icon
 
 from ui.components.flow_layout import FlowLayout
@@ -188,37 +188,38 @@ class DashboardPage(QWidget):
     def _create_shortcuts_card(self):
         card = QFrame()
         card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
-        
+        card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         l = QVBoxLayout(card)
         l.setContentsMargins(*LAYOUT["margins"])
         l.setSpacing(LAYOUT["spacing"])
         
         l.addWidget(QLabel("Accesos Directos", objectName="h3"))
+        l.addStretch()
         
         # Grid de botones
         grid = QGridLayout()
         grid.setSpacing(LAYOUT["spacing"])
         
         shortcuts = [
-            ("chat.svg", "Chat", 1, "#20C554"), 
-            ("terminal.svg", "Comandos", 2, "#2196F3"),
-            ("bell.svg", "Alertas", 3, "#AAFF00"), 
-            ("layers.svg", "Overlay", 4, "#FF9800"), 
-            ("users.svg", "Usuarios", 5, "#E91E63"), 
-            ("casino.svg", "Casino", 6, "#D81EE9"), 
-            ("settings.svg", "Ajustes", 7, "#9E9E9E")
+            ("chat.svg", "Chat", 1), 
+            ("terminal.svg", "Comandos", 2),
+            ("bell.svg", "Alertas", 3), 
+            ("layers.svg", "Overlay", 4), 
+            ("users.svg", "Usuarios", 5), 
+            ("casino.svg", "Casino", 6), 
+            ("settings.svg", "Ajustes", 7)
         ]
 
         cols = 3 
         
-        for i, (icon, txt, idx, color) in enumerate(shortcuts):
-            btn = self._create_shortcut_btn(icon, txt, color)
+        for i, (icon, txt, idx) in enumerate(shortcuts):
+            btn = self._create_shortcut_btn(icon, txt)
             btn.clicked.connect(lambda _, x=idx: self.navigate_signal.emit(x))
             r, c = divmod(i, cols)
             grid.addWidget(btn, r, c)
             
         l.addLayout(grid)
-        l.addStretch()
+        # l.addStretch()
         
         return card
 
@@ -232,12 +233,7 @@ class DashboardPage(QWidget):
         # Hacemos que el log no crezca infinitamente, pero tenga una altura base buena
         self.log_console.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding)
         
-        self.log_console.setStyleSheet(f"""
-            QTextEdit {{
-                background-color: {THEME_DARK['Black_N2']}; color: #aaa; border-radius: 12px;
-                font-family: Consolas, monospace; font-size: 12px; white-space: pre; padding: 10px;
-            }}
-        """)
+        self.log_console.setStyleSheet(STYLES["text_edit_console"])
         self.main_layout.addWidget(self.log_console)
 
     # ==========================================
@@ -277,7 +273,7 @@ class DashboardPage(QWidget):
         btn.setFixedHeight(38); btn.setMinimumWidth(160)
         return btn
 
-    def _create_shortcut_btn(self, icon, text, hover_c):
+    def _create_shortcut_btn(self, icon, text):
         btn = QPushButton()
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setMinimumHeight(70) # Botones un poco más altos
@@ -299,17 +295,7 @@ class DashboardPage(QWidget):
         l.addWidget(ico)
         l.addWidget(lbl)
         
-        btn.setStyleSheet(f"""
-            QPushButton {{ 
-                background-color: {THEME_DARK['Black_N4']}; 
-                border-radius: 10px; 
-                border: 1px solid {THEME_DARK['Black_N2']};
-            }} 
-            QPushButton:hover {{ 
-                background-color: {THEME_DARK['Black_N2']}; 
-                border: 1px solid {hover_c}; 
-            }}
-        """)
+        btn.setStyleSheet(STYLES["btn_outlined"])
         return btn
 
     def _update_auto_btn_style(self, checked):

@@ -144,15 +144,7 @@ class ModalEditMedia(QDialog):
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setFixedSize(40, 30)
         btn.clicked.connect(func)
-        btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {THEME_DARK['Black_N3']};
-                color: {THEME_DARK['White_N1']};
-                border-radius: 4px;
-                font-size: 12px;
-            }}
-            QPushButton:hover {{ border-color: {THEME_DARK['NeonGreen_Main']}; }}
-        """)
+        btn.setStyleSheet(STYLES["btn_nav"])
         return btn
 
     def _save_data(self):

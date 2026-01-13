@@ -11,6 +11,7 @@ from PyQt6.QtCore import Qt, QSize, pyqtSignal, QUrl
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
 from ui.dialogs.connection_modal import ConnectionModal
+from ui.factories import create_card_header, create_page_header
 from ui.utils import get_icon
 from ui.theme import LAYOUT, THEME_DARK, STYLES
 from backend.services.settings_service import SettingsService
@@ -60,9 +61,7 @@ class SettingsPage(QWidget):
     def _create_header(self):
         h_frame = QFrame()
         l = QVBoxLayout(h_frame)
-        l.setContentsMargins(*LAYOUT["margins"])
-        l.addWidget(QLabel("Ajustes del Sistema", objectName="h2"))
-        l.addWidget(QLabel("Gestiona conexiones, actualizaciones y economía del bot.", objectName="subtitle"))
+        l.addWidget(create_page_header("Ajustes del Sistema", "Gestiona conexiones, actualizaciones y economía del bot."))
         return h_frame
 
     def _setup_cards(self):
@@ -108,7 +107,7 @@ class SettingsPage(QWidget):
         l.setContentsMargins(20, 20, 20, 20)
         l.setSpacing(10)
 
-        self._add_card_header(l, "kick.svg", "Credenciales Kick")
+        l.addWidget(create_card_header("Credenciales Kick", "kick.svg"))
         
         l.addWidget(QLabel("Client ID / Secret para conectar.", styleSheet="color:#888; font-size:12px; border:none;"))
         
@@ -116,13 +115,7 @@ class SettingsPage(QWidget):
         
         btn = QPushButton("Gestionar Keys")
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setStyleSheet(f"""
-            QPushButton {{ 
-                background-color: {THEME_DARK['Black_N4']}; color: {THEME_DARK['White_N1']}; 
-                border: 1px solid {THEME_DARK['Gray_Border']}; border-radius: 8px; padding: 8px;
-            }} 
-            QPushButton:hover {{ border-color: {THEME_DARK['NeonGreen_Main']}; }}
-        """)
+        btn.setStyleSheet(STYLES["btn_outlined"])
         btn.clicked.connect(self._handle_kick_auth)
         l.addWidget(btn)
         return card
@@ -134,8 +127,8 @@ class SettingsPage(QWidget):
         l.setContentsMargins(20, 20, 20, 20)
         l.setSpacing(10)
 
-        self._add_card_header(l, "settings.svg", "Sistema")
-        
+        l.addWidget(create_card_header("Sistema", "settings.svg"))
+
         ver = getattr(self.controller, "VERSION", "Dev")
         l.addWidget(QLabel(f"Versión Actual: v{ver}", styleSheet="color:#888; font-size:12px; border:none;"))
         
@@ -143,15 +136,7 @@ class SettingsPage(QWidget):
 
         btn = QPushButton("Buscar Actualizaciones")
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setStyleSheet(f"""
-            QPushButton {{ 
-                background-color: {THEME_DARK['Black_N4']}; color: {THEME_DARK['White_N1']}; 
-                border: 1px solid {THEME_DARK['Gray_Border']}; border-radius: 8px; padding: 8px;
-            }} 
-            QPushButton:hover {{ 
-                border-color: {THEME_DARK['NeonGreen_Main']}; color: {THEME_DARK['NeonGreen_Main']}; 
-            }}
-        """)
+        btn.setStyleSheet(STYLES["btn_outlined"])
         btn.clicked.connect(lambda: self.controller.check_updates(manual=True))
         l.addWidget(btn)
         return card
@@ -163,8 +148,8 @@ class SettingsPage(QWidget):
         l.setContentsMargins(20, 20, 20, 20)
         l.setSpacing(10)
 
-        self._add_card_header(l, "spotify.svg", "Spotify")
-        
+        l.addWidget(create_card_header("Spotify", "spotify.svg"))
+
         self.lbl_spot_status = QLabel("Estado: Desconocido")
         self.lbl_spot_status.setStyleSheet("color: #1DB954; font-weight: bold; font-size:12px; border:none;")
         l.addWidget(self.lbl_spot_status)
@@ -173,13 +158,7 @@ class SettingsPage(QWidget):
         
         btn = QPushButton("Configurar Acceso")
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setStyleSheet(f"""
-            QPushButton {{ 
-                background-color: {THEME_DARK['Black_N4']}; color: {THEME_DARK['White_N1']}; 
-                border: 1px solid {THEME_DARK['Gray_Border']}; border-radius: 8px; padding: 8px;
-            }} 
-            QPushButton:hover {{ border-color: #1DB954; }}
-        """)
+        btn.setStyleSheet(STYLES["btn_outlined"])
         btn.clicked.connect(self._handle_spotify_auth)
         l.addWidget(btn)
         return card
@@ -190,9 +169,8 @@ class SettingsPage(QWidget):
         l = QVBoxLayout(card)
         l.setContentsMargins(20, 20, 20, 20)
         l.setSpacing(15)
+        l.addWidget(create_card_header("Sistema de Puntos", "users.svg"))
 
-        self._add_card_header(l, "users.svg", "Sistema de Puntos")
-        
         grid = QGridLayout()
         grid.setSpacing(10)
 
@@ -227,19 +205,6 @@ class SettingsPage(QWidget):
         l.addStretch()
         return card
 
-    def _add_card_header(self, layout, icon_name, title):
-        h = QHBoxLayout()
-        ico = QLabel()
-        ico.setStyleSheet("border: none; opacity: 0.8;")
-        ico.setPixmap(get_icon(icon_name).pixmap(QSize(20, 20)))
-        lbl = QLabel(title)
-        lbl.setObjectName("h3")
-        lbl.setStyleSheet("border: none;")
-        h.addWidget(ico)
-        h.addWidget(lbl)
-        h.addStretch()
-        layout.addLayout(h)
-
     def _create_data_card(self):
         card = QFrame()
         card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
@@ -247,7 +212,7 @@ class SettingsPage(QWidget):
         l.setContentsMargins(*LAYOUT["margins"])
         l.setSpacing(LAYOUT["spacing"])
 
-        self._add_card_header(l, "database.svg", "Gestión de Datos")
+        l.addWidget(create_card_header("Gestión de Datos", "database.svg"))
 
         # A. INFORMACIÓN DE RUTA
         db_info = self.service.get_database_info()
@@ -303,9 +268,7 @@ class SettingsPage(QWidget):
         btn.setIcon(get_icon(icon))
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         
-        bg_hover = color if is_danger else THEME_DARK['Black_N4']
         border_color = color
-        text_color = color if not is_danger else "white"
         
         base_style = f"""
             QPushButton {{
@@ -323,19 +286,7 @@ class SettingsPage(QWidget):
         """
         
         if is_danger:
-             base_style = f"""
-            QPushButton {{
-                background-color: rgba(239, 83, 80, 0.1);
-                border: 1px solid #ef5350;
-                border-radius: 8px;
-                padding: 10px;
-                font-weight: 600;
-            }}
-            QPushButton:hover {{
-                background-color: #ef5350;
-                color: white;
-            }}
-        """
+             base_style = (STYLES["btn_danger_outlined"])
             
         btn.setStyleSheet(base_style)
         return btn

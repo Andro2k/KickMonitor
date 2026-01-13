@@ -1,6 +1,5 @@
 # ui/pages/points_page.py
 
-import csv
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QTableWidget, QTableWidgetItem, QHeaderView, 
@@ -9,6 +8,7 @@ from PyQt6.QtWidgets import (
     QScrollArea, QSizePolicy, QSpinBox
 )
 from PyQt6.QtCore import Qt, QTimer
+from ui.factories import create_icon_btn, create_nav_btn, create_page_header, create_switch_widget
 from ui.theme import LAYOUT, THEME_DARK, STYLES, get_switch_style
 from ui.utils import get_icon, get_colored_icon
 from ui.components.modals import ModalConfirm
@@ -65,15 +65,11 @@ class PointsPage(QWidget):
         h_header = QHBoxLayout(h_frame)
         h_header.setContentsMargins(0, 0, 0, 0)
         
-        v_titles = QVBoxLayout()
-        v_titles.setSpacing(LAYOUT["spacing"])
-        v_titles.addWidget(QLabel("Tabla de Usuarios", objectName="h2"))
-        v_titles.addWidget(QLabel("Gestión de puntos y estado de usuarios.", objectName="subtitle"))
-        h_header.addLayout(v_titles)
+        h_header.addWidget(create_page_header("Tabla de Usuarios", "Gestión de puntos y estado."))
         h_header.addStretch()
         
-        btn_import = self._create_top_btn("upload.svg", "Importar", self._handle_import_csv)
-        btn_export = self._create_top_btn("download.svg", "Exportar", self._handle_export_csv)
+        btn_import = create_nav_btn("Importar", "upload.svg", self._handle_import_csv)
+        btn_export = create_nav_btn("Exportar", "download.svg", self._handle_export_csv)
         
         h_header.addWidget(btn_import)       
         h_header.addWidget(btn_export)
@@ -120,14 +116,7 @@ class PointsPage(QWidget):
         btn_apply.setIcon(get_colored_icon("save.svg", THEME_DARK['Black_N1']))
         btn_apply.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_apply.setFixedHeight(34)
-        btn_apply.setStyleSheet(f"""
-            QPushButton {{ 
-                background-color: {THEME_DARK['NeonGreen_Main']};
-                color: {THEME_DARK['Black_N1']};
-                font-weight: bold; border-radius: 6px; border: none; padding: 0 15px;
-            }}
-            QPushButton:hover {{ background-color: {THEME_DARK['NeonGreen_Light']}; }}
-        """)
+        btn_apply.setStyleSheet(STYLES["btn_solid_primary"])
         btn_apply.clicked.connect(self._handle_manual_update)
         l.addWidget(btn_apply)
         
@@ -176,7 +165,7 @@ class PointsPage(QWidget):
         btn_refresh = QPushButton()
         btn_refresh.setIcon(get_icon("refresh-cw.svg"))
         btn_refresh.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_refresh.setStyleSheet("background:transparent; border:none;")
+        btn_refresh.setStyleSheet(STYLES["btn_icon_ghost"])
         btn_refresh.clicked.connect(self.load_table_data)
         h_bar.addWidget(btn_refresh)
 
@@ -246,9 +235,10 @@ class PointsPage(QWidget):
             item_time.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             item_time.setForeground(Qt.GlobalColor.gray)
             
-            w_pause = self._create_switch_widget(is_paused, "Pausar", lambda chk, u=user: self._handle_toggle_pause(u, chk))
-            w_mute = self._create_switch_widget(is_muted, "Silenciar", lambda chk, u=user: self._handle_toggle_mute(u, chk))
-            btn_del = self._create_action_btn("trash.svg", "#ff453a", lambda _, u=user: self._handle_delete_user(u))
+            w_pause = create_switch_widget(is_paused, lambda chk, u=user: self._handle_toggle_pause(u, chk), "Pausar")
+            w_mute = create_switch_widget(is_muted, lambda chk, u=user: self._handle_toggle_mute(u, chk), "Silenciar")
+            
+            btn_del = create_icon_btn("trash.svg", lambda _, u=user: self._handle_delete_user(u), color_hover="#ff453a")
             
             self.table.setItem(row, 0, item_user)
             self.table.setItem(row, 1, item_points)
@@ -334,16 +324,7 @@ class PointsPage(QWidget):
         btn = QPushButton("  " + text)
         btn.setIcon(get_icon(icon))
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {THEME_DARK['Black_N2']}; color: {THEME_DARK['White_N1']};
-                padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold;
-            }}
-            QPushButton:hover {{ 
-                background-color: {THEME_DARK['Black_N4']}; 
-                border-color: {THEME_DARK['NeonGreen_Main']}; 
-            }}
-        """)
+        btn.setStyleSheet(STYLES["btn_nav"])
         btn.clicked.connect(func)
         return btn
 
@@ -363,12 +344,7 @@ class PointsPage(QWidget):
         l = QHBoxLayout(w); l.setContentsMargins(0,0,0,0); l.setAlignment(Qt.AlignmentFlag.AlignCenter)
         btn = QPushButton(); btn.setIcon(get_icon(icon)); btn.setFixedSize(28, 28)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setStyleSheet(f"""
-            QPushButton {{ background: transparent; border: none; }} 
-            QPushButton:hover {{ 
-                background-color: {color}; border: 1px solid {color}; border-radius: 4px; 
-            }}
-        """)
+        btn.setStyleSheet(STYLES["btn_icon_ghost"])
         btn.clicked.connect(func)
         l.addWidget(btn)
         return w

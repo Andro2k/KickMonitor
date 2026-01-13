@@ -115,8 +115,10 @@ class FlowLayout(QLayout):
                     w = remaining_width
                 
                 if not test_only:
-                    current_h = item.sizeHint().height() 
-                    item.setGeometry(QRect(QPoint(x, y), QSize(w, current_h)))
+                    # --- CAMBIO AQUÍ ---
+                    # ANTES: current_h = item.sizeHint().height() 
+                    # AHORA: Usamos row_height para forzar que todos tengan la altura de la fila
+                    item.setGeometry(QRect(QPoint(x, y), QSize(w, row_height)))
                 
                 x += w + spacing
                 

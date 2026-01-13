@@ -11,6 +11,7 @@ from ui.components.cards import Card
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
 from ui.components.media_item_widget import MediaItemWidget
+from ui.factories import create_nav_btn, create_page_header, create_styled_input
 from ui.utils import get_icon
 from ui.theme import LAYOUT, STYLES, THEME_DARK, get_switch_style
 from backend.services.overlay_service import OverlayService
@@ -45,15 +46,13 @@ class OverlayPage(QWidget):
         
         # Títulos
         v_titles = QVBoxLayout()
-        v_titles.setSpacing(LAYOUT["spacing"])
-        v_titles.addWidget(QLabel("Control de Triggers", objectName="h2"))
-        v_titles.addWidget(QLabel("Configura tus alertas visuales y sonoras.", objectName="subtitle"))
+        v_titles.addWidget(create_page_header("Control de Triggers", "Configura tus alertas visuales y sonoras."))
         h_head.addLayout(v_titles)
         h_head.addStretch()
 
         # Botones Exportar/Importar (Los switches se movieron abajo)
-        btn_import = self._create_top_btn("upload.svg", "Importar", self._handle_import)
-        btn_export = self._create_top_btn("download.svg", "Exportar", self._handle_export)
+        btn_import = create_nav_btn("Importar", "upload.svg", self._handle_import)
+        btn_export = create_nav_btn("Exportar", "download.svg", self._handle_export)
         
         h_head.addWidget(btn_import)
         h_head.addWidget(btn_export)
@@ -65,7 +64,7 @@ class OverlayPage(QWidget):
         Organiza las tarjetas en dos columnas, alineadas arriba y con la misma altura total.
         """
         # --- 1. DEFINIR ALTURAS ---
-        card_height = 40 
+        card_height = 48 
         right_height = (card_height * 2) + LAYOUT["spacing"]
 
         h_container = QHBoxLayout()
@@ -83,7 +82,7 @@ class OverlayPage(QWidget):
         l_url.setContentsMargins(0,0,0,0)
         self.txt_url = QLineEdit(self.service.get_local_ip_url())
         self.txt_url.setReadOnly(True)
-        self.txt_url.setStyleSheet(STYLES["url_readonly"])
+        self.txt_url.setStyleSheet(STYLES["input_readonly"])
         self.txt_url.setEchoMode(QLineEdit.EchoMode.Password)
         
         btn_eye = QPushButton()
@@ -176,10 +175,7 @@ class OverlayPage(QWidget):
         h_bar.addWidget(lbl_icon)
 
         # Input Buscador
-        self.inp_search = QLineEdit()
-        self.inp_search.setPlaceholderText("Buscar archivo o comando...")
-        self.inp_search.setStyleSheet(STYLES["input"])
-        self.inp_search.textChanged.connect(self._handle_search_changed)
+        self.inp_search = create_styled_input("Buscar archivo...", is_cmd=False, callback=self._handle_search_changed)
         h_bar.addWidget(self.inp_search, stretch=1)
         
         # Label Filtro
@@ -378,15 +374,6 @@ class OverlayPage(QWidget):
         btn = QPushButton("  " + text)
         btn.setIcon(get_icon(icon))
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {THEME_DARK['Black_N2']}; color: {THEME_DARK['White_N1']};
-                padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold;
-            }}
-            QPushButton:hover {{ 
-                background-color: {THEME_DARK['Black_N4']}; 
-                border-color: {THEME_DARK['NeonGreen_Main']}; 
-            }}
-        """)
+        btn.setStyleSheet(STYLES["btn_nav"])
         btn.clicked.connect(func)
         return btn

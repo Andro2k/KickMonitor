@@ -18,33 +18,39 @@ def asset_url(filename: str) -> str:
 # ==========================================
 class Palette:
     """
-    Sistema de Color 'Kick Dark'.
+    Sistema de Color 'Kick Midnight' (Deep Dark).
+    Actualizado a tonos más profundos (#050505 / #191919).
     """
-    # --- 1. Paleta Base ---
-    Black_N0       = "#0B0B0C"
-    Black_N1       = "#1E1E1E" #050505
-    Black_N2       = "#252525" #191919
-    Black_N3       = "#2D2D2D"
-    Black_N4       = "#3E3E3E"
+    # --- 1. Paleta Base (Deep Dark) ---
+    Black_N0       = "#000000" # Pure Black (Fondo de ventana base si se requiere)
+    Black_N1       = "#050505" # Fondo Principal (Main Window)
+    Black_N2       = "#191919" # Tarjetas / Paneles (Surface)
+    Black_N3       = "#262626" # Inputs / Hover States
+    Black_N4       = "#333333" # Bordes fuertes / Elementos activos
     Black_Pure     = "#000000"
     
-    Gray_N1        = "#A0A0A0"
-    Gray_N2        = "#666666"
-    Gray_Border    = "#454545"
+    # --- 2. Grises ---
+    Gray_N1        = "#8B8B8B" # Texto Secundario / Iconos inactivos
+    Gray_N2        = "#666666" # Texto Terciario / Placeholders
+    Gray_Border    = "#333333" # Bordes sutiles (Igual a N4 para integración)
     
+    # --- 3. Blancos ---
     White_N1       = "#FFFFFF"
     White_Alpha_08 = "rgba(255,255,255,0.08)"
+    White_Alpha_05 = "rgba(255,255,255,0.05)"
     
+    # --- 4. Acentos (Kick Green) ---
     NeonGreen_Main  = "#53fc18"
     NeonGreen_Light = "#6aff2e"
     NeonGreen_Dark  = "#3da812"
     
+    # --- 5. Estados ---
     Status_Red      = "#FF453A"
     Status_Green    = "#32D74B"
     Status_Yellow   = "#FFD60A"
     Status_Blue     = "#0A84FF"
 
-    # --- 2. Alias Funcionales ---    
+    # --- 6. Alias Funcionales ---    
     border        = Gray_Border
     info          = Status_Blue
 
@@ -62,14 +68,14 @@ class Dims:
         "outer": (16,16,16,16), 
         "inner": (8,8,8,8), 
         "margins": (12,12,12,12), 
-        "spacing": 8
+        "spacing": 10
     }
 
 class Fonts:
     """Configuración tipográfica."""
     family = "Segoe UI"
     h1 = "18pt"    # ~24px
-    h2 = "15pt"    # ~20px
+    h2 = "14pt"    # ~20px
     h3 = "12pt"    # ~16px
     body = "10pt"  # ~14px
     small = "9pt"  # ~12px
@@ -155,12 +161,21 @@ c = Palette
 r = Dims.radius
 
 STYLES = {
+    # --- CONTENEDORES ---
     "card": f"""
         QFrame {{
             background-color: {c.Black_N2}; 
             border-radius: {r['card']}; 
         }}
     """,
+    "card_large": f"""
+        QFrame {{
+            background-color: {c.Black_N2}; 
+            border-radius: 16px; 
+        }}
+    """,
+
+    # --- INPUTS ---
     "input": f"""
         QLineEdit {{ background: {c.Black_N2}; border-radius: {r['input']}; padding: 8px; color: white; }}
         QLineEdit:focus {{ border: 1px solid {c.NeonGreen_Main}; }}
@@ -168,84 +183,103 @@ STYLES = {
     "input_cmd": f"""
         QLineEdit {{ 
             background: {c.Black_N2}; color: {c.NeonGreen_Main}; font-weight: bold; font-family: Consolas;
-            border-radius: 4px; padding: 4px; 
+            border-radius: 4px; padding: 4px; border: 1px solid {c.border};
         }}
         QLineEdit:focus {{ border-color: {c.NeonGreen_Main}; }}
     """,
-    "url_readonly": f"""
-        QLineEdit {{ background: {c.Black_N2}; color: {c.NeonGreen_Main}; font-family: Consolas; }}
-    """,
-    "spinbox_modern": f"""
-        QSpinBox, QDoubleSpinBox {{
-            background-color: {c.Black_N3};
-            color: {c.White_N1};
-            border-radius: {r['input']};
-            padding: 6px 10px;
-            padding-right: 25px;
-            selection-background-color: {c.NeonGreen_Main};
-            selection-color: {c.Black_Pure};
-        }}
-        QSpinBox:focus, QDoubleSpinBox:focus {{
-            border: 1px solid {c.NeonGreen_Main};
-            background-color: {c.Black_N1};
-        }}
-        QSpinBox::up-button, QDoubleSpinBox::up-button {{
-            subcontrol-origin: border; subcontrol-position: top right; width: 16px;
-            border-left: 0.5px solid {c.border}; border-bottom: 0.5px solid {c.border}; 
-            border-top-right-radius: {r['input']}; background-color: {c.Black_N3};
-        }}
-        QSpinBox::down-button, QDoubleSpinBox::down-button {{
-            subcontrol-origin: border; subcontrol-position: bottom right; width: 16px;
-            border-left: 0.5px solid {c.border}; border-top: 0.5px solid {c.border};
-            border-bottom-right-radius: {r['input']}; background-color: {c.Black_N3};
-        }}
-        QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
-            background-color: {c.Black_N1}; border: 0.5px solid {c.NeonGreen_Main}; 
+    "input_readonly": f"""
+        QLineEdit {{ 
+            background: {c.Black_N2}; color: {c.NeonGreen_Main}; 
+            font-family: Consolas; border: 1px solid {c.border};
+            border-radius: {r['input']}; padding: 8px;
         }}
     """,
-    "combobox": f"""
-        /* --- ESTADO BASE --- */
-        QComboBox {{
-            background-color: {c.Black_N3};
-            border: 1px solid {c.border};
+    
+    # --- LOGS Y CONSOLAS ---
+    "text_edit_log": f"""
+        QTextEdit {{
+            background-color: {c.Black_N2};
             color: {c.White_N1};
-            border-radius: {r['input']};
-            padding: 6px;
-            min-height: 20px;
+            border: 1px solid {c.Black_N2};
+            border-radius: 12px;
+            padding: 12px;
+            font-family: 'Segoe UI', monospace;
+            font-size: 13px;
         }}
-        
-        /* --- HOVER Y FOCUS --- */
-        QComboBox:hover, QComboBox:focus {{
-            border: 1px solid {c.NeonGreen_Main};
-            background-color: {c.Black_N3};
+    """,
+    "text_edit_console": f"""
+         QTextEdit {{
+            background-color: {c.Black_N2}; color: {c.Gray_N1}; border-radius: 12px;
+            font-family: Consolas, monospace; font-size: 12px; padding: 10px; border: none;
         }}
+    """,
 
-        /* --- FLECHA (DROP-DOWN) --- */
-        QComboBox::drop-down {{
-            subcontrol-origin: padding;
-            subcontrol-position: top right;
-            width: 20px;
-            border-left-width: 0px;
+    # --- BOTONES ---
+    # Botón estándar para barra superior (Importar/Exportar)
+    "btn_nav": f"""
+        QPushButton {{
+            background-color: {c.Black_N2}; color: {c.White_N1};
+            padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold;
+            border: 1px solid {c.Black_N2};
         }}
-
-        /* --- LISTA DESPLEGABLE (POPUP) --- */
-        QComboBox QAbstractItemView {{
-            background-color: {c.Black_N1};
-            color: {c.White_N1};
-            selection-background-color: {c.NeonGreen_Main};
-            selection-color: {c.Black_Pure};
-            padding: 4px;
+        QPushButton:hover {{ 
+            background-color: {c.Black_N4}; 
+            border-color: {c.NeonGreen_Main}; 
         }}
     """,
+    # Botón sólido primario (Aplicar, Guardar)
+    "btn_solid_primary": f"""
+        QPushButton {{ 
+            background-color: {c.NeonGreen_Main}; color: {c.Black_N1};
+            font-weight: bold; border-radius: 6px; border: none; padding: 8px 15px;
+        }}
+        QPushButton:hover {{ background-color: {c.NeonGreen_Light}; }}
+    """,
+    # Botón delineado (Configurar, Gestionar)
+    "btn_outlined": f"""
+        QPushButton {{ 
+            background-color: {c.Black_N4}; color: {c.White_N1}; 
+            border: 1px solid {c.Gray_Border}; border-radius: 8px; padding: 8px;
+        }} 
+        QPushButton:hover {{ border-color: {c.NeonGreen_Main}; color: {c.White_N1}; }}
+    """,
+    # Botón "Peligroso" delineado (Desvincular, Borrar todo)
+    "btn_danger_outlined": f"""
+        QPushButton {{
+            background-color: rgba(239, 83, 80, 0.1);
+            border: 1px solid {c.Status_Red}; color: {c.White_N1};
+            border-radius: 8px; padding: 10px; font-weight: 600;
+        }}
+        QPushButton:hover {{ background-color: {c.Status_Red}; color: white; }}
+    """,
+    # Botón pequeño de acción (Editar, Borrar en tablas)
+    "btn_icon_ghost": f"""
+        QPushButton {{ background: transparent; border: none; border-radius: 4px; }} 
+        QPushButton:hover {{ background-color: {c.White_Alpha_08}; }}
+    """,
+    # Botón grande del Dashboard (Accesos directos)
+    "btn_shortcut": f"""
+        QPushButton {{ 
+            background-color: {c.Black_N4}; 
+            border-radius: 10px; 
+            border: 1px solid {c.Black_N2};
+        }} 
+        QPushButton:hover {{ 
+            background-color: {c.Black_N2}; 
+            border-color: {c.NeonGreen_Main}; 
+        }}
+    """,
+
+    # --- LISTAS Y TABLAS ---
     "list_clean": f"""
-        QListWidget {{ background-color: {c.Black_N2}; outline: none; }}
+        QListWidget {{ background-color: {c.Black_N2}; outline: none; border-radius: {r['card']}; }}
         QListWidget::item {{ border-bottom: 1px solid {c.Black_N4}; padding: 6px; }}
         QListWidget::item:hover {{ background: {c.White_Alpha_08}; }}
         QListWidget::item:selected {{ background: {c.Black_N4}; }}
     """,
     "table_clean": f"""
         QTableWidget {{
-            background-color: {c.Black_N2}; gridline-color: {c.Black_N4}; outline: none;
+            background-color: {c.Black_N2}; gridline-color: {c.Black_N4}; outline: none; border: none;
         }}
         QHeaderView::section {{
             background-color: {c.Black_N3}; color: {c.Gray_N1}; border: none; border-bottom: 1px solid {c.border};
@@ -254,31 +288,57 @@ STYLES = {
         QTableWidget::item {{ padding: 6px; border-bottom: 1px solid {c.Black_N4}; }}
         QTableWidget::item:selected {{ background-color: {c.White_Alpha_08}; color: {c.NeonGreen_Main}; }}
     """,
+    
+    # --- COMPLEX WIDGETS ---
+    "combobox": f"""
+        QComboBox {{
+            background-color: {c.Black_N3}; border: 1px solid {c.border};
+            color: {c.White_N1}; border-radius: {r['input']}; padding: 6px; min-height: 20px;
+        }}
+        QComboBox:hover, QComboBox:focus {{
+            border: 1px solid {c.NeonGreen_Main}; background-color: {c.Black_N3};
+        }}
+        QComboBox::drop-down {{ subcontrol-origin: padding; subcontrol-position: top right; width: 20px; border: none; }}
+        QComboBox QAbstractItemView {{
+            background-color: {c.Black_N1}; color: {c.White_N1};
+            selection-background-color: {c.NeonGreen_Main}; selection-color: {c.Black_N0}; padding: 4px;
+        }}
+    """,
+    "spinbox_modern": f"""
+        QSpinBox, QDoubleSpinBox {{
+            background-color: {c.Black_N3}; color: {c.White_N1}; border-radius: {r['input']};
+            padding: 6px 10px; padding-right: 25px; selection-color: {c.Black_N0};
+        }}
+        QSpinBox:focus, QDoubleSpinBox:focus {{  background-color: {c.Black_N1}; }}
+        QSpinBox::up-button, QDoubleSpinBox::up-button {{
+            subcontrol-origin: border; subcontrol-position: top right; width: 16px; border: none;
+            border-left: 1px solid {c.Black_N1}; border-top-right-radius: {r['input']}; background-color: {c.Black_N3};
+        }}
+        QSpinBox::down-button, QDoubleSpinBox::down-button {{
+            subcontrol-origin: border; subcontrol-position: bottom right; width: 16px; border: none;
+            border-left: 1px solid {c.Black_N1}; border-bottom-right-radius: {r['input']}; background-color: {c.Black_N3};
+        }}
+        QSpinBox::up-button:hover, QSpinBox::down-button:hover {{ background-color: {c.Black_N4}; }}
+    """,
+    "slider_modern": f"""
+        QSlider::groove:horizontal {{ height: 4px; background: {c.Black_N1}; border-radius: 2px; }}
+        QSlider::handle:horizontal {{ background: {c.Gray_N1}; width: 12px; margin: -4px 0; border-radius: 6px; }}
+        QSlider::handle:horizontal:hover {{ background: {c.NeonGreen_Main}; }}
+    """,
+    
+    # --- SIDEBAR (Existente) ---
     "sidebar_btn": f"""
         QPushButton {{
-            background-color: transparent;
-            color: {c.Gray_N1};
-            border: none;
-            border-radius: 8px;
-            text-align: left;
-            padding: 6px;
-            font-weight: 500;
-            margin: 2px;
+            background-color: transparent; color: {c.Gray_N1}; border: none;
+            border-radius: 8px; text-align: left; padding: 6px; font-weight: 500; margin: 2px;
         }}
-        QPushButton:hover {{
-            background-color: {c.White_Alpha_08};
-            color: {c.White_N1};
-        }}
-        QPushButton:checked {{
-            background-color: rgba(83, 252, 24, 0.15);
-            color: {c.NeonGreen_Main};
-            font-weight: bold;
-        }}
+        QPushButton:hover {{ background-color: {c.White_Alpha_08}; color: {c.White_N1}; }}
+        QPushButton:checked {{ background-color: rgba(83, 252, 24, 0.15); color: {c.NeonGreen_Main}; font-weight: bold; }}
     """,
     "sidebar_container": f"""
         QFrame {{
             background-color: {c.Black_N1}; 
-            border-right: 0.5px solid {c.border};
+            border-right: 1px solid {c.Black_N2};
         }}
     """
 }

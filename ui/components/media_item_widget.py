@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QCheckBox, QDialog
 )
 from PyQt6.QtCore import QSize, Qt
-from ui.theme import LAYOUT, THEME_DARK, get_switch_style
+from ui.theme import LAYOUT, STYLES, THEME_DARK, get_switch_style
 from ui.utils import get_icon
 from ui.dialogs.edit_media_modal import ModalEditMedia
 
@@ -72,10 +72,7 @@ class MediaItemWidget(QWidget):
         btn.setIcon(get_icon(icon))
         btn.setFixedSize(32, 32)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setStyleSheet(f"""
-            QPushButton {{ background-color: {THEME_DARK['Black_N4']};  border-radius: 6px; }} 
-            QPushButton:hover {{ background-color: {THEME_DARK['NeonGreen_Main']}; border-color: {THEME_DARK['NeonGreen_Main']}; }}
-        """)
+        btn.setStyleSheet(STYLES["btn_nav"])
         btn.clicked.connect(func)
         return btn
 

@@ -10,6 +10,7 @@ from PyQt6.QtCore import Qt
 
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
+from ui.factories import create_page_header
 from ui.utils import get_icon, get_colored_icon
 from ui.theme import LAYOUT, THEME_DARK, STYLES, get_switch_style
 from backend.services.gambling_service import GamblingService
@@ -59,9 +60,7 @@ class GamblingPage(QWidget):
         h_layout.setContentsMargins(0, 0, 0, 0)
         
         v_head = QVBoxLayout()
-        v_head.setSpacing(2)
-        v_head.addWidget(QLabel("Casino & Apuestas", objectName="h2"))
-        v_head.addWidget(QLabel("Sistema de economía y juegos de azar.", objectName="subtitle"))
+        v_head.addWidget(create_page_header("Casino & Apuestas", "Sistema de economía y juegos de azar."))
         h_layout.addLayout(v_head)
         
         h_layout.addStretch()

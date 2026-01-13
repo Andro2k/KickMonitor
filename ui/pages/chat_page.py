@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
     QSizePolicy, QGridLayout
 )
 from PyQt6.QtCore import QSize, Qt
+from ui.factories import create_page_header
 from ui.theme import LAYOUT, THEME_DARK, STYLES
 from ui.utils import get_icon, get_colored_icon
 from backend.services.chat_service import ChatService
@@ -58,14 +59,11 @@ class ChatPage(QWidget):
         h_box = QHBoxLayout()
         v_titles = QVBoxLayout()
         v_titles.setSpacing(2)
-
-        lbl_title = QLabel("Monitor de Chat")
-        lbl_title.setObjectName("h2")
         
         self.lbl_status = QLabel("Desconectado")
         self.lbl_status.setObjectName("subtitle")
         
-        v_titles.addWidget(lbl_title)
+        v_titles.addWidget(create_page_header("Monitor de Chat", "Gestión del chat y el TTS"))
         v_titles.addWidget(self.lbl_status)
         
         h_box.addLayout(v_titles)
@@ -183,11 +181,7 @@ class ChatPage(QWidget):
         
         slider = QSlider(Qt.Orientation.Horizontal)
         slider.setRange(min_v, max_v)
-        slider.setStyleSheet(f"""
-            QSlider::groove:horizontal {{ height: 4px; background: {THEME_DARK['Black_N1']}; border-radius: 2px; }}
-            QSlider::handle:horizontal {{ background: {THEME_DARK['Gray_N1']}; width: 12px; margin: -4px 0; border-radius: 6px; }}
-            QSlider::handle:horizontal:hover {{ background: {THEME_DARK['NeonGreen_Main']}; }}
-        """)
+        slider.setStyleSheet(STYLES["slider_modern"])
         
         # Conexión interna para actualizar etiqueta
         slider.valueChanged.connect(lambda v: lbl_val.setText(str(v)))
@@ -203,17 +197,7 @@ class ChatPage(QWidget):
         self.txt = QTextEdit()
         self.txt.setReadOnly(True)
         self.txt.setPlaceholderText("Esperando mensajes de Kick...")
-        self.txt.setStyleSheet(f"""
-            QTextEdit {{
-                background-color: {THEME_DARK['Black_N2']};
-                color: {THEME_DARK['White_N1']};
-                border: 1px solid {THEME_DARK['Black_N2']};
-                border-radius: 12px;
-                padding: 12px;
-                font-family: 'Segoe UI', sans-serif;
-                font-size: 13px;
-            }}
-        """)
+        self.txt.setStyleSheet(STYLES["text_edit_log"])
         layout.addWidget(self.txt)
 
     # ==========================================
@@ -282,12 +266,4 @@ class ChatPage(QWidget):
         color = THEME_DARK['NeonGreen_Main'] if is_active else THEME_DARK['Gray_N1']
         
         self.voice_btn.setIcon(get_colored_icon(icon_name, color))
-        self.voice_btn.setStyleSheet(f"""
-            QPushButton {{ 
-                background-color: {THEME_DARK['Black_N1']}; 
-                border: 1px solid {THEME_DARK['Black_N4']}; 
-                border-radius: 8px; 
-            }}
-            QPushButton:hover {{ border-color: {color}; }}
-            QPushButton:checked {{ border-color: {THEME_DARK['NeonGreen_Main']}; background-color: rgba(83, 252, 24, 0.1); }}
-        """)
+        self.voice_btn.setStyleSheet(STYLES["btn_nav"])

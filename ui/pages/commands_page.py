@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QFrame,QFileDialog, QDialog, QAbstractItemView
 )
 from PyQt6.QtCore import Qt
+from ui.factories import create_icon_btn, create_nav_btn, create_page_header
 from ui.theme import LAYOUT, THEME_DARK, STYLES
 from ui.utils import get_icon
 from ui.components.modals import ModalConfirm
@@ -35,21 +36,15 @@ class CommandsPage(QWidget):
         
         # 1. HEADER (Título y Botón Agregar)
         header = QHBoxLayout()
-        
-        lbl_title = QLabel("Comandos Personalizados")
-        lbl_title.setStyleSheet("font-size: 20px; font-weight: bold; color: white;")
-        header.addWidget(lbl_title)
-        
+        header.addWidget(create_page_header("Comandos Personalizados", "Configuración y Gestión de comandos."))
         header.addStretch()
         
-        btn_import = self._create_top_btn("upload.svg", "Importar", lambda: self._handle_import())
-        btn_export = self._create_top_btn("download.svg", "Exportar", lambda: self._handle_export())
+        btn_import = create_nav_btn("Importar", "upload.svg", self._handle_import)
+        btn_export = create_nav_btn("Exportar", "download.svg", self._handle_export)
+        btn_add = create_nav_btn("Nuevo Comando", "plus.svg", self._open_add_modal)
 
         header.addWidget(btn_import)
         header.addWidget(btn_export)
-        
-        # Botón Nuevo (Mantenemos el verde o destacado)
-        btn_add = self._create_top_btn("plus.svg", "Nuevo Comando", lambda: self._open_add_modal())
         header.addWidget(btn_add)
         
         l_content.addLayout(header)
@@ -112,14 +107,17 @@ class CommandsPage(QWidget):
             l_actions.setSpacing(4)
             
             # Btn Editar
-            # CORRECCIÓN AQUI: Agregamos 'checked' (o '_') como primer argumento
-            btn_edit = self._create_action_btn("edit.svg", THEME_DARK['info'], 
-                lambda _, t=trigger, r=response, c=cooldown: self._open_edit_modal(t, r, c))
-            
+            btn_edit = create_icon_btn(
+                "edit.svg", 
+                lambda _, t=trigger, r=response, c=cooldown: self._open_edit_modal(t, r, c),
+                color_hover=THEME_DARK['info']
+            )
             # Btn Eliminar
-            # CORRECCIÓN AQUI: Lo mismo para eliminar
-            btn_del = self._create_action_btn("trash.svg", THEME_DARK['Status_Red'], 
-                lambda _, t=trigger: self._delete_command(t))
+            btn_del = create_icon_btn(
+                "trash.svg",
+                lambda _, t=trigger: self._delete_command(t),
+                color_hover=THEME_DARK['Status_Red']
+            )
 
             l_actions.addWidget(btn_edit)
             l_actions.addWidget(btn_del)
@@ -156,36 +154,6 @@ class CommandsPage(QWidget):
             if self.service.delete_command(trigger):
                 self.load_data()
                 ToastNotification(self, "Comandos", "Eliminado", "info").show_toast()
-
-    # --- HELPERS UI ---
-    def _create_top_btn(self, icon, text, func):
-        btn = QPushButton("  " + text)
-        btn.setIcon(get_icon(icon))
-        btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {THEME_DARK['Black_N2']}; color: {THEME_DARK['White_N1']};
-                padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold;
-            }}
-            QPushButton:hover {{ 
-                background-color: {THEME_DARK['Black_N4']}; 
-                border-color: {THEME_DARK['NeonGreen_Main']}; 
-            }}
-        """)
-        btn.clicked.connect(func)
-        return btn
-
-    def _create_action_btn(self, icon, color, func):
-        btn = QPushButton()
-        btn.setIcon(get_icon(icon))
-        btn.setFixedSize(28, 28)
-        btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setStyleSheet(f"""
-            QPushButton {{ background: transparent; border: none; border-radius: 4px; }} 
-            QPushButton:hover {{ background-color: {color}22; border: 1px solid {color}; }}
-        """)
-        btn.clicked.connect(func)
-        return btn
     
     # --- IMPORTAR / EXPORTAR ---
     def _handle_export(self):

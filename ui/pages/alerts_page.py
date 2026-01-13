@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QScrollArea
 )
 from PyQt6.QtCore import Qt
+from ui.factories import create_page_header
 from ui.theme import LAYOUT, THEME_DARK
 from backend.services.alerts_service import AlertsService
 from ui.components.flow_layout import FlowLayout
@@ -33,8 +34,8 @@ class AlertsPage(QWidget):
         # -----------------------------------------------------------------
         # SECCIÓN 1: EVENTOS (Grid Responsivo)
         # -----------------------------------------------------------------
-        layout.addWidget(QLabel("Alertas de Chat (Texto)", styleSheet=f"color:{THEME_DARK['Gray_N2']}; font-weight:bold; border:none;"))
-        
+        layout.addWidget(create_page_header("Alertas de Chat", "Alertas en Mensajes del chat."))
+
         events_container = QWidget()
         events_container.setStyleSheet("background: transparent;")
         # Usamos FlowLayout para que las cards se acomoden solas
@@ -49,8 +50,7 @@ class AlertsPage(QWidget):
         # -----------------------------------------------------------------
         # SECCIÓN 2: TIMERS (Grid Responsivo)
         # -----------------------------------------------------------------
-        layout.addWidget(QLabel("Mensajes Recurrentes (Timers)", styleSheet=f"color:{THEME_DARK['Gray_N2']}; font-weight:bold; border:none;"))
-        
+        layout.addWidget(create_page_header("Timers", "Mensajes Recurrentes en el chat."))
         timers_container = QWidget()
         timers_container.setStyleSheet("background: transparent;")
         # Otro FlowLayout independiente para esta sección
