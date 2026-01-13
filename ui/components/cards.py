@@ -18,5 +18,5 @@ class Card(QFrame):
         
         # 3. Layout Interno
         self.layout = QVBoxLayout(self) 
-        self.layout.setContentsMargins(*LAYOUT["inner"])
+        self.layout.setContentsMargins(*LAYOUT["margins"])
         self.layout.setSpacing(LAYOUT["spacing"])

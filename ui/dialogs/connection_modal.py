@@ -69,7 +69,7 @@ class ConnectionModal(QDialog):
         container.setGeometry(10, 10, 430, 400)
         container.setStyleSheet(f"""
             QFrame {{
-                background-color: {THEME_DARK['Black_N3']};
+                background-color: {THEME_DARK['Black_N2']};
                 border: 1px solid {THEME_DARK['NeonGreen_Main']}; 
                 border-radius: 16px;
             }}
@@ -78,7 +78,7 @@ class ConnectionModal(QDialog):
         layout = QVBoxLayout(container)
         margins = LAYOUT.get("margins", (30, 30, 30, 30))
         layout.setContentsMargins(*margins)
-        layout.setSpacing(15)
+        layout.setSpacing(LAYOUT["spacing"])
 
         # Título
         lbl_tit = QLabel(self.current_conf["title"])
@@ -111,7 +111,6 @@ class ConnectionModal(QDialog):
         h_uri = QHBoxLayout()
         
         # CAMBIO: Usamos _get_display_value. 
-        # Si es la URL default, saldrá vacía y mostrará el placeholder.
         self.txt_uri = QLineEdit(self._get_display_value(keys["uri"]))
         
         # Mostramos el valor por defecto EN EL PLACEHOLDER como sugerencia
@@ -147,21 +146,14 @@ class ConnectionModal(QDialog):
         
         btn_cancel = QPushButton("Cancelar")
         btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_cancel.setStyleSheet(f"color: {THEME_DARK['Gray_N1']}; background: transparent; border: 1px solid #444; border-radius: 8px; padding: 8px;")
+        btn_cancel.setStyleSheet(STYLES["btn_outlined"])
         btn_cancel.clicked.connect(self.reject)
         
         btn_save = QPushButton("Guardar")
         btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
         
         text_color = THEME_DARK['White_N1'] if self.service == 'kick' else 'black'
-        btn_save.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {self.current_conf['btn_color']}; 
-                color: {text_color}; 
-                font-weight: bold; border-radius: 8px; padding: 8px; border: none;
-            }}
-            QPushButton:hover {{ background-color: {self.current_conf['btn_hover']}; }}
-        """)
+        btn_save.setStyleSheet(STYLES["btn_solid_primary"])
         btn_save.clicked.connect(self.save_data)
         
         h_btns.addWidget(btn_cancel)
@@ -185,13 +177,6 @@ class ConnectionModal(QDialog):
 
     def save_data(self):
         keys = self.current_conf["keys"]
-        
-        # IMPORTANTE: Al guardar, si el campo está vacío, 
-        # asumimos que el usuario quiere mantener el valor por defecto (o borrarlo).
-        # Pero para evitar borrar accidentalmente, hacemos:
-        # Si escribe algo -> Guarda eso.
-        # Si NO escribe nada -> Si ya había algo en DB diferente al default, lo mantenemos? 
-        # NO, mejor: Si está vacío, guardamos el DEFAULT para restaurarlo.
         
         def get_val_to_save(input_widget, key_name):
             text = input_widget.text().strip()

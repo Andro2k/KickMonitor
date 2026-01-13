@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QPlainTextEdit
 )
 from PyQt6.QtCore import Qt
-from ui.theme import THEME_DARK, STYLES, RADIUS
+from ui.theme import LAYOUT, THEME_DARK, STYLES, RADIUS
 
 class ModalEditCommand(QDialog):
     def __init__(self, parent=None, trigger="", response="", cooldown=5):
@@ -35,8 +35,8 @@ class ModalEditCommand(QDialog):
         """)
         
         layout = QVBoxLayout(container)
-        layout.setContentsMargins(25, 25, 25, 25)
-        layout.setSpacing(15)
+        layout.setContentsMargins(*LAYOUT["margins"])
+        layout.setSpacing(LAYOUT["spacing"])
         
         # 1. Título
         lbl_title = QLabel("Editar Comando" if trigger else "Nuevo Comando")

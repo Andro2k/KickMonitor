@@ -19,7 +19,6 @@ def asset_url(filename: str) -> str:
 class Palette:
     """
     Sistema de Color 'Kick Midnight' (Deep Dark).
-    Actualizado a tonos más profundos (#050505 / #191919).
     """
     # --- 1. Paleta Base (Deep Dark) ---
     Black_N0       = "#000000" # Pure Black (Fondo de ventana base si se requiere)
@@ -65,10 +64,10 @@ class Dims:
         "scroll": "4px"
     }
     layout = {
-        "outer": (16,16,16,16), 
-        "inner": (8,8,8,8), 
+        # "outer": (16,16,16,16), 
+        # "inner": (8,8,8,8), 
         "margins": (12,12,12,12), 
-        "spacing": 10
+        "spacing": 8
     }
 
 class Fonts:
@@ -174,24 +173,31 @@ STYLES = {
             border-radius: 16px; 
         }}
     """,
-
+    # --- LABELS ---
+    "label_readonly": f"""
+        QLabel {{ 
+            background: {c.Black_N3}; color: {c.NeonGreen_Main}; 
+            font-family: Consolas; border: 1px solid {c.border};
+            border-radius: {r['input']}; padding: 4px;
+        }}
+    """,
     # --- INPUTS ---
     "input": f"""
-        QLineEdit {{ background: {c.Black_N2}; border-radius: {r['input']}; padding: 8px; color: white; }}
+        QLineEdit {{ background: {c.Black_N3}; border-radius: {r['input']}; padding: 8px; color: white; }}
         QLineEdit:focus {{ border: 1px solid {c.NeonGreen_Main}; }}
     """,
     "input_cmd": f"""
         QLineEdit {{ 
-            background: {c.Black_N2}; color: {c.NeonGreen_Main}; font-weight: bold; font-family: Consolas;
+            background: {c.Black_N3}; color: {c.NeonGreen_Main}; font-weight: bold; font-family: Consolas;
             border-radius: 4px; padding: 4px; border: 1px solid {c.border};
         }}
         QLineEdit:focus {{ border-color: {c.NeonGreen_Main}; }}
     """,
     "input_readonly": f"""
         QLineEdit {{ 
-            background: {c.Black_N2}; color: {c.NeonGreen_Main}; 
+            background: {c.Black_N3}; color: {c.NeonGreen_Main}; 
             font-family: Consolas; border: 1px solid {c.border};
-            border-radius: {r['input']}; padding: 8px;
+            border-radius: {r['input']}; padding: 4px;
         }}
     """,
     
@@ -309,7 +315,7 @@ STYLES = {
             background-color: {c.Black_N3}; color: {c.White_N1}; border-radius: {r['input']};
             padding: 6px 10px; padding-right: 25px; selection-color: {c.Black_N0};
         }}
-        QSpinBox:focus, QDoubleSpinBox:focus {{  background-color: {c.Black_N1}; }}
+        QSpinBox:focus, QDoubleSpinBox:focus {{  background-color: {c.Black_N3}; }}
         QSpinBox::up-button, QDoubleSpinBox::up-button {{
             subcontrol-origin: border; subcontrol-position: top right; width: 16px; border: none;
             border-left: 1px solid {c.Black_N1}; border-top-right-radius: {r['input']}; background-color: {c.Black_N3};

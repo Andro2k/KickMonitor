@@ -14,7 +14,6 @@ def create_nav_btn(text: str, icon_name: str, func=None) -> QPushButton:
         btn.setIcon(get_icon(icon_name))
     
     btn.setCursor(Qt.CursorShape.PointingHandCursor)
-    # Asume que agregaste "btn_nav" a tu theme.py como acordamos antes
     btn.setStyleSheet(STYLES.get("btn_nav", "")) 
     
     if func:
@@ -34,8 +33,6 @@ def create_icon_btn(icon_name: str, func=None, color_hover: str = None, tooltip:
     
     # Estilo base transparente
     base_style = STYLES.get("btn_icon_ghost", "")
-    
-    # Si pasamos un color específico para el hover (ej: rojo para borrar)
     if color_hover:
         custom_style = f"""
             QPushButton {{ background: transparent; border: none; border-radius: 4px; }} 
@@ -83,7 +80,7 @@ def create_page_header(title: str, subtitle: str) -> QWidget:
     container = QWidget()
     l = QVBoxLayout(container)
     l.setContentsMargins(0, 0, 0, 0)
-    l.setSpacing(2) # Spacing apretado entre título y subtítulo
+    l.setSpacing(2)
 
     lbl_title = QLabel(title)
     lbl_title.setObjectName("h2")
@@ -108,7 +105,6 @@ def create_card_header(title: str, icon_name: str = None) -> QWidget:
 
     if icon_name:
         lbl_icon = QLabel()
-        # Asumimos tamaño 20x20 estándar para headers de tarjeta
         lbl_icon.setPixmap(get_icon(icon_name).pixmap(20, 20))
         lbl_icon.setStyleSheet("border: none; opacity: 0.8;")
         l.addWidget(lbl_icon)
@@ -118,7 +114,7 @@ def create_card_header(title: str, icon_name: str = None) -> QWidget:
     lbl_text.setStyleSheet("border: none;")
     
     l.addWidget(lbl_text)
-    l.addStretch() # Empuja todo a la izquierda
+    l.addStretch()
     
     return w
 
@@ -132,7 +128,6 @@ def create_styled_input(placeholder: str = "", is_cmd: bool = False, callback=No
     if placeholder:
         inp.setPlaceholderText(placeholder)
     
-    # Selecciona el estilo del theme
     style_key = "input_cmd" if is_cmd else "input"
     inp.setStyleSheet(STYLES.get(style_key, ""))
     

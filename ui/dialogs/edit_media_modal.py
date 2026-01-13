@@ -2,10 +2,10 @@
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-    QLineEdit, QPushButton, QFrame, QSpinBox, QSlider, QToolButton
+    QLineEdit, QPushButton, QFrame, QSpinBox, QSlider
 )
 from PyQt6.QtCore import Qt
-from ui.theme import STYLES, THEME_DARK
+from ui.theme import LAYOUT, STYLES, THEME_DARK
 from ui.utils import get_icon
 
 class ModalEditMedia(QDialog):
@@ -34,14 +34,14 @@ class ModalEditMedia(QDialog):
         body = QFrame()
         body.setStyleSheet(f"""
             QFrame {{
-                background-color: {THEME_DARK['Black_N1']};
+                background-color: {THEME_DARK['Black_N2']};
                 border: 1px solid {THEME_DARK['NeonGreen_Main']}; 
                 border-radius: 16px;
             }}
         """)
         l = QVBoxLayout(body)
-        l.setContentsMargins(20, 20, 20, 20)
-        l.setSpacing(15)
+        l.setContentsMargins(*LAYOUT["margins"])
+        l.setSpacing(LAYOUT["spacing"])
 
         l.addWidget(QLabel(f"Editar: {self.filename}", styleSheet="border:none;", objectName="h3"))
 
@@ -87,6 +87,7 @@ class ModalEditMedia(QDialog):
         h_vol = QHBoxLayout()
         self.lbl_vol = QLabel(f"{self.vol}%", styleSheet="color: white; min-width: 35px; border:none;")
         self.slider_vol = QSlider(Qt.Orientation.Horizontal) 
+        self.slider_vol.setStyleSheet("background-color: transparent;")
         self.slider_vol.setRange(0, 100)
         self.slider_vol.setValue(self.vol)
         self.slider_vol.valueChanged.connect(lambda v: self.lbl_vol.setText(f"{v}%"))
@@ -110,7 +111,6 @@ class ModalEditMedia(QDialog):
             
             self.slider_zoom = QSlider(Qt.Orientation.Horizontal)
             self.slider_zoom.setStyleSheet("background-color: transparent;")
-            # CAMBIO: Rango ahora es hasta 150 (1.5x) en lugar de 300
             self.slider_zoom.setRange(10, 150) 
             self.slider_zoom.setValue(int(self.scale * 100))
             self.slider_zoom.valueChanged.connect(lambda v: self.lbl_zoom.setText(f"{v/100:.1f}x"))
@@ -126,12 +126,12 @@ class ModalEditMedia(QDialog):
         btn_cancel = QPushButton("Cancelar")
         btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_cancel.clicked.connect(self.reject)
-        btn_cancel.setStyleSheet(f" padding: 8px; border-radius: 8px; color: #AAA; background: transparent;")
+        btn_cancel.setStyleSheet(STYLES["btn_outlined"])
         
         btn_save = QPushButton("Guardar")
         btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_save.clicked.connect(self._save_data)
-        btn_save.setStyleSheet(f"background-color: {THEME_DARK['NeonGreen_Main']}; color: black; border-radius: 8px; font-weight: bold; padding: 8px; border: none;")
+        btn_save.setStyleSheet(STYLES["btn_solid_primary"])
         
         h_btns.addWidget(btn_cancel)
         h_btns.addWidget(btn_save)
@@ -142,7 +142,7 @@ class ModalEditMedia(QDialog):
     def _create_mini_btn(self, text, func):
         btn = QPushButton(text)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setFixedSize(40, 30)
+        btn.setFixedSize(50, 30)
         btn.clicked.connect(func)
         btn.setStyleSheet(STYLES["btn_nav"])
         return btn

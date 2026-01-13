@@ -110,7 +110,7 @@ class OverlayPage(QWidget):
         current_path = self.service.get_media_folder() or "Sin carpeta seleccionada"
         self.lbl_path = QLabel(current_path)
         self.lbl_path.setWordWrap(False)
-        self.lbl_path.setStyleSheet("color: #aaa; font-style: italic;")
+        self.lbl_path.setStyleSheet(STYLES["label_readonly"])
         
         btn_f = self._create_tool_btn("folder.svg", self._handle_pick_folder, "Elegir Carpeta")
         btn_r = self._create_tool_btn("refresh-cw.svg", self.load_data, "Recargar Lista")
