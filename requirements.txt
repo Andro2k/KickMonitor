@@ -1,21 +1,23 @@
-# --- Interfaz Gráfica ---
-PyQt6
-
-# --- Kick & Redes (Core del Bot) ---
-kickpython
+# --- Core y Red ---
+cffi
 curl_cffi
+kickpython
 requests
 aiohttp
 aiohttp_cors
-packaging
-cloudscraper
 websockets
-# --- Multimedia y Funcionalidades ---
+cloudscraper
+packaging
+
+# --- Interfaz Gráfica ---
+PyQt6
+PyQt6-sip
+
+# --- Multimedia y Extras ---
 pyttsx3
 spotipy
 opencv-python
-# --- Dependencias de Sistema (Windows) ---
 pywin32
 
-# --- Compilación ---
+# --- Empaquetado ---
 pyinstaller
