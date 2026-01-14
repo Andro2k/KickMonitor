@@ -1,11 +1,13 @@
+
+import os
 from PyQt6.QtWidgets import (
     QFrame, QVBoxLayout, QHBoxLayout, QLabel, 
     QLineEdit, QPushButton, QSizePolicy, QDialog
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QThreadPool, Qt
 from PyQt6.QtGui import QIcon
 from ui.theme import LAYOUT, THEME_DARK, STYLES
-from ui.utils import get_colored_icon, get_icon
+from ui.utils import ThumbnailWorker, get_colored_icon, get_icon
 from ui.factories import create_icon_btn
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
@@ -18,7 +20,7 @@ class MediaCard(QFrame):
         self.ftype = ftype
         self.config = config.copy()
         self.page = parent_page 
-        
+        self.thread_pool = QThreadPool.globalInstance()
         self._init_ui()
         self._load_values()
 
@@ -43,17 +45,36 @@ class MediaCard(QFrame):
         layout.setContentsMargins(*LAYOUT["margins"])
         layout.setSpacing(LAYOUT["spacing"])
 
-        # Icono
+        # --- ZONA DE IMAGEN/ICONO ---
         self.lbl_icon = QLabel()
         self.lbl_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_icon.setStyleSheet("background: transparent; border: none;")
-        icon_name = "video.svg" if self.ftype == "video" else "music.svg"
-        self.lbl_icon.setPixmap(get_icon(icon_name).pixmap(48, 48))
-        self.lbl_icon.setFixedHeight(80)
-        
+        self.lbl_icon.setScaledContents(False)
+
+        # 1. Contenedor para la imagen (con borde redondeado y fondo negro)
         bg_icon = QFrame()
-        bg_icon.setStyleSheet(f"background-color: {THEME_DARK['Black_N1']}; border-radius: 8px; border: none;")
-        l_bg = QVBoxLayout(bg_icon); l_bg.setContentsMargins(0,0,0,0); l_bg.addWidget(self.lbl_icon)
+        bg_icon.setFixedHeight(100) # Hacemos la zona de imagen un poco más alta
+        bg_icon.setStyleSheet(f"""
+            QFrame {{
+                background-color: {THEME_DARK['Black_N1']}; 
+                border-radius: 8px; 
+                border: 1px solid {THEME_DARK['Black_N3']};
+            }}
+        """)
+        
+        # === CAMBIO CLAVE: CARGA INMEDIATA ===
+        # 1. Ponemos SIEMPRE el icono por defecto primero (es instantáneo)
+        icon_name = "video.svg" if self.ftype == "video" else "music.svg"
+        default_pix = get_icon(icon_name).pixmap(48, 48)
+        self.lbl_icon.setPixmap(default_pix)
+
+        # 2. Si es video, lanzamos la tarea en segundo plano
+        if self.ftype == "video":
+            self._load_thumbnail_async()
+
+        l_bg = QVBoxLayout(bg_icon)
+        l_bg.setContentsMargins(0,0,0,0)
+        l_bg.addWidget(self.lbl_icon)
         layout.addWidget(bg_icon)
 
         # Nombre
@@ -130,6 +151,34 @@ class MediaCard(QFrame):
         self._update_active_style(is_active)
 
     # En media_card.py
+    def _load_thumbnail_async(self):
+        """Prepara y lanza el hilo para cargar la imagen."""
+        import os
+        folder = self.page.service.get_media_folder()
+        full_path = os.path.join(folder, self.filename)
+        
+        # Creamos el obrero
+        # Ajusta el width a lo que necesites (ej. 300)
+        worker = ThumbnailWorker(full_path, 300) 
+        
+        # Conectamos la señal de "terminado" a nuestra función de actualizar
+        worker.signals.finished.connect(self._update_thumbnail_icon)
+        
+        # ¡A trabajar!
+        self.thread_pool.start(worker)
+
+    def _update_thumbnail_icon(self, pixmap):
+        """Esta función se llama automáticamente cuando el hilo termina."""
+        if pixmap and not pixmap.isNull():
+            # Lógica de escalado seguro que hicimos antes
+            w_max, h_max = 280, 100
+            scaled_pix = pixmap.scaled(
+                w_max, h_max,
+                Qt.AspectRatioMode.KeepAspectRatio, 
+                Qt.TransformationMode.SmoothTransformation
+            )
+            self.lbl_icon.setPixmap(scaled_pix)
+
 
     def _toggle_active(self):
         # 1. Cambiar estado lógico

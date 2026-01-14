@@ -8,11 +8,12 @@ requests
 aiohttp
 aiohttp_cors
 packaging
-
+cloudscraper
+websockets
 # --- Multimedia y Funcionalidades ---
 pyttsx3
 spotipy
-
+opencv-python
 # --- Dependencias de Sistema (Windows) ---
 pywin32
 

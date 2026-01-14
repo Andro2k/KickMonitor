@@ -1,9 +1,11 @@
 # ui/utils.py
 
+import cv2
+import numpy as np
 import sys
 import os
-from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QPainterPath
-from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QPainterPath, QImage
+from PyQt6.QtCore import Qt, QRunnable, pyqtSignal, QObject
 
 def resource_path(relative_path):
     """ Obtiene la ruta absoluta al recurso, funciona para dev y para PyInstaller """
@@ -78,3 +80,54 @@ def crop_to_square(pixmap: QPixmap, size: int) -> QPixmap:
         Qt.AspectRatioMode.KeepAspectRatioByExpanding, 
         Qt.TransformationMode.SmoothTransformation
     )
+
+def get_video_thumbnail(file_path, width=300):
+    """
+    Extrae el primer frame de un video y devuelve un QPixmap.
+    Devuelve None si falla.
+    """
+    if not os.path.exists(file_path):
+        return None
+
+    try:
+        cap = cv2.VideoCapture(file_path)
+        ret, frame = cap.read()
+        cap.release()
+
+        if ret:
+            # 1. Convertir color de BGR (OpenCV) a RGB (Qt)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            
+            # 2. Calcular dimensiones para mantener aspecto
+            h, w, ch = frame.shape
+            
+            # 3. Convertir a QImage
+            bytes_per_line = ch * w
+            qimg = QImage(frame.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
+            
+            # 4. Escalar y devolver QPixmap
+            pixmap = QPixmap.fromImage(qimg)
+            # Escalamos manteniendo ratio, basado en el ancho deseado
+            return pixmap.scaledToWidth(width, Qt.TransformationMode.SmoothTransformation)
+            
+    except Exception as e:
+        print(f"Error generando thumbnail para {file_path}: {e}")
+    
+    return None
+
+# Necesitamos una clase de señales porque QRunnable no tiene señales por defecto
+class WorkerSignals(QObject):
+    finished = pyqtSignal(object) # Enviará el QPixmap resultante
+
+class ThumbnailWorker(QRunnable):
+    def __init__(self, path, width):
+        super().__init__()
+        self.path = path
+        self.width = width
+        self.signals = WorkerSignals()
+
+    def run(self):
+        # Esto se ejecuta en otro hilo y NO congela la UI
+        pixmap = get_video_thumbnail(self.path, self.width)
+        # Enviamos el resultado de vuelta
+        self.signals.finished.emit(pixmap)

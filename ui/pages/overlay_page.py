@@ -210,6 +210,19 @@ class OverlayPage(QWidget):
         """Carga datos del servicio y refresca la grilla."""
         self.full_media_list = self.service.get_media_files_with_config()
         self._render_grid()
+        # Muestra un cursor de espera
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        
+        # Deja que la UI respire un microsegundo para mostrar el cursor
+        QTimer.singleShot(10, self._execute_load)
+
+    def _execute_load(self):
+        try:
+            self.full_media_list = self.service.get_media_files_with_config()
+            self._render_grid()
+        finally:
+            # Quita el cursor de espera pase lo que pase
+            QApplication.restoreOverrideCursor()
 
     def _render_grid(self):
         """Filtra y dibuja las tarjetas multimedia."""
