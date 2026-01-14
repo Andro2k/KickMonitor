@@ -1,13 +1,11 @@
-
-import os
 from PyQt6.QtWidgets import (
     QFrame, QVBoxLayout, QHBoxLayout, QLabel, 
     QLineEdit, QPushButton, QSizePolicy, QDialog
 )
-from PyQt6.QtCore import QThreadPool, Qt
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 from ui.theme import LAYOUT, THEME_DARK, STYLES
-from ui.utils import ThumbnailWorker, get_colored_icon, get_icon
+from ui.utils import get_colored_icon, get_icon
 from ui.factories import create_icon_btn
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
@@ -20,7 +18,7 @@ class MediaCard(QFrame):
         self.ftype = ftype
         self.config = config.copy()
         self.page = parent_page 
-        self.thread_pool = QThreadPool.globalInstance()
+        
         self._init_ui()
         self._load_values()
 
@@ -45,36 +43,17 @@ class MediaCard(QFrame):
         layout.setContentsMargins(*LAYOUT["margins"])
         layout.setSpacing(LAYOUT["spacing"])
 
-        # --- ZONA DE IMAGEN/ICONO ---
+        # Icono
         self.lbl_icon = QLabel()
         self.lbl_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_icon.setStyleSheet("background: transparent; border: none;")
-        self.lbl_icon.setScaledContents(False)
-
-        # 1. Contenedor para la imagen (con borde redondeado y fondo negro)
-        bg_icon = QFrame()
-        bg_icon.setFixedHeight(100) # Hacemos la zona de imagen un poco más alta
-        bg_icon.setStyleSheet(f"""
-            QFrame {{
-                background-color: {THEME_DARK['Black_N1']}; 
-                border-radius: 8px; 
-                border: 1px solid {THEME_DARK['Black_N3']};
-            }}
-        """)
-        
-        # === CAMBIO CLAVE: CARGA INMEDIATA ===
-        # 1. Ponemos SIEMPRE el icono por defecto primero (es instantáneo)
         icon_name = "video.svg" if self.ftype == "video" else "music.svg"
-        default_pix = get_icon(icon_name).pixmap(48, 48)
-        self.lbl_icon.setPixmap(default_pix)
-
-        # 2. Si es video, lanzamos la tarea en segundo plano
-        if self.ftype == "video":
-            self._load_thumbnail_async()
-
-        l_bg = QVBoxLayout(bg_icon)
-        l_bg.setContentsMargins(0,0,0,0)
-        l_bg.addWidget(self.lbl_icon)
+        self.lbl_icon.setPixmap(get_icon(icon_name).pixmap(48, 48))
+        self.lbl_icon.setFixedHeight(80)
+        
+        bg_icon = QFrame()
+        bg_icon.setStyleSheet(f"background-color: {THEME_DARK['Black_N1']}; border-radius: 8px; border: none;")
+        l_bg = QVBoxLayout(bg_icon); l_bg.setContentsMargins(0,0,0,0); l_bg.addWidget(self.lbl_icon)
         layout.addWidget(bg_icon)
 
         # Nombre
@@ -142,9 +121,6 @@ class MediaCard(QFrame):
             self.page.save_item(self.filename, self.ftype, self.config, silent=True)
 
     def refresh_state_from_config(self, new_config):
-        """
-        NUEVO MÉTODO: Permite que la página actualice esta tarjeta externamente.
-        """
         self.config = new_config.copy()
         
         if self.txt_cmd.text() != self.config.get("cmd", ""):
@@ -153,13 +129,23 @@ class MediaCard(QFrame):
         is_active = bool(self.config.get("active", 0))
         self._update_active_style(is_active)
 
-    # En media_card.py
-
     def _toggle_active(self):
+        # 1. Cambiar estado lógico
         curr = bool(self.config.get("active", 0))
-        self.config["active"] = 0 if curr else 1
-        self._update_active_style(not curr)
+        new_state = 0 if curr else 1
+        self.config["active"] = new_state
+        
+        # 2. Guardar en base de datos (silencioso)
         self.page.save_item(self.filename, self.ftype, self.config, silent=True)
+
+        # 3. LÓGICA NUEVA:
+        if hasattr(self.page, 'check_filter_refresh'):
+            # Verificamos si hay que refrescar la grilla completa (para ocultar esta carta)
+            self.page.check_filter_refresh()
+            self._update_active_style(bool(new_state))
+        else:
+            # Fallback por si no has actualizado OverlayPage
+            self._update_active_style(bool(new_state))
 
     def _delete_config(self):
         if ModalConfirm(self, "Eliminar", "¿Borrar configuración?").exec():
@@ -179,42 +165,19 @@ class MediaCard(QFrame):
             icon_preview.addPixmap(pix_black, QIcon.Mode.Active)
 
             # Estilo CSS del botón
-            self.btn_play.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {THEME_DARK['NeonGreen_Main']}; 
-                    color: {THEME_DARK['Black_N1']};
-                    font-weight: bold; border-radius: 8px; border: none;
-                    text-align: left; padding-left: 10px;
-                }}
-                QPushButton:hover {{ background-color: {THEME_DARK['NeonGreen_Light']}; }}
-            """)
+            self.btn_play.setStyleSheet(STYLES["btn_solid_primary"])
             
             # Restaurar opacidad de la tarjeta completa
             self.setStyleSheet(self.styleSheet().replace("QFrame { opacity: 0.6; }", ""))
 
         else:
-            pix_gray = get_colored_icon("play-circle.svg", THEME_DARK['Gray_N2']).pixmap(24, 24)
-            pix_white = get_colored_icon("play-circle.svg", THEME_DARK['White_N1']).pixmap(24, 24)
+            pix_gray = get_colored_icon("play-circle.svg", THEME_DARK['White_N1']).pixmap(24, 24)
             
             # Añadimos ambos estados al icono
             icon_preview.addPixmap(pix_gray, QIcon.Mode.Normal)
-            icon_preview.addPixmap(pix_white, QIcon.Mode.Active)   # Active suele activarse en Hover
-            icon_preview.addPixmap(pix_white, QIcon.Mode.Selected) # Por seguridad
 
             # Estilo CSS del botón
-            self.btn_play.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {THEME_DARK['Black_N1']}; 
-                    color: {THEME_DARK['Gray_N2']};
-                    font-weight: bold; border-radius: 8px; 
-                    border: 1px solid {THEME_DARK['Black_N3']};
-                    text-align: left; padding-left: 10px;
-                }}
-                QPushButton:hover {{ 
-                    border: 1px solid {THEME_DARK['Gray_N1']}; 
-                    color: {THEME_DARK['White_N1']}; 
-                }}
-            """)
+            self.btn_play.setStyleSheet(STYLES["btn_outlined"])
 
             # Aplicar opacidad a la tarjeta si no está activa
             if "opacity" not in self.styleSheet():
