@@ -29,7 +29,7 @@ class ModalEditCommand(QDialog):
         container.setStyleSheet(f"""
             QFrame {{
                 background-color: {THEME_DARK['Black_N2']};
-                border: 1px solid {THEME_DARK['NeonGreen_Main']};
+                border: 1px solid {THEME_DARK['Black_N4']};
                 border-radius: 16px;
             }}
         """)
@@ -65,7 +65,7 @@ class ModalEditCommand(QDialog):
                 border-radius: 8px;
                 padding: 8px;
             }}
-            QPlainTextEdit:focus {{ border: 1px solid {THEME_DARK['NeonGreen_Main']}; }}
+            QPlainTextEdit:focus {{ border: 1px solid {THEME_DARK['Black_N4']}; }}
         """)
         layout.addWidget(self.txt_response)
         
@@ -117,7 +117,7 @@ class ModalEditCommand(QDialog):
                 border-radius: 8px;
                 padding: 8px;
             }}
-            QLineEdit:focus {{ border: 1px solid {THEME_DARK['NeonGreen_Main']}; }}
+            QLineEdit:focus {{ border: 1px solid {THEME_DARK['Black_N4']}; }}
         """
 
     def _save(self):

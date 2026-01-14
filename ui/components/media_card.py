@@ -3,8 +3,9 @@ from PyQt6.QtWidgets import (
     QLineEdit, QPushButton, QSizePolicy, QDialog
 )
 from PyQt6.QtCore import Qt
-from ui.theme import THEME_DARK, STYLES
-from ui.utils import get_icon
+from PyQt6.QtGui import QIcon
+from ui.theme import LAYOUT, THEME_DARK, STYLES
+from ui.utils import get_colored_icon, get_icon
 from ui.factories import create_icon_btn
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
@@ -22,7 +23,7 @@ class MediaCard(QFrame):
         self._load_values()
 
     def _init_ui(self):
-        self.setMinimumWidth(200) 
+        self.setMinimumWidth(180) 
         self.setFixedHeight(240)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
@@ -33,14 +34,14 @@ class MediaCard(QFrame):
                 border: 1px solid {THEME_DARK['Black_N1']};
             }}
             QFrame:hover {{
-                border: 1px solid {THEME_DARK['NeonGreen_Main']};
+                border: 1px solid {THEME_DARK['Black_N4']};
                 background-color: {THEME_DARK['Black_N3']};
             }}
         """)
         
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(8)
+        layout.setContentsMargins(*LAYOUT["margins"])
+        layout.setSpacing(LAYOUT["spacing"])
 
         # Icono
         self.lbl_icon = QLabel()
@@ -73,7 +74,7 @@ class MediaCard(QFrame):
         row_btns = QHBoxLayout()
         row_btns.setSpacing(5)
 
-        self.btn_play = QPushButton(" Preview")
+        self.btn_play = QPushButton("Preview")
         self.btn_play.setIcon(get_icon("play-circle.svg"))
         self.btn_play.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_play.setFixedHeight(32)
@@ -107,8 +108,29 @@ class MediaCard(QFrame):
             ToastNotification(self.page, "Ajustes", "Configuración actualizada", "info").show_toast()
 
     def _save_quick_cmd(self):
-        self.config["cmd"] = self.txt_cmd.text().strip()
-        self.page.save_item(self.filename, self.ftype, self.config, silent=True)
+        text = self.txt_cmd.text().strip()
+
+        if text and not text.startswith("!"):
+            text = f"!{text}"
+            self.txt_cmd.setText(text)
+
+        if hasattr(self.page, 'handle_command_update'):
+            self.page.handle_command_update(self.filename, text)
+        else:
+            self.config["cmd"] = text
+            self.page.save_item(self.filename, self.ftype, self.config, silent=True)
+
+    def refresh_state_from_config(self, new_config):
+        """
+        NUEVO MÉTODO: Permite que la página actualice esta tarjeta externamente.
+        """
+        self.config = new_config.copy()
+        
+        if self.txt_cmd.text() != self.config.get("cmd", ""):
+            self.txt_cmd.setText(self.config.get("cmd", ""))
+            
+        is_active = bool(self.config.get("active", 0))
+        self._update_active_style(is_active)
 
     def _toggle_active(self):
         curr = bool(self.config.get("active", 0))
@@ -126,23 +148,55 @@ class MediaCard(QFrame):
         self.page.preview_item(self.filename, self.ftype, self.config)
 
     def _update_active_style(self, is_active):
-        self.btn_toggle.setIcon(get_icon("eye.svg" if is_active else "eye-off.svg"))
+        icon_preview = QIcon()
+        
         if is_active:
+            pix_black = get_colored_icon("play-circle.svg", THEME_DARK['Black_N1']).pixmap(24, 24)
+            icon_preview.addPixmap(pix_black, QIcon.Mode.Normal)
+            icon_preview.addPixmap(pix_black, QIcon.Mode.Active)
+
+            # Estilo CSS del botón
             self.btn_play.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {THEME_DARK['NeonGreen_Main']}; color: {THEME_DARK['Black_N1']};
+                    background-color: {THEME_DARK['NeonGreen_Main']}; 
+                    color: {THEME_DARK['Black_N1']};
                     font-weight: bold; border-radius: 8px; border: none;
+                    text-align: left; padding-left: 10px;
                 }}
                 QPushButton:hover {{ background-color: {THEME_DARK['NeonGreen_Light']}; }}
             """)
-            self.setStyleSheet(self.styleSheet().replace("opacity: 0.6;", ""))
+            
+            # Restaurar opacidad de la tarjeta completa
+            self.setStyleSheet(self.styleSheet().replace("QFrame { opacity: 0.6; }", ""))
+
         else:
+            pix_gray = get_colored_icon("play-circle.svg", THEME_DARK['Gray_N2']).pixmap(24, 24)
+            pix_white = get_colored_icon("play-circle.svg", THEME_DARK['White_N1']).pixmap(24, 24)
+            
+            # Añadimos ambos estados al icono
+            icon_preview.addPixmap(pix_gray, QIcon.Mode.Normal)
+            icon_preview.addPixmap(pix_white, QIcon.Mode.Active)   # Active suele activarse en Hover
+            icon_preview.addPixmap(pix_white, QIcon.Mode.Selected) # Por seguridad
+
+            # Estilo CSS del botón
             self.btn_play.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {THEME_DARK['Black_N1']}; color: {THEME_DARK['Gray_N2']};
-                    font-weight: bold; border-radius: 8px; border: 1px solid {THEME_DARK['Black_N3']};
+                    background-color: {THEME_DARK['Black_N1']}; 
+                    color: {THEME_DARK['Gray_N2']};
+                    font-weight: bold; border-radius: 8px; 
+                    border: 1px solid {THEME_DARK['Black_N3']};
+                    text-align: left; padding-left: 10px;
                 }}
-                QPushButton:hover {{ border: 1px solid {THEME_DARK['Gray_N1']}; color: {THEME_DARK['White_N1']}; }}
+                QPushButton:hover {{ 
+                    border: 1px solid {THEME_DARK['Gray_N1']}; 
+                    color: {THEME_DARK['White_N1']}; 
+                }}
             """)
+
+            # Aplicar opacidad a la tarjeta si no está activa
             if "opacity" not in self.styleSheet():
                 self.setStyleSheet(self.styleSheet() + "QFrame { opacity: 0.6; }")
+
+        # 2. Asignar los iconos finales
+        self.btn_play.setIcon(icon_preview)
+        self.btn_toggle.setIcon(get_icon("eye.svg" if is_active else "eye-off.svg"))

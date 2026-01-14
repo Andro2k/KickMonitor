@@ -34,7 +34,7 @@ class ModalEditMedia(QDialog):
         body.setStyleSheet(f"""
             QFrame {{
                 background-color: {THEME_DARK['Black_N2']};
-                border: 1px solid {THEME_DARK['NeonGreen_Main']}; 
+                border: 1px solid {THEME_DARK['Black_N4']}; 
                 border-radius: 16px;
             }}
         """)
