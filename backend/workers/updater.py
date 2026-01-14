@@ -102,7 +102,7 @@ class UpdateDownloaderWorker(QThread):
     def _launch_installer(self):
         """Ejecuta el instalador de forma independiente y cierra la app actual."""
         if os.path.exists(self.installer_path):
-            # print(f"[UPDATER] Ejecutando instalador.")
+            # print(f"[UPDATER] Ejecutando instalador...")
             
             try:
                 # 2. FIX PARA PYINSTALLER:

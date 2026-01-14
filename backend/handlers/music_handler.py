@@ -76,7 +76,7 @@ class MusicHandler:
         if user.lower() == streamer_name:
             if is_active("skip") and msg_lower == cmd_skip:
                 self.spotify.next_track()
-                send_msg("⏭️ Saltando canción.")
+                send_msg("⏭️ Saltando canción...")
                 log_msg(Log.info("Música: Skip por streamer"))
                 return True
             

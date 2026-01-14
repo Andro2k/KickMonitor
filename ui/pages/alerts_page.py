@@ -55,9 +55,9 @@ class AlertsPage(QWidget):
         # Otro FlowLayout independiente para esta sección
         timers_flow = FlowLayout(timers_container, margin=0, spacing=(LAYOUT["spacing"]))
         # Tarjetas de Timers
-        timers_flow.addWidget(TimerCard(self.service, "Redes Sociales", "redes", "Ej: Sígueme en Twitter."))
-        timers_flow.addWidget(TimerCard(self.service, "Discord / Comunidad", "discord", "Ej: Únete al server."))
-        timers_flow.addWidget(TimerCard(self.service, "Promo / Reglas", "promo", "Ej: Respetar normas."))
+        timers_flow.addWidget(TimerCard(self.service, "Redes Sociales", "redes", "Ej: Sígueme en Twitter..."))
+        timers_flow.addWidget(TimerCard(self.service, "Discord / Comunidad", "discord", "Ej: Únete al server..."))
+        timers_flow.addWidget(TimerCard(self.service, "Promo / Reglas", "promo", "Ej: Respetar normas..."))
         
         layout.addWidget(timers_container)
         

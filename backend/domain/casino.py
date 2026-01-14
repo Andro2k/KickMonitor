@@ -148,7 +148,7 @@ class CasinoSystem:
             is_win = True
             msg = f"@{user} 🎰 {result_display} ¡JACKPOT! (+{payout})"
         else:
-            msg = f"@{user} 🎰 {result_display} ."
+            msg = f"@{user} 🎰 {result_display} ..."
         
         return msg, self._build_history(user, "slots", result_display, profit, is_win)
 

@@ -56,7 +56,7 @@ class ModalEditCommand(QDialog):
         # 3. Respuesta (TextArea)
         layout.addWidget(QLabel("Respuesta del Bot:", styleSheet="color: #AAA; border: none;"))
         self.txt_response = QPlainTextEdit(response)
-        self.txt_response.setPlaceholderText("Escribe aquí lo que dirá el bot.")
+        self.txt_response.setPlaceholderText("Escribe aquí lo que dirá el bot...")
         self.txt_response.setStyleSheet(f"""
             QPlainTextEdit {{
                 background-color: {THEME_DARK['Black_N3']};

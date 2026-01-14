@@ -176,7 +176,7 @@ class ChatPage(QWidget):
         
         header = QHBoxLayout()
         lbl_name = QLabel(label_text, styleSheet="color:#aaa; font-size:11px;")
-        lbl_val = QLabel(str(min_v), styleSheet=f"color:{THEME_DARK['Gray_N2']}; font-weight:bold; font-size:11px;")
+        lbl_val = QLabel(str(min_v), styleSheet=f"color:{THEME_DARK['NeonGreen_Main']}; font-weight:bold; font-size:11px;")
         header.addWidget(lbl_name); header.addStretch(); header.addWidget(lbl_val)
         
         slider = QSlider(Qt.Orientation.Horizontal)
@@ -196,7 +196,7 @@ class ChatPage(QWidget):
         layout.addWidget(QLabel("Historial en Vivo", objectName="h3"))
         self.txt = QTextEdit()
         self.txt.setReadOnly(True)
-        self.txt.setPlaceholderText("Esperando mensajes de Kick.")
+        self.txt.setPlaceholderText("Esperando mensajes de Kick...")
         self.txt.setStyleSheet(STYLES["text_edit_log"])
         layout.addWidget(self.txt)
 

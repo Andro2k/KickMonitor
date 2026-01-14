@@ -122,9 +122,9 @@ class DashboardPage(QWidget):
         info.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         info.setSpacing(4)
         
-        self.lbl_welcome = QLabel("Cargando.", objectName="h2")
+        self.lbl_welcome = QLabel("Cargando...", objectName="h2")
         self.lbl_welcome.setStyleSheet("border:none;")
-        self.lbl_stats = QLabel(".", objectName="normal")
+        self.lbl_stats = QLabel("...", objectName="normal")
         self.lbl_stats.setStyleSheet(f"color: {THEME_DARK['Gray_N1']}; border:none;")
         
         info.addWidget(self.lbl_welcome)
@@ -204,7 +204,7 @@ class DashboardPage(QWidget):
         
         self.log_console = QTextEdit()
         self.log_console.setReadOnly(True)
-        self.log_console.setPlaceholderText("Esperando conexión.")
+        self.log_console.setPlaceholderText("Esperando conexión...")
         self.log_console.setMinimumHeight(150)
         self.log_console.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding)    
         self.log_console.setStyleSheet(STYLES["text_edit_console"]) # Estilo del theme

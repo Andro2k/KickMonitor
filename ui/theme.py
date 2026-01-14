@@ -176,7 +176,7 @@ STYLES = {
     # --- LABELS ---
     "label_readonly": f"""
         QLabel {{ 
-            background: {c.Black_N3}; color: {c.Gray_N1}; 
+            background: {c.Black_N3}; color: {c.NeonGreen_Main}; 
             font-family: Consolas; border: 1px solid {c.border};
             border-radius: {r['input']}; padding: 4px;
         }}
@@ -184,18 +184,18 @@ STYLES = {
     # --- INPUTS ---
     "input": f"""
         QLineEdit {{ background: {c.Black_N3}; border-radius: {r['input']}; padding: 8px; color: white; }}
-        QLineEdit:focus {{ border: 1px solid {c.Gray_N1}; }}
+        QLineEdit:focus {{ border: 1px solid {c.NeonGreen_Main}; }}
     """,
     "input_cmd": f"""
         QLineEdit {{ 
-            background: {c.Black_N3}; color: {c.Gray_N1}; font-weight: bold; font-family: Consolas;
+            background: {c.Black_N3}; color: {c.NeonGreen_Main}; font-weight: bold; font-family: Consolas;
             border-radius: 4px; padding: 6px 10px; border: 1px solid {c.border};
         }}
-        QLineEdit:focus {{ border-color: {c.Gray_N1}; }}
+        QLineEdit:focus {{ border-color: {c.NeonGreen_Main}; }}
     """,
     "input_readonly": f"""
         QLineEdit {{ 
-            background: {c.Black_N3}; color: {c.Gray_N1}; 
+            background: {c.Black_N3}; color: {c.NeonGreen_Main}; 
             font-family: Consolas; border: 1px solid {c.border};
             border-radius: {r['input']}; padding: 4px;
         }}
@@ -302,7 +302,7 @@ STYLES = {
             color: {c.White_N1}; border-radius: {r['input']}; padding: 6px; min-height: 20px;
         }}
         QComboBox:hover, QComboBox:focus {{
-            border: 1px solid {c.Gray_N1}; background-color: {c.Black_N3};
+            border: 1px solid {c.NeonGreen_Main}; background-color: {c.Black_N3};
         }}
         QComboBox::drop-down {{ subcontrol-origin: padding; subcontrol-position: top right; width: 20px; border: none; }}
         QComboBox QAbstractItemView {{
