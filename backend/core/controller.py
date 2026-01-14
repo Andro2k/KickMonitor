@@ -1,6 +1,5 @@
 # backend/controller.py
 
-import time
 from datetime import datetime
 from typing import Optional
 
@@ -57,7 +56,7 @@ class MainController(QObject):
         self.music_handler = MusicHandler(self.db, self.spotify) 
         self.game_handler = GameHandler(self.db, self.casino_system)
         self.alert_handler = AlertHandler(self.db, self.overlay_server)
-        self.antibot = AntibotHandler(self.db) # <--- YA ESTABA AQUÍ
+        self.antibot = AntibotHandler(self.db)
         # 4. Estado Interno
         self.worker: Optional[KickBotWorker] = None          
         self.monitor_worker: Optional[FollowMonitorWorker] = None  
@@ -69,6 +68,7 @@ class MainController(QObject):
         self._manual_check = False
         self._update_found = False
         self.check_updates(manual=False)
+    
     def _setup_timers(self):
         # Timer Puntos: Distribuye puntos cada minuto
         self.points_timer = QTimer()
@@ -82,24 +82,18 @@ class MainController(QObject):
     # =========================================================================
     # REGIÓN 1: PIPELINE DE PROCESAMIENTO DE CHAT
     # =========================================================================
-    def on_chat_received(self, html_content, raw_msg):
+    def on_chat_received(self, raw_msg):
         """
-        Punto central de entrada de mensajes.
-        Decide qué handler debe procesar el mensaje.
+        Punto central de entrada de mensajes. Decide qué handler debe procesar el mensaje.
         """
         timestamp = datetime.now().strftime("%H:%M:%S")
         user, content, badges = self.chat_handler.parse_message(raw_msg)
         msg_lower = content.strip().lower()
 
-        # -----------------------------------------------------------
         # 0. ANTIBOT (Seguridad Prioritaria)
-        # -----------------------------------------------------------
-        # Verificamos si es un bot raid antes de procesar nada más
         if self.antibot.check_user(user, self._ban_user, self.emit_log):
             # Si retorna True, el usuario fue detectado como bot y baneado.
-            # No actualizamos UI ni procesamos comandos.
             return 
-        # -----------------------------------------------------------
 
         # 1. Filtros de seguridad (Mute / Ignore Bots)
         if self.chat_handler.should_ignore_user(user): 
@@ -114,8 +108,7 @@ class MainController(QObject):
         # 2. Economía (Dar puntos por actividad)
         self.chat_handler.process_points(user, msg_lower, badges)
 
-        # 3. Delegación a Handlers (Cadena de Responsabilidad)
-        # Si un handler retorna True, significa que manejó el mensaje y terminamos.       
+        # 3. Delegación a Handlers (Cadena de Responsabilidad)     
         
         # A) Música (!song, !sr)
         if self.music_handler.handle_command(user, content, msg_lower, self.send_msg, self.emit_log):
@@ -145,9 +138,6 @@ class MainController(QObject):
         self.game_handler.analyze_outcome(user, content, self.gamble_result_signal.emit)
         self._update_ui_chat(timestamp, user, content)
 
-    # =========================================================================
-    # AUXILIAR: ACCIÓN DE BANEO
-    # =========================================================================
     def _ban_user(self, username: str):
         """Callback que ejecuta el baneo real a través del worker."""
         if self.worker:
@@ -306,7 +296,7 @@ class MainController(QObject):
             self.monitor_worker.new_follower.connect(self.on_new_follower)
             self.monitor_worker.start()
 
-    def on_new_follower(self, target, count, name):
+    def on_new_follower(self, count, name):
         # 1. Notificación Visual
         self.toast_signal.emit("¡NUEVO!", f"{name} (+{count})", "Status_Green")
         self.emit_log(Log.success(f"NUEVO SEGUIDOR: {name}"))
@@ -370,24 +360,21 @@ class MainController(QObject):
     def check_updates(self, manual=False):
         """
         Inicia el worker de comprobación.
-        :param manual: True si fue invocado por el botón de Settings, False si es automático.
         """
         self._manual_check = manual
-        self._update_found = False # Reiniciamos la bandera
+        self._update_found = False
 
         if manual:
             self.toast_signal.emit("Sistema", "Buscando actualizaciones.", "info")
 
         self.updater = UpdateCheckerWorker()
         self.updater.update_available.connect(self.ask_user_to_update)
-        # Conectamos la señal 'finished' para saber cuándo termina el proceso, haya encontrado algo o no
         self.updater.finished.connect(self._on_check_finished)
         self.updater.start()
 
     def ask_user_to_update(self, new_ver, url, notes):
         """Callback cuando SE ENCUENTRA una actualización."""
-        self._update_found = True # Marcamos que encontramos algo
-        
+        self._update_found = True
         # Si es manual o automático, mostramos el modal igual
         modal = UpdateModal(new_ver, notes, parent=None) 
         
@@ -399,24 +386,21 @@ class MainController(QObject):
 
     def _on_check_finished(self):
         """Se ejecuta siempre que el worker termina de buscar."""
-        # Solo notificamos "Sin novedades" si fue una búsqueda manual y no se encontró nada
+
         if self._manual_check and not self._update_found:
             self.toast_signal.emit("Sistema", "Ya tienes la última versión.", "Status_Green")
         
         # Limpieza
         self._manual_check = False
-        # Es buena práctica limpiar el worker, aunque deleteLater lo maneje Qt
         try: self.updater.deleteLater()
         except: pass
 
     def start_download(self, url):
         self.downloader = UpdateDownloaderWorker(url)
-        
-        # Conexiones
-        self.downloader.progress.connect(self._on_update_progress) # <--- NUEVO
+        self.downloader.progress.connect(self._on_update_progress)
         self.downloader.error.connect(lambda e: self.toast_signal.emit("Error Update", str(e), "Status_Red"))
         self.downloader.start()
 
     def _on_update_progress(self, percent):
-        if percent % 10 == 0: # Para no saturar el log
+        if percent % 10 == 0:
             self.emit_log(Log.system(f"Descargando actualización: {percent}%"))
