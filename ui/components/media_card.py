@@ -129,6 +129,8 @@ class MediaCard(QFrame):
         is_active = bool(self.config.get("active", 0))
         self._update_active_style(is_active)
 
+    # En media_card.py
+
     def _toggle_active(self):
         # 1. Cambiar estado lógico
         curr = bool(self.config.get("active", 0))
@@ -139,9 +141,12 @@ class MediaCard(QFrame):
         self.page.save_item(self.filename, self.ftype, self.config, silent=True)
 
         # 3. LÓGICA NUEVA:
+        # Si la página tiene el método de chequeo, lo llamamos.
         if hasattr(self.page, 'check_filter_refresh'):
             # Verificamos si hay que refrescar la grilla completa (para ocultar esta carta)
             self.page.check_filter_refresh()
+            
+            # Si NO se refrescó la grilla (porque estamos en "Todos"), actualizamos el estilo visual
             self._update_active_style(bool(new_state))
         else:
             # Fallback por si no has actualizado OverlayPage

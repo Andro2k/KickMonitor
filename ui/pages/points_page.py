@@ -147,7 +147,7 @@ class PointsPage(QWidget):
         lbl_search.setStyleSheet("opacity: 0.5; border:none;")
         h_bar.addWidget(lbl_search)
 
-        self.inp_search = create_styled_input("Buscar usuario...", is_cmd=False, callback=self._handle_search_changed)
+        self.inp_search = create_styled_input("Buscar usuario.", is_cmd=False, callback=self._handle_search_changed)
         h_bar.addWidget(self.inp_search, stretch=1)
         
         self.combo_filter = QComboBox()

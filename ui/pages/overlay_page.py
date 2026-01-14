@@ -178,7 +178,7 @@ class OverlayPage(QWidget):
         icon_lbl.setStyleSheet("border:none; opacity:0.5;")
         
         # Input búsqueda
-        self.inp_search = create_styled_input("Buscar archivo...", is_cmd=False, callback=self._handle_search_changed)
+        self.inp_search = create_styled_input("Buscar archivo.", is_cmd=False, callback=self._handle_search_changed)
 
         # Filtro ComboBox
         lbl_filter = QLabel("Filtrar:")
@@ -210,19 +210,6 @@ class OverlayPage(QWidget):
         """Carga datos del servicio y refresca la grilla."""
         self.full_media_list = self.service.get_media_files_with_config()
         self._render_grid()
-        # Muestra un cursor de espera
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        
-        # Deja que la UI respire un microsegundo para mostrar el cursor
-        QTimer.singleShot(10, self._execute_load)
-
-    def _execute_load(self):
-        try:
-            self.full_media_list = self.service.get_media_files_with_config()
-            self._render_grid()
-        finally:
-            # Quita el cursor de espera pase lo que pase
-            QApplication.restoreOverrideCursor()
 
     def _render_grid(self):
         """Filtra y dibuja las tarjetas multimedia."""
@@ -265,6 +252,14 @@ class OverlayPage(QWidget):
         lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lbl.setStyleSheet("color: #666; margin-top: 20px;")
         self.media_layout.addWidget(lbl)
+
+    def check_filter_refresh(self):
+        """
+        Si hay un filtro activo (que no sea 'Todos' ni tipos de archivo)
+        """
+        # Si estamos filtrando por estado (Activos/Desactivados), recargamos la grilla
+        if self.filter_mode in ["Activos", "Desactivados"]:
+            self._render_grid()
 
     # =========================================================================
     # SECCIÓN 3: MANEJADORES DE EVENTOS (HANDLERS)

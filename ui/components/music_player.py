@@ -188,7 +188,7 @@ class MusicPlayerPanel(QFrame):
         parent_layout.addWidget(container)
 
     def update_state(self, title, artist, art_pixmap, prog, dur, is_playing):
-        self.lbl_song.setText(title[:45] + "..." if len(title) > 45 else title)
+        self.lbl_song.setText(title[:45] + "." if len(title) > 45 else title)
         self.lbl_artist.setText(artist)
         self.btn_play.setIcon(get_icon("pause.svg" if is_playing else "play-circle.svg"))
         if art_pixmap: 

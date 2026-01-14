@@ -1,8 +1,10 @@
 # ui/dialogs/connection_modal.py
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, 
                              QHBoxLayout, QFrame, QApplication)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QIcon
 from ui.theme import THEME_DARK, STYLES, LAYOUT
+from ui.utils import get_icon
 
 class ConnectionModal(QDialog):
     """
@@ -32,7 +34,7 @@ class ConnectionModal(QDialog):
                 "uri": "spotify_redirect_uri" 
             },
             "uri_readonly": False,
-            "show_copy": False
+            "show_copy": True  # <--- CAMBIO AQUÍ: Antes estaba en False
         }
     }
 
@@ -51,15 +53,8 @@ class ConnectionModal(QDialog):
         self.init_ui()
 
     def _get_display_value(self, key: str) -> str:
-        """
-        Retorna el valor solo si es DIFERENTE al default.
-        Esto hace que si el valor es el default (ej: localhost:8080), 
-        el campo aparezca vacío para que se vea el placeholder.
-        """
         current_val = self.db.get(key)
         default_val = self.db.DEFAULT_SETTINGS.get(key, "")
-        
-        # Si son iguales, retornamos vacío para "ocultarlo"
         if current_val == default_val:
             return ""
         return current_val
@@ -89,16 +84,14 @@ class ConnectionModal(QDialog):
         keys = self.current_conf["keys"]
 
         # 1. Client ID
-        # CAMBIO: Usamos _get_display_value y EchoMode.Password para seguridad
         layout.addWidget(self._create_label("Client ID:"))
         self.txt_id = QLineEdit(self._get_display_value(keys["id"]))
         self.txt_id.setPlaceholderText("Client ID (Oculto)")
-        self.txt_id.setEchoMode(QLineEdit.EchoMode.Password) # <--- Ahora se oculta como password
+        self.txt_id.setEchoMode(QLineEdit.EchoMode.Password)
         self.txt_id.setStyleSheet(STYLES["input"])
         layout.addWidget(self.txt_id)
 
         # 2. Client Secret
-        # CAMBIO: Usamos _get_display_value
         layout.addWidget(self._create_label("Client Secret:"))
         self.txt_secret = QLineEdit(self._get_display_value(keys["secret"]))
         self.txt_secret.setPlaceholderText("Client Secret (Oculto)")
@@ -110,13 +103,9 @@ class ConnectionModal(QDialog):
         layout.addWidget(self._create_label("Redirect URI:"))
         h_uri = QHBoxLayout()
         
-        # CAMBIO: Usamos _get_display_value. 
         self.txt_uri = QLineEdit(self._get_display_value(keys["uri"]))
-        
-        # Mostramos el valor por defecto EN EL PLACEHOLDER como sugerencia
         default_uri = self.db.DEFAULT_SETTINGS.get(keys["uri"], "")
         self.txt_uri.setPlaceholderText(default_uri or "Redirect URI")
-        
         self.txt_uri.setStyleSheet(STYLES["input"])
         
         if self.current_conf["uri_readonly"]:
@@ -125,11 +114,14 @@ class ConnectionModal(QDialog):
         
         h_uri.addWidget(self.txt_uri)
 
+        # BOTÓN COPIAR (Con el fix del icono)
         if self.current_conf["show_copy"]:
-            btn_copy = QPushButton("Copiar")
+            btn_copy = QPushButton()
+            btn_copy.setIcon(get_icon("copy.svg"))
+            btn_copy.setToolTip("Copiar al portapapeles")
             btn_copy.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_copy.setFixedSize(60, 38)
-            btn_copy.setStyleSheet("background: transparent; border: 1px solid #444; border-radius: 5px; color: #ccc;")
+            btn_copy.setStyleSheet(STYLES["btn_outlined"])
             btn_copy.clicked.connect(self.copy_uri)
             h_uri.addWidget(btn_copy)
             
@@ -152,7 +144,6 @@ class ConnectionModal(QDialog):
         btn_save = QPushButton("Guardar")
         btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
         
-        text_color = THEME_DARK['White_N1'] if self.service == 'kick' else 'black'
         btn_save.setStyleSheet(STYLES["btn_solid_primary"])
         btn_save.clicked.connect(self.save_data)
         
@@ -161,7 +152,7 @@ class ConnectionModal(QDialog):
         parent_layout.addLayout(h_btns)
 
     def copy_uri(self):
-        # Si el campo está vacío (porque es default), copiamos el default real de la DB, no el texto vacío
+        # 1. Obtener texto (o default)
         text = self.txt_uri.text()
         if not text:
             keys = self.current_conf["keys"]
@@ -169,11 +160,20 @@ class ConnectionModal(QDialog):
             
         QApplication.clipboard().setText(text)
         
+        # 2. Feedback visual (Con fix anti-crash)
         sender = self.sender()
         if sender: 
+            sender.setIcon(QIcon()) 
             sender.setText("OK")
-            from PyQt6.QtCore import QTimer
-            QTimer.singleShot(2000, lambda: sender.setText("Copiar"))
+            
+            def restore():
+                try:
+                    sender.setText("") 
+                    sender.setIcon(get_icon("copy.svg"))
+                except RuntimeError:
+                    pass
+
+            QTimer.singleShot(2000, restore)
 
     def save_data(self):
         keys = self.current_conf["keys"]

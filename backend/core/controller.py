@@ -242,8 +242,8 @@ class MainController(QObject):
             self.connection_changed.emit(False)
             return
 
-        self.status_signal.emit("Conectando...")
-        self.toast_signal.emit("Iniciando", "Autenticando...", "info")
+        self.status_signal.emit("Conectando.")
+        self.toast_signal.emit("Iniciando", "Autenticando.", "info")
         
         self.worker = KickBotWorker(config)
         self.worker.chat_received.connect(self.on_chat_received)
@@ -265,7 +265,7 @@ class MainController(QObject):
             self.safe_disconnect(self.worker.chat_received)
             self.worker.stop()
             if not self.worker.wait(500): 
-                self.emit_log(Log.warning("Timeout: Forzando cierre de hilos..."))
+                self.emit_log(Log.warning("Timeout: Forzando cierre de hilos."))
             self.worker = None             
         if self.monitor_worker: 
             self.monitor_worker.stop()
@@ -376,7 +376,7 @@ class MainController(QObject):
         self._update_found = False # Reiniciamos la bandera
 
         if manual:
-            self.toast_signal.emit("Sistema", "Buscando actualizaciones...", "info")
+            self.toast_signal.emit("Sistema", "Buscando actualizaciones.", "info")
 
         self.updater = UpdateCheckerWorker()
         self.updater.update_available.connect(self.ask_user_to_update)
@@ -392,7 +392,7 @@ class MainController(QObject):
         modal = UpdateModal(new_ver, notes, parent=None) 
         
         if modal.exec():
-            self.toast_signal.emit("Sistema", "Descargando actualización...", "Status_Green")
+            self.toast_signal.emit("Sistema", "Descargando actualización.", "Status_Green")
             self.start_download(url)
         else:
             self.emit_log(Log.system("El usuario pospuso la actualización."))
