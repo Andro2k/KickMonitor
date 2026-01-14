@@ -131,7 +131,7 @@ class SpotifyWorker(QObject):
             # 1. Intentar sesión guardada
             token_info = self.auth_manager.get_cached_token()
             if token_info:
-                self.status_msg.emit(Log.info("Recuperando sesión guardada..."))
+                self.status_msg.emit(Log.info("Recuperando sesión guardada."))
                 self._init_client()
             else:
                 # 2. Iniciar flujo OAuth nuevo
@@ -153,7 +153,7 @@ class SpotifyWorker(QObject):
             # Abrir navegador del usuario
             auth_url = self.auth_manager.get_authorize_url()
             QDesktopServices.openUrl(QUrl(auth_url))
-            self.status_msg.emit(Log.warning("Esperando autorización en el navegador..."))
+            self.status_msg.emit(Log.warning("Esperando autorización en el navegador."))
             
         except Exception as e:
             self.status_msg.emit(Log.error(f"Fallo al iniciar flujo web: {e}"))

@@ -74,7 +74,7 @@ def create_switch_widget(checked: bool, func, tooltip: str = "") -> QWidget:
 def create_page_header(title: str, subtitle: str) -> QWidget:
     """
     Crea el bloque de título estándar para el inicio de cada página.
-    Ej: "Monitor de Chat" (H2) + "Estado del servicio..." (Subtitle)
+    Ej: "Monitor de Chat" (H2) + "Estado del servicio." (Subtitle)
     """
     container = QWidget()
     l = QVBoxLayout(container)
@@ -120,8 +120,6 @@ def create_card_header(title: str, icon_name: str = None) -> QWidget:
 def create_styled_input(placeholder: str = "", is_cmd: bool = False, callback=None) -> QLineEdit:
     """
     Crea un QLineEdit pre-estilizado.
-    is_cmd=True : Estilo verde monospaced (para comandos o rutas).
-    is_cmd=False: Estilo normal (para buscadores).
     """
     inp = QLineEdit()
     if placeholder:

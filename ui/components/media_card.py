@@ -121,9 +121,6 @@ class MediaCard(QFrame):
             self.page.save_item(self.filename, self.ftype, self.config, silent=True)
 
     def refresh_state_from_config(self, new_config):
-        """
-        NUEVO MÉTODO: Permite que la página actualice esta tarjeta externamente.
-        """
         self.config = new_config.copy()
         
         if self.txt_cmd.text() != self.config.get("cmd", ""):
@@ -132,11 +129,28 @@ class MediaCard(QFrame):
         is_active = bool(self.config.get("active", 0))
         self._update_active_style(is_active)
 
+    # En media_card.py
+
     def _toggle_active(self):
+        # 1. Cambiar estado lógico
         curr = bool(self.config.get("active", 0))
-        self.config["active"] = 0 if curr else 1
-        self._update_active_style(not curr)
+        new_state = 0 if curr else 1
+        self.config["active"] = new_state
+        
+        # 2. Guardar en base de datos (silencioso)
         self.page.save_item(self.filename, self.ftype, self.config, silent=True)
+
+        # 3. LÓGICA NUEVA:
+        # Si la página tiene el método de chequeo, lo llamamos.
+        if hasattr(self.page, 'check_filter_refresh'):
+            # Verificamos si hay que refrescar la grilla completa (para ocultar esta carta)
+            self.page.check_filter_refresh()
+            
+            # Si NO se refrescó la grilla (porque estamos en "Todos"), actualizamos el estilo visual
+            self._update_active_style(bool(new_state))
+        else:
+            # Fallback por si no has actualizado OverlayPage
+            self._update_active_style(bool(new_state))
 
     def _delete_config(self):
         if ModalConfirm(self, "Eliminar", "¿Borrar configuración?").exec():
@@ -156,42 +170,19 @@ class MediaCard(QFrame):
             icon_preview.addPixmap(pix_black, QIcon.Mode.Active)
 
             # Estilo CSS del botón
-            self.btn_play.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {THEME_DARK['NeonGreen_Main']}; 
-                    color: {THEME_DARK['Black_N1']};
-                    font-weight: bold; border-radius: 8px; border: none;
-                    text-align: left; padding-left: 10px;
-                }}
-                QPushButton:hover {{ background-color: {THEME_DARK['NeonGreen_Light']}; }}
-            """)
+            self.btn_play.setStyleSheet(STYLES["btn_solid_primary"])
             
             # Restaurar opacidad de la tarjeta completa
             self.setStyleSheet(self.styleSheet().replace("QFrame { opacity: 0.6; }", ""))
 
         else:
-            pix_gray = get_colored_icon("play-circle.svg", THEME_DARK['Gray_N2']).pixmap(24, 24)
-            pix_white = get_colored_icon("play-circle.svg", THEME_DARK['White_N1']).pixmap(24, 24)
+            pix_gray = get_colored_icon("play-circle.svg", THEME_DARK['White_N1']).pixmap(24, 24)
             
             # Añadimos ambos estados al icono
             icon_preview.addPixmap(pix_gray, QIcon.Mode.Normal)
-            icon_preview.addPixmap(pix_white, QIcon.Mode.Active)   # Active suele activarse en Hover
-            icon_preview.addPixmap(pix_white, QIcon.Mode.Selected) # Por seguridad
 
             # Estilo CSS del botón
-            self.btn_play.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {THEME_DARK['Black_N1']}; 
-                    color: {THEME_DARK['Gray_N2']};
-                    font-weight: bold; border-radius: 8px; 
-                    border: 1px solid {THEME_DARK['Black_N3']};
-                    text-align: left; padding-left: 10px;
-                }}
-                QPushButton:hover {{ 
-                    border: 1px solid {THEME_DARK['Gray_N1']}; 
-                    color: {THEME_DARK['White_N1']}; 
-                }}
-            """)
+            self.btn_play.setStyleSheet(STYLES["btn_outlined"])
 
             # Aplicar opacidad a la tarjeta si no está activa
             if "opacity" not in self.styleSheet():

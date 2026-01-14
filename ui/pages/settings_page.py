@@ -73,17 +73,17 @@ class SettingsPage(QWidget):
         card_kick.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.flow_layout.addWidget(card_kick)
 
-        # 2. Tarjeta Sistema
-        card_sys = self._create_system_card()
-        card_sys.setMinimumWidth(300)
-        card_sys.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.flow_layout.addWidget(card_sys)
-
-        # 3. Tarjeta Spotify
+        # 2. Tarjeta Spotify
         card_spot = self._create_spotify_card()
         card_spot.setMinimumWidth(300)
         card_spot.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.flow_layout.addWidget(card_spot)
+
+        # 3. Tarjeta Sistema
+        card_sys = self._create_system_card()
+        card_sys.setMinimumWidth(300)
+        card_sys.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.flow_layout.addWidget(card_sys)
 
         # 4. Tarjeta Economía (Puntos) - Más ancha
         card_pts = self._create_points_card()
