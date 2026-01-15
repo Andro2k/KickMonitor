@@ -1,21 +1,23 @@
 # ui/pages/settings_page.py
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
-    QLineEdit, QScrollArea, QDialog, QFrame, QSpinBox, QFileDialog, QGridLayout,
-    QSizePolicy
+    QWidget, QVBoxLayout, QScrollArea, QFrame, 
+    QCheckBox, QDialog, QFileDialog
 )
-from PyQt6.QtGui import QDesktopServices
-from PyQt6.QtCore import Qt, pyqtSignal, QUrl
+from PyQt6.QtCore import Qt, pyqtSignal
 
-from ui.components.modals import ModalConfirm
+from ui.factories import (
+    create_header_page,
+    create_section_header,
+    create_setting_row,
+    create_styled_input,
+    create_styled_button,  
+    create_styled_combobox 
+)
 from ui.components.toast import ToastNotification
+from ui.components.modals import ModalConfirm
 from ui.dialogs.connection_modal import ConnectionModal
-from ui.factories import create_card_header, create_nav_btn, create_page_header
-from ui.utils import get_icon
-from ui.theme import LAYOUT, THEME_DARK, STYLES
 from backend.services.settings_service import SettingsService
-from ui.components.flow_layout import FlowLayout
 
 class SettingsPage(QWidget):
     user_changed = pyqtSignal()
@@ -24,280 +26,188 @@ class SettingsPage(QWidget):
         super().__init__(parent)
         self.service = SettingsService(db_handler)
         self.controller = controller
-        self.spotify = self.controller.spotify
+        self.db = db_handler 
         
         self.init_ui()
         self.load_data()
-        
-        self.spotify.status_msg.connect(self._update_spotify_status)
 
-    # ==========================================
-    # 1. SETUP UI (RESPONSIVE)
-    # ==========================================
     def init_ui(self):
-        # 1. SCROLL AREA EXTERNO
-        outer_layout = QVBoxLayout(self)
-        outer_layout.setContentsMargins(*LAYOUT["margins"])
-        
+        # --- Layout Principal ---
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+
+        # 1. HEADER (Usando Factory)
+        header = create_header_page(
+            "Preferencias", 
+            "Gestiona el comportamiento de la aplicación y tus integraciones."
+        )
+        main_layout.addWidget(header)
+
+        # --- Scroll Area ---
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setStyleSheet("background: transparent; border: none;")
+        scroll.setStyleSheet("background: transparent;")
+
+        self.content_widget = QWidget()
+        self.content_layout = QVBoxLayout(self.content_widget)
+        self.content_layout.setContentsMargins(40, 20, 40, 40)
+        self.content_layout.setSpacing(4)
+
+        # ==========================================
+        # SECCIÓN 1: APLICACIÓN
+        # ==========================================
+        self.content_layout.addWidget(create_section_header("Aplicación"))
+
+        # Auto-Connect
+        self.chk_auto = QCheckBox("Habilitar")
+        self.chk_auto.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.chk_auto.toggled.connect(lambda v: self.service.set_setting("auto_connect", "1" if v else "0"))
         
-        content = QWidget()
-        content.setStyleSheet("background: transparent;")
+        self.content_layout.addWidget(create_setting_row(
+            "Conexión Automática",
+            "Si se activa, el bot intentará conectarse al chat inmediatamente al abrir la aplicación.",
+            self.chk_auto
+        ))
+
+        # Formato Hora (Usando Factory)
+        self.combo_time = create_styled_combobox(
+            ["Sistema", "12-hour: 2:34 PM", "24-hour: 14:34"], 
+            width=200
+        )
         
-        # 2. FLOW LAYOUT
-        self.flow_layout = FlowLayout(content, margin=LAYOUT["margins"][0], spacing=LAYOUT["spacing"])
+        self.content_layout.addWidget(create_setting_row(
+            "Formato de Hora",
+            "Configura cómo se muestran las fechas y horas en los logs y el chat.",
+            self.combo_time
+        ))
 
-        # 3. CONSTRUCCIÓN
-        outer_layout.addWidget(self._create_header())
-        self._setup_cards()
+        # ==========================================
+        # SECCIÓN 2: INTEGRACIONES
+        # ==========================================
+        self.content_layout.addWidget(create_section_header("Integraciones"))
+
+        # Kick (Usando Factory)
+        btn_kick = create_styled_button(
+            "Conectar Kick", 
+            "btn_outlined", 
+            self._handle_kick_auth
+        )
         
-        scroll.setWidget(content)
-        outer_layout.addWidget(scroll)
+        self.content_layout.addWidget(create_setting_row(
+            "Cuenta de Kick",
+            "Vincula tu cuenta de streamer para leer el chat y gestionar eventos.",
+            btn_kick
+        ))
 
-    def _create_header(self):
-        h_frame = QFrame()
-        l = QVBoxLayout(h_frame)
-        l.addWidget(create_page_header("Ajustes del Sistema", "Gestiona conexiones, actualizaciones y economía del bot."))
-        return h_frame
+        # Spotify (Usando Factory)
+        btn_spot = create_styled_button(
+            "Conectar Spotify", 
+            "btn_outlined", 
+            self._handle_spotify_auth
+        )
 
-    def _setup_cards(self):
-        """Crea y añade las tarjetas al layout fluido."""
-        
-        # 1. Tarjeta API Kick
-        card_kick = self._create_kick_card()
-        card_kick.setMinimumWidth(300)
-        card_kick.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.flow_layout.addWidget(card_kick)
+        self.content_layout.addWidget(create_setting_row(
+            "Cuenta de Spotify",
+            "Permite mostrar la canción actual y aceptar pedidos (!sr) mediante Spotify.",
+            btn_spot
+        ))
 
-        # 2. Tarjeta Spotify
-        card_spot = self._create_spotify_card()
-        card_spot.setMinimumWidth(300)
-        card_spot.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.flow_layout.addWidget(card_spot)
+        # ==========================================
+        # SECCIÓN 3: ECONOMÍA
+        # ==========================================
+        self.content_layout.addWidget(create_section_header("Economía"))
 
-        # 3. Tarjeta Sistema
-        card_sys = self._create_system_card()
-        card_sys.setMinimumWidth(300)
-        card_sys.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.flow_layout.addWidget(card_sys)
-
-        # 4. Tarjeta Economía (Puntos) - Más ancha
-        card_pts = self._create_points_card()
-        card_pts.setMinimumWidth(450)
-        card_pts.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.flow_layout.addWidget(card_pts)
-
-        # 5. GESTIÓN DE DATOS (NUEVO)
-        card_data = self._create_data_card()
-        card_data.setMinimumWidth(400)
-        card_data.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self.flow_layout.addWidget(card_data)
-
-    # ==========================================
-    # 2. CREADORES DE TARJETAS
-    # ==========================================
-    def _create_kick_card(self):
-        card = QFrame()
-        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
-        l = QVBoxLayout(card)
-        l.setContentsMargins(*LAYOUT["margins"])
-        l.setSpacing(LAYOUT["spacing"])
-
-        l.addWidget(create_card_header("Credenciales Kick", "kick.svg"))
-        
-        l.addWidget(QLabel("Client ID / Secret para conectar.", styleSheet="color:#888; font-size:12px; border:none;"))
-        
-        l.addStretch()
-        
-        btn = QPushButton("Gestionar Keys")
-        btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setStyleSheet(STYLES["btn_outlined"])
-        btn.clicked.connect(self._handle_kick_auth)
-        l.addWidget(btn)
-        return card
-
-    def _create_system_card(self):
-        card = QFrame()
-        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
-        l = QVBoxLayout(card)
-        l.setContentsMargins(*LAYOUT["margins"])
-        l.setSpacing(LAYOUT["spacing"])
-
-        l.addWidget(create_card_header("Sistema", "settings.svg"))
-
-        ver = getattr(self.controller, "VERSION", "Dev")
-        l.addWidget(QLabel(f"Versión Actual: v{ver}", styleSheet="color:#888; font-size:12px; border:none;"))
-        
-        l.addStretch()
-
-        btn = QPushButton("Buscar Actualizaciones")
-        btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setStyleSheet(STYLES["btn_outlined"])
-        btn.clicked.connect(lambda: self.controller.check_updates(manual=True))
-        l.addWidget(btn)
-        return card
-
-    def _create_spotify_card(self):
-        card = QFrame()
-        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
-        l = QVBoxLayout(card)
-        l.setContentsMargins(*LAYOUT["margins"])
-        l.setSpacing(LAYOUT["spacing"])
-
-        l.addWidget(create_card_header("Spotify", "spotify.svg"))
-
-        self.lbl_spot_status = QLabel("Estado: Desconocido")
-        self.lbl_spot_status.setStyleSheet("color: #1DB954; font-weight: bold; font-size:12px; border:none;")
-        l.addWidget(self.lbl_spot_status)
-        
-        l.addStretch()
-        
-        btn = QPushButton("Configurar Acceso")
-        btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setStyleSheet(STYLES["btn_outlined"])
-        btn.clicked.connect(self._handle_spotify_auth)
-        l.addWidget(btn)
-        return card
-
-    def _create_points_card(self):
-        card = QFrame()
-        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
-        l = QVBoxLayout(card)
-        l.setContentsMargins(*LAYOUT["margins"])
-        l.setSpacing(15)
-        l.addWidget(create_card_header("Sistema de Puntos", "users.svg"))
-
-        grid = QGridLayout()
-        grid.setSpacing(LAYOUT["spacing"])
-
-        # Helpers interno
-        def add_field(row, col, label, widget):
-            lbl = QLabel(label)
-            lbl.setStyleSheet("color: #ccc; font-weight: bold; border: none; font-size:11px;")
-            grid.addWidget(lbl, row, col)
-            grid.addWidget(widget, row + 1, col)
-
-        # 1. Comando
-        self.inp_p_cmd = QLineEdit()
-        self.inp_p_cmd.setStyleSheet(STYLES["input_cmd"])
+        # Comando
+        self.inp_p_cmd = create_styled_input("!puntos", is_cmd=True)
+        self.inp_p_cmd.setFixedWidth(150)
         self.inp_p_cmd.editingFinished.connect(lambda: self.service.set_setting("points_command", self.inp_p_cmd.text()))
-        add_field(0, 0, "Nombre Comando:", self.inp_p_cmd)
-
-        # 2. Puntos por Mensaje
-        self.spin_p_msg = QSpinBox()
-        self.spin_p_msg.setRange(0, 1000)
-        self.spin_p_msg.setStyleSheet(STYLES["spinbox_modern"])
-        self.spin_p_msg.valueChanged.connect(lambda v: self.service.set_setting("points_per_msg", v))
-        add_field(0, 1, "Puntos/Mensaje:", self.spin_p_msg)
         
-        # 3. Puntos por Tiempo
-        self.spin_p_time = QSpinBox()
-        self.spin_p_time.setRange(0, 10000)
-        self.spin_p_time.setStyleSheet(STYLES["spinbox_modern"])
-        self.spin_p_time.valueChanged.connect(lambda v: self.service.set_setting("points_per_min", v))
-        add_field(0, 2, "Puntos/Minuto:", self.spin_p_time)
+        self.content_layout.addWidget(create_setting_row(
+            "Comando de Puntos",
+            "El comando que usarán los usuarios para ver su saldo.",
+            self.inp_p_cmd
+        ))
 
-        l.addLayout(grid)
-        l.addStretch()
-        return card
+        # Puntos
+        self.inp_p_msg = create_styled_input("10", is_cmd=False)
+        self.inp_p_msg.setFixedWidth(100)
+        self.inp_p_msg.textChanged.connect(lambda v: self.service.set_setting("points_per_msg", v))
 
-    def _create_data_card(self):
-        card = QFrame()
-        card.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 16px;")
-        l = QVBoxLayout(card)
-        l.setContentsMargins(*LAYOUT["margins"])
-        l.setSpacing(LAYOUT["spacing"])
+        self.content_layout.addWidget(create_setting_row(
+            "Recompensa por Chat",
+            "Cantidad de puntos otorgados por cada mensaje enviado.",
+            self.inp_p_msg
+        ))
 
-        l.addWidget(create_card_header("Gestión de Datos", "database.svg"))
-
-        # A. INFORMACIÓN DE RUTA
-        db_info = self.service.get_database_info()
+        # ==========================================
+        # SECCIÓN 4: ZONA DE PELIGRO
+        # ==========================================
+        self.content_layout.addWidget(create_section_header("Gestión de Datos"))
         
-        lbl_path_title = QLabel("Ubicación de la Base de Datos:")
-        lbl_path_title.setStyleSheet("color: #888; font-size: 11px; font-weight: bold;")
-        l.addWidget(lbl_path_title)
-
-        row_path = QHBoxLayout()
-        self.txt_path = QLineEdit(db_info["path"])
-        self.txt_path.setReadOnly(True)
-        self.txt_path.setStyleSheet(STYLES["input_cmd"] + "color: #AAA;")
+        # Backup (Usando Factory)
+        btn_backup = create_styled_button(
+            "Crear Backup", 
+            "btn_outlined", 
+            self._handle_backup
+        )
         
-        btn_open = QPushButton()
-        btn_open.setIcon(get_icon("folder.svg"))
-        btn_open.setToolTip("Abrir carpeta")
-        btn_open.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_open.setFixedSize(32, 32)
-        btn_open.setStyleSheet(STYLES["btn_nav"])
-        btn_open.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(db_info["folder"])))
+        self.content_layout.addWidget(create_setting_row(
+            "Copia de Seguridad",
+            "Exporta toda la base de datos a un archivo local.",
+            btn_backup
+        ))
 
-        row_path.addWidget(self.txt_path)
-        row_path.addWidget(btn_open)
-        l.addLayout(row_path)
-
-        l.addSpacing(10)
+        # Reset Economía (Usando Factory - Estilo Danger)
+        btn_reset = create_styled_button(
+            "Reiniciar Puntos", 
+            "btn_danger_outlined", 
+            self._handle_reset_economy
+        )
         
-        # B. ACCIONES PELIGROSAS (GRID)
-        grid = QGridLayout()
-        grid.setSpacing(LAYOUT["spacing"])
+        self.content_layout.addWidget(create_setting_row(
+            "Reiniciar Economía",
+            "Establece los puntos de TODOS los usuarios a 0. Irreversible.",
+            btn_reset
+        ))
 
-        # Botón 1: Backup
-        btn_backup = create_nav_btn("Crear Backup", "save.svg", self._handle_backup)
-        grid.addWidget(btn_backup, 0, 0)
+        # Desvincular (Usando Factory - Estilo Danger)
+        btn_unlink = create_styled_button(
+            "Desvincular Cuenta", 
+            "btn_danger_outlined", 
+            self._handle_unlink_account
+        )
+        
+        self.content_layout.addWidget(create_setting_row(
+            "Cerrar Sesión",
+            "Elimina las credenciales de Kick/Spotify y desconecta el bot.",
+            btn_unlink
+        ))
+        
+        self.content_layout.addStretch()
+        
+        scroll.setWidget(self.content_widget)
+        main_layout.addWidget(scroll)
 
-        # Botón 2: Reiniciar Economía
-        btn_reset_eco = create_nav_btn("Reiniciar Economía", "refresh-cw.svg", self._handle_reset_economy)
-        grid.addWidget(btn_reset_eco, 0, 1)
-
-        # Botón 3: Desvincular Cuenta (ROJO)
-        btn_unlink = self._create_action_btn("Desvincular Cuenta", "log-out.svg", is_danger=True)
-        btn_unlink.clicked.connect(self._handle_unlink_account)
-        grid.addWidget(btn_unlink, 1, 0, 1, 2)
-
-        l.addLayout(grid)
-        l.addStretch()
-        return card
-    
-    def _create_action_btn(self, text, icon, is_danger=False):
-        btn = QPushButton(text)
-        btn.setIcon(get_icon(icon))
-        btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        if is_danger:
-             base_style = (STYLES["btn_danger_outlined"])
-            
-        btn.setStyleSheet(base_style)
-        return btn
-    
-    # ==========================================
-    # 3. CARGA DE DATOS
-    # ==========================================
     def load_data(self):
+        self.chk_auto.setChecked(self.db.get_bool("auto_connect"))
         pts = self.service.get_points_config()
         self.inp_p_cmd.setText(pts["command"])
-        self.spin_p_msg.setValue(pts["per_msg"])
-        self.spin_p_time.setValue(pts["per_min"])
+        self.inp_p_msg.setText(str(pts["per_msg"]))
 
-    # ==========================================
-    # 4. HANDLERS
-    # ==========================================
     def _handle_kick_auth(self):
-        modal = ConnectionModal(self.service.db, service_type="kick", parent=self)
+        modal = ConnectionModal(self.db, service_type="kick", parent=self)
         if modal.exec() == QDialog.DialogCode.Accepted:
             ToastNotification(self, "Sistema", "Credenciales guardadas", "Status_Green").show_toast()
 
     def _handle_spotify_auth(self):
-        modal = ConnectionModal(self.service.db, service_type="spotify", worker=self.spotify, parent=self)
+        modal = ConnectionModal(self.db, service_type="spotify", worker=self.controller.spotify, parent=self)
         if modal.exec() == QDialog.DialogCode.Accepted:
              ToastNotification(self, "Spotify", "Configuración guardada", "Status_Green").show_toast()
 
-    def _update_spotify_status(self, msg):
-        self.lbl_spot_status.setText(f"Estado: {msg}")
-
     def _handle_backup(self):
-        folder = QFileDialog.getExistingDirectory(self, "Seleccionar carpeta para Backup")
+        folder = QFileDialog.getExistingDirectory(self, "Seleccionar carpeta")
         if folder:
             try:
                 path = self.service.create_backup(folder)
@@ -306,32 +216,12 @@ class SettingsPage(QWidget):
                 ToastNotification(self, "Error", str(e), "Status_Red").show_toast()
 
     def _handle_reset_economy(self):
-        dlg = ModalConfirm(
-            self, 
-            "¿Reiniciar Economía?", 
-            "Esto pondrá a 0 los puntos de TODOS los usuarios y borrará el historial del casino.\n\n¿Estás seguro?"
-        )
-        if dlg.exec():
+        if ModalConfirm(self, "¿Reiniciar Economía?", "¿Seguro? Puntos a 0.").exec():
             self.service.reset_economy()
-            ToastNotification(self, "Economía", "Puntos reiniciados correctamente", "Status_Green").show_toast()
+            ToastNotification(self, "Economía", "Reiniciada", "Status_Green").show_toast()
 
     def _handle_unlink_account(self):
-        dlg = ModalConfirm(
-            self, 
-            "¿Desvincular Cuenta?", 
-            "Se borrarán tus credenciales de Kick y Spotify.\nEl bot se desconectará.\n\nEsta acción no se puede deshacer.",
-        )
-        # Hack visual para que el modal parezca peligroso (opcional)
-        dlg.setStyleSheet(dlg.styleSheet() + "QLabel { color: #ef5350; }") 
-        
-        if dlg.exec():
-            # 1. Detener bot si está corriendo
-            if self.controller.worker:
-                self.controller.stop_bot()
-            
-            # 2. Borrar datos
+        if ModalConfirm(self, "¿Desvincular?", "Se borrarán credenciales y cerrará el bot.").exec():
             self.service.reset_user_data()
-            
-            # 3. Notificar y emitir señal para que la UI principal se actualice (ej: Dashboard)
-            ToastNotification(self, "Sistema", "Cuenta desvinculada. Reinicia para aplicar cambios completos.", "Status_Yellow").show_toast()
-            self.user_changed.emit() # Puedes conectar esto en MainWindow para ir a la Home o mostrar el Login
+            self.user_changed.emit()
+            ToastNotification(self, "Cuenta", "Desvinculada correctamente", "Status_Green").show_toast()

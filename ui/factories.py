@@ -1,5 +1,5 @@
 # ui/factories.py
-from PyQt6.QtWidgets import QPushButton, QWidget, QHBoxLayout, QCheckBox, QSizePolicy, QVBoxLayout, QLabel, QLineEdit
+from PyQt6.QtWidgets import QComboBox, QFrame, QPushButton, QWidget, QHBoxLayout, QCheckBox, QSizePolicy, QVBoxLayout, QLabel, QLineEdit, QGridLayout
 from PyQt6.QtCore import Qt
 from ui.theme import STYLES, THEME_DARK, get_switch_style
 from ui.utils import get_icon
@@ -74,7 +74,6 @@ def create_switch_widget(checked: bool, func, tooltip: str = "") -> QWidget:
 def create_page_header(title: str, subtitle: str) -> QWidget:
     """
     Crea el bloque de título estándar para el inicio de cada página.
-    Ej: "Monitor de Chat" (H2) + "Estado del servicio." (Subtitle)
     """
     container = QWidget()
     l = QVBoxLayout(container)
@@ -197,3 +196,88 @@ def create_shortcut_btn(text: str, icon_name: str, func=None) -> QPushButton:
         btn.clicked.connect(func)
         
     return btn
+
+# -- Seccion Settings --
+def create_header_page(title: str, description: str) -> QFrame:
+    """
+    Crea el encabezado estilo GitLab con fondo oscuro y borde inferior.
+    """
+    frame = QFrame()
+    frame.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']};")
+    
+    layout = QVBoxLayout(frame)
+    layout.setContentsMargins(20, 20, 20, 20)
+    
+    lbl_head = QLabel(title)
+    lbl_head.setObjectName("h1")
+    
+    lbl_desc = QLabel(description)
+    lbl_desc.setObjectName("subtitle")
+    
+    layout.addWidget(lbl_head)
+    layout.addWidget(lbl_desc)
+    
+    return frame
+
+def create_section_header(text: str) -> QLabel:
+    """Crea el encabezado de sección con línea divisoria visual implícita"""
+    lbl = QLabel(text)
+    # Borde inferior sutil para separar secciones
+    lbl.setStyleSheet("""
+        font-size: 18px; 
+        font-weight: bold; 
+        color: white; 
+        padding-bottom: 8px; 
+        border-bottom: 1px solid #333;
+        margin-top: 20px;
+        margin-bottom: 10px;
+    """)
+    return lbl
+
+def create_setting_row(title: str, description: str, widget: QWidget) -> QWidget:
+    container = QWidget()
+    layout = QGridLayout(container)
+    layout.setContentsMargins(0, 10, 0, 10) # Espaciado vertical entre opciones
+    layout.setColumnStretch(0, 1) # La columna de texto se expande
+    
+    # 1. Título
+    lbl_title = QLabel(title)
+    lbl_title.setObjectName("h3")
+    
+    # 2. Descripción (Texto gris estilo GitLab)
+    lbl_desc = QLabel(description)
+    lbl_desc.setWordWrap(True)
+    lbl_desc.setObjectName("subtitle")
+    
+    # 3. Widget (Alineado a la derecha)
+    layout.addWidget(lbl_title, 0, 0)
+    layout.addWidget(lbl_desc, 1, 0)
+    layout.addWidget(widget, 0, 1, 2, 1, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
+    
+    return container
+
+def create_styled_button(text: str, style_key: str, func=None) -> QPushButton:
+    """
+    Crea un botón genérico aplicando una clave del diccionario STYLES.
+    """
+    btn = QPushButton(text)
+    btn.setCursor(Qt.CursorShape.PointingHandCursor)
+    btn.setStyleSheet(STYLES.get(style_key, ""))
+    
+    if func:
+        btn.clicked.connect(func)
+        
+    return btn
+
+def create_styled_combobox(items: list[str], width: int = 0) -> QComboBox:
+    """
+    Crea un ComboBox pre-estilizado.
+    """
+    combo = QComboBox()
+    combo.addItems(items)
+    combo.setStyleSheet(STYLES.get("combobox", ""))
+    
+    if width > 0:
+        combo.setFixedWidth(width)
+        
+    return combo

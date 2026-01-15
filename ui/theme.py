@@ -77,7 +77,6 @@ class Fonts:
     h2 = "14pt"    # ~20px
     h3 = "12pt"    # ~16px
     body = "10pt"  # ~14px
-    small = "9pt"  # ~12px
 
 # ==========================================
 # 3. HOJA DE ESTILOS GLOBAL (QSS MAESTRO)
@@ -100,7 +99,7 @@ def get_sheet(is_dark: bool = True) -> str:
     QLabel#h2 {{ font-size: {f.h2}; font-weight: bold; margin-bottom: 2px; }}
     QLabel#h3 {{ font-size: {f.h3}; font-weight: 600; color: {c.White_N1}; }}
     QLabel#normal {{ font-size: {f.body}; font-weight: 500; color: {c.White_N1}; }}
-    QLabel#subtitle {{ font-size: {f.small}; color: {c.Gray_N1}; }}
+    QLabel#subtitle {{ font-size: {f.body}; color: {c.Gray_N2}; }}
     
     /* --- CONTENEDORES --- */
     QFrame {{ border: none; }}
