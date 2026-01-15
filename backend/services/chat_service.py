@@ -8,7 +8,6 @@ from backend.utils.logger import Log
 class ChatService:
     """
     Servicio de Configuración del Chat y TTS (Text-to-Speech).
-    Actúa como intermediario entre la UI y el motor de voz/base de datos.
     """
     
     def __init__(self, db_handler, tts_worker):
@@ -21,7 +20,6 @@ class ChatService:
     def get_available_voices(self) -> List[Dict[str, str]]:
         """
         Escanea las voces instaladas en el sistema operativo.
-        Crea una instancia efímera de pyttsx3 para no bloquear el hilo principal.
         """
         voices_list = []
         try:
@@ -32,9 +30,9 @@ class ChatService:
                     "id": str(v.id), 
                     "name": str(v.name)
                 })
-            del engine # Importante: liberar el recurso COM
+            del engine
         except Exception as e:
-            self.log_received.emit(Log.error(f"[TTS Error] Al cargar voces: {e}"))
+            print(f"[DEBUG_TTS] Error al cargar voces: {e}")
         return voices_list
 
     # =========================================================================
@@ -62,7 +60,6 @@ class ChatService:
         self.db.set("voice_vol", volume)
         
         # Actualizar el hilo de voz sin reiniciar la app
-        # Nota: pyttsx3 usa volumen 0.0 a 1.0, normalizamos aquí.
         self.tts.update_config(voice_id, rate, volume / 100.0)
 
     def save_tts_command(self, command: str):
@@ -73,8 +70,4 @@ class ChatService:
         self.db.set("tts_command", clean_cmd)
 
     def set_filter_enabled(self, enabled: bool):
-        """
-        True: Solo lee mensajes que empiecen con el comando (!voz).
-        False: Lee todos los mensajes del chat.
-        """
         self.db.set('filter_enabled', enabled)

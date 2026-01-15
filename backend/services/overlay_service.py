@@ -3,14 +3,11 @@
 import os
 from urllib.parse import quote
 from typing import List, Dict, Any, Tuple
-
 from backend.utils.data_manager import DataManager
-from backend.utils.logger import Log
 
 class OverlayService:
     """
     Servicio de Lógica para el Overlay Multimedia.
-    Gestiona archivos locales, triggers en DB, importación CSV y comunicación con el servidor.
     """
     def __init__(self, db_handler, server_worker):
         self.db = db_handler
@@ -24,10 +21,6 @@ class OverlayService:
     # REGIÓN 1: CONFIGURACIÓN GENERAL Y ESTADO
     # =========================================================================
     def get_local_ip_url(self) -> str:
-        """
-        Retorna la URL local (localhost) para el Overlay.
-        """
-        # Forzamos siempre el uso de la IP local de loopback
         local_ip = "127.0.0.1"
         return f"http://{local_ip}:8081"
 
@@ -54,7 +47,6 @@ class OverlayService:
     def get_media_files_with_config(self) -> List[Dict[str, Any]]:
         """
         Escanea la carpeta de medios y fusiona los archivos encontrados con la DB.
-        Los archivos nuevos aparecen desactivados por defecto.
         """
         folder = self.get_media_folder()
         if not folder or not os.path.exists(folder):
@@ -91,7 +83,7 @@ class OverlayService:
                         "config": config 
                     })
         except Exception as e:
-            self.log_received.emit(Log.error(f"[OverlayService] Error escaneando carpeta: {e}"))
+            print(f"[DEBUG_OVERLAY] Error escaneando carpeta: {e}")
             return []
             
         return results
@@ -101,16 +93,14 @@ class OverlayService:
         Guarda o actualiza la configuración de una alerta específica.
         """
         # 1. Limpieza previa para evitar duplicados
-        self.db.delete_triggers_by_filename(filename)
-        
+        self.db.delete_triggers_by_filename(filename)        
         # 2. Validación de comando
         cmd = data.get("cmd", "").strip()
         if not cmd:
             return False, "El comando es obligatorio"
             
         if not cmd.startswith("!"): 
-            cmd = "!" + cmd
-        
+            cmd = "!" + cmd       
         # 3. Guardado en DB (Usando kwargs correctos para el Facade)
         result = self.db.set_trigger(
             cmd=cmd,
@@ -122,8 +112,7 @@ class OverlayService:
             cost=data.get("cost", 0),
             vol=data.get("volume", 100)
         )
-        
-        # Manejo robusto de respuesta (puede ser bool o tupla)
+
         if isinstance(result, tuple):
             return result
         return result, "Guardado correctamente" if result else "Error al guardar en DB"
@@ -144,7 +133,6 @@ class OverlayService:
         
         triggers = self.db.get_all_triggers()
         for filename, cfg in triggers.items():
-            # Lógica para determinar tipo (igual que tenías)
             ext = os.path.splitext(filename)[1].lower()
             if ext in self.VIDEO_EXTS: ftype = "video"
             elif ext in self.AUDIO_EXTS: ftype = "audio"
@@ -162,15 +150,11 @@ class OverlayService:
     # --- NUEVA LÓGICA DE IMPORTAR ---
     def import_csv(self, path: str) -> Tuple[int, int, List[str]]:
         # 1. Definimos qué columnas SON OBLIGATORIAS para considerar este CSV válido
-        required = ["comando", "archivo"] 
-        
+        required = ["comando", "archivo"]       
         # 2. Usamos el DataManager
-        rows, error_msg = DataManager.import_csv(path, required)
-        
+        rows, error_msg = DataManager.import_csv(path, required)       
         if rows is None:
-            # Si hay error (ej: cabeceras mal), retornamos 0 importados y el mensaje como error en la lista
             return 0, 0, [error_msg]
-
         # 3. Procesamos los datos ya validados
         count_ok = 0
         count_fail = 0
@@ -179,14 +163,12 @@ class OverlayService:
 
         for row in rows:
             try:
-                # Nota: DataManager devuelve claves en minúscula
                 cmd = row.get("comando") or row.get("command")
                 filename = row.get("archivo") or row.get("file")
                 
                 if not cmd or not filename:
                     count_fail += 1; continue
 
-                # Parseo seguro con defaults
                 try:
                     dur = int(float(row.get("duracion", 0)))
                     scale = float(row.get("escala", 1.0))
@@ -196,14 +178,11 @@ class OverlayService:
                 except ValueError:
                     dur, scale, active, cost, vol = 0, 1.0, 1, 0, 100
 
-                # Determinar tipo real por extensión
                 ext = os.path.splitext(filename)[1].lower()
                 real_type = "video" if ext in self.VIDEO_EXTS else "audio"
 
-                # Guardar en DB
                 self.db.set_trigger(cmd, filename, real_type, dur, scale, active, cost, vol)
 
-                # Check existencia física
                 if media_folder:
                     if not os.path.exists(os.path.join(media_folder, filename)):
                         missing_files.append(filename)

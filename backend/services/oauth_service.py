@@ -4,12 +4,9 @@ import asyncio
 from typing import Optional
 from aiohttp import web
 
-from backend.utils.logger import Log
-
 class OAuthService:
     """
     Servicio de autenticación OAuth2 local (usando aiohttp).
-    Levanta un servidor temporal para capturar el 'code' de redirección.
     """
     
     def __init__(self, port: int = 8080):
@@ -24,21 +21,17 @@ class OAuthService:
     async def wait_for_code(self, timeout: int = 60) -> Optional[str]:
         """
         Ciclo completo: Inicia servidor -> Espera código -> Apaga servidor.
-        Retorna el 'code' o None si expira el tiempo.
         """
         self.auth_future = asyncio.Future()
-        
-        # 1. Iniciar Servidor
-        await self._start_server()
-        
+
+        await self._start_server() 
         try:
-            # 2. Esperar código (bloqueante hasta timeout)
             code = await asyncio.wait_for(self.auth_future, timeout=timeout)
             return code
         except asyncio.TimeoutError:
             return None
         except Exception as e:
-            self.log_received.emit(Log.error(f"[OAuth] Error esperando código: {e}"))
+            print(f"[DEBUG_OAUTH] Error esperando código: {e}")
             return None
         finally:
             # 3. Limpieza garantizada
@@ -53,8 +46,7 @@ class OAuthService:
         
         self.runner = web.AppRunner(app)
         await self.runner.setup()
-        
-        # reuse_address=True permite reiniciar el proceso rápidamente sin error de puerto ocupado
+
         self.server = web.TCPSite(self.runner, '127.0.0.1', self.port, reuse_address=True)
         await self.server.start()
 
@@ -67,8 +59,7 @@ class OAuthService:
     async def _oauth_callback(self, request):
         """Manejador de la ruta /callback."""
         code = request.query.get('code')
-        
-        # Si aún estamos esperando una respuesta...
+
         if self.auth_future and not self.auth_future.done():
             if code:
                 self.auth_future.set_result(code)

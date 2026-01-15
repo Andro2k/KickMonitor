@@ -8,7 +8,6 @@ from typing import Dict, Any
 class SettingsService:
     """
     Servicio para la Página de Ajustes Generales.
-    Centraliza la configuración global y del sistema de economía (puntos).
     """
     
     def __init__(self, db_handler):

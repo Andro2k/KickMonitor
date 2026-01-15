@@ -5,13 +5,10 @@ from typing import Tuple
 class AlertsService:
     """
     Servicio de Automatización de Mensajes.
-    Gestiona las Alertas de Chat (Follow, Sub, Host) y los Timers recurrentes.
     """
     
     def __init__(self, db_handler):
         self.db = db_handler
-        
-        # Textos por defecto para inicializar la base de datos si está vacía
         self.DEFAULTS_ALERTS = {
             "follow": "¡Gracias {user} por seguir el canal! Bienvenid@ 😎",
             "subscription": "¡Wow! Gracias {user} por esa suscripción 👑",
@@ -33,7 +30,6 @@ class AlertsService:
         
         if not msg and event_type in self.DEFAULTS_ALERTS:
             msg = self.DEFAULTS_ALERTS[event_type]
-            # Guardamos el default desactivado para que el usuario decida cuándo usarlo
             self.db.set_text_alert(event_type, msg, False) 
             active = False
             

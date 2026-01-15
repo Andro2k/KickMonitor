@@ -5,7 +5,6 @@ from typing import List, Any
 class GamblingService:
     """
     Servicio de Lógica para el Casino.
-    Maneja el historial, los límites de apuestas y los multiplicadores de los juegos.
     """
     
     def __init__(self, db_handler):
@@ -40,7 +39,6 @@ class GamblingService:
         return self.db.get_int("gamble_min", 10)
 
     def set_min_bet(self, value: int):
-        # Aseguramos que el mínimo sea al menos 1
         self.db.set("gamble_min", max(1, value))
 
     def get_max_bet(self) -> int:

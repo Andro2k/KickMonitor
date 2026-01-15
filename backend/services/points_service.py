@@ -1,13 +1,12 @@
 # backend/services/points_service.py
 
 from typing import List, Any, Tuple
-from backend.utils.data_manager import DataManager # <--- Usamos tu nuevo gestor
+from backend.utils.data_manager import DataManager 
 
 class PointsService:
     def __init__(self, db_handler):
         self.db = db_handler
 
-    # ... (Tus métodos de lectura y toggle siguen igual) ...
     def get_users_data(self) -> List[Any]:
         return self.db.get_all_points()
 
@@ -31,8 +30,7 @@ class PointsService:
         """Prepara los datos de la DB y los guarda usando DataManager."""
         headers = ["Username", "Points", "Last_Seen", "Is_Paused", "Is_Muted", "Role"]
         users = self.db.get_all_points()
-        
-        # Formateamos los datos crudos para que se vean bien en el CSV
+
         formatted_rows = []
         for u in users:
             # u = (user, pts, last_seen, paused, muted, role)
@@ -51,7 +49,6 @@ class PointsService:
     def import_points_csv(self, path: str) -> Tuple[bool, str, str]:
         """
         Importa puntos calculando la diferencia para ajustar el total.
-        Retorna: (Exito: bool, Título: str, Mensaje: str)
         """
         # 1. Definimos columnas OBLIGATORIAS
         required = ["username", "points"]
@@ -71,7 +68,6 @@ class PointsService:
                 user = row.get("username")
                 if not user: continue
 
-                # Calculamos diferencia para llegar al valor exacto del CSV
                 target_points = int(row.get("points", 0))
                 current_points = self.db.get_points(user)
                 diff = target_points - current_points
@@ -79,7 +75,6 @@ class PointsService:
                 if diff != 0:
                     self.db.add_points(user, diff)
 
-                # Actualizamos estados opcionales si vienen en el CSV
                 if "is_paused" in row:
                     self.toggle_pause(user, int(row["is_paused"]) == 1)
                 

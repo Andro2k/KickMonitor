@@ -1,20 +1,15 @@
 # services/commands_service.py
 
 import time
-import csv
 from typing import List, Tuple, Dict, Optional
-
 from backend.utils.data_manager import DataManager
-from backend.utils.logger import Log
 
 class CommandsService:
     """
     Servicio de gestión de Comandos Personalizados.
-    Maneja el CRUD, persistencia (CSV) y la lógica de enfriamiento (Cooldowns).
     """   
     def __init__(self, db_handler):
         self.db = db_handler
-        # Tracker volátil en memoria: {"!comando": timestamp_ultimo_uso}
         self._cooldown_tracker: Dict[str, float] = {}
 
     # =========================================================================
@@ -48,13 +43,12 @@ class CommandsService:
         return DataManager.export_csv(path, headers, data_rows)
 
     def import_csv(self, path: str) -> Tuple[int, int]:
-        # Validamos que sea un CSV de comandos
         required = ["trigger", "response"]
         rows, error = DataManager.import_csv(path, required)
         
         if rows is None:
-            self.log_received.emit(Log.error(f"[Import Error] {error}"))
-            return 0, 0 # O podrías lanzar excepción para avisar a la UI
+            print(f"[DEBUG_COMMANDS] Error en Import: {error}")
+            return 0, 0
 
         count_ok = 0
         count_fail = 0
@@ -81,30 +75,24 @@ class CommandsService:
     # =========================================================================
     def can_execute(self, trigger: str) -> Tuple[bool, Optional[str]]:
         """
-        Verifica reglas de negocio para ejecutar un comando:
-        1. Existencia en DB
-        2. Estado Activo
-        3. Tiempo de Cooldown
-        Retorna: (PuedeEjecutar, MensajeDeRespuesta/Error)
+        Verifica reglas de negocio para ejecutar un comando
         """
         now = time.time()
         
         # 1. Obtener configuración
         data = self.db.get_command_details(trigger)
         if not data: 
-            return False, None # No existe           
+            return False, None      
         response_text, is_active, cooldown_secs = data       
         if not is_active:
-            return False, None # Desactivado manualmente
+            return False, None
 
         # 2. Verificar Cooldown
         last_used = self._cooldown_tracker.get(trigger, 0.0)
         time_passed = now - last_used
         if time_passed >= cooldown_secs:
-            # ✅ OK: Actualizar timestamp y permitir ejecución
             self._cooldown_tracker[trigger] = now
             return True, response_text
         else:
-            # ⛔ BLOQUEADO: Retornar mensaje de espera
             remaining = int(cooldown_secs - time_passed) + 1
             return False, f"⏳ El comando {trigger} estará listo en {remaining}s."
