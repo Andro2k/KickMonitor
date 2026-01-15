@@ -1,47 +1,35 @@
 # ui/dialogs/edit_media_modal.py
 
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-    QLineEdit, QPushButton, QFrame, QSpinBox, QSlider
+    QVBoxLayout, QHBoxLayout, QLabel, 
+    QLineEdit, QPushButton, QSpinBox, QSlider
 )
 from PyQt6.QtCore import Qt
-from ui.theme import LAYOUT, STYLES, THEME_DARK
+from ui.theme import STYLES
+from ui.components.base_modal import BaseModal
 
-class ModalEditMedia(QDialog):
+class ModalEditMedia(BaseModal):
     def __init__(self, parent, filename, ftype, data):
-        super().__init__(parent)
+        # 1. Configurar BaseModal (Tamaño 400x480)
+        super().__init__(parent, width=400, height=480)
+        
         self.filename = filename
         self.ftype = ftype
         
-        # Cargar valores iniciales
+        # Cargar valores iniciales desde el diccionario de configuración
         self.cmd = data.get("cmd", "")
         self.cost = int(data.get("cost", 0))
         self.dur = int(data.get("dur", 0))
         self.vol = int(data.get("volume", 100))
         self.scale = float(data.get("scale", 1.0))
-
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setFixedSize(400, 480) 
         
         self._setup_ui()
 
     def _setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        
-        body = QFrame()
-        body.setStyleSheet(f"""
-            QFrame {{
-                background-color: {THEME_DARK['Black_N2']};
-                border: 1px solid {THEME_DARK['Black_N4']}; 
-                border-radius: 16px;
-            }}
-        """)
-        l = QVBoxLayout(body)
-        l.setContentsMargins(*LAYOUT["margins"])
-        l.setSpacing(LAYOUT["spacing"])
+        # 2. Usar el layout del cuerpo provisto por BaseModal
+        l = self.body_layout
 
+        # Título
         l.addWidget(QLabel(f"Editar: {self.filename}", styleSheet="border:none;", objectName="h3"))
 
         # 1. Comando
@@ -51,8 +39,10 @@ class ModalEditMedia(QDialog):
         self.txt_cmd.setStyleSheet(STYLES["input"])
         l.addWidget(self.txt_cmd)
 
-        # 2. Costo y Cooldown
+        # 2. Costo y Cooldown (En fila)
         h_nums = QHBoxLayout()
+        
+        # Costo
         v_cost = QVBoxLayout()
         v_cost.addWidget(QLabel("Costo ($):", styleSheet="border:none;", objectName="subtitle"))
         self.spin_cost = QSpinBox()
@@ -61,6 +51,7 @@ class ModalEditMedia(QDialog):
         self.spin_cost.setStyleSheet(STYLES["spinbox_modern"] + "color: #FFD700;")
         v_cost.addWidget(self.spin_cost)
         
+        # Duración
         v_dur = QVBoxLayout()
         v_dur.addWidget(QLabel("Cooldown (s):", styleSheet="border:none;", objectName="subtitle"))
         self.spin_dur = QSpinBox()
@@ -74,11 +65,11 @@ class ModalEditMedia(QDialog):
         h_nums.addLayout(v_dur)
         l.addLayout(h_nums)
 
-        # 3. Volumen (Agregado btn default 75)
+        # 3. Volumen
         h_lbl_vol = QHBoxLayout()
         h_lbl_vol.addWidget(QLabel("Volumen:", styleSheet="border:none;", objectName="subtitle"))
         h_lbl_vol.addStretch()
-        
+        # Botón rápido para 75%
         btn_def_vol = self._create_mini_btn("75%", lambda: self.slider_vol.setValue(75))
         h_lbl_vol.addWidget(btn_def_vol)
         l.addLayout(h_lbl_vol)
@@ -94,13 +85,13 @@ class ModalEditMedia(QDialog):
         h_vol.addWidget(self.lbl_vol)
         l.addLayout(h_vol)
 
-        # 4. Zoom (Agregado btn default 0.4 y limite 1.5x)
+        # 4. Zoom / Escala (Solo si es video)
         if self.ftype == "video":
             h_lbl_zoom = QHBoxLayout()
             h_lbl_zoom.addWidget(QLabel("Zoom / Escala:", styleSheet="border:none;", objectName="subtitle"))
             h_lbl_zoom.addStretch()
             
-            # Botón para ponerlo en 0.4x (40)
+            # Botón rápido para 0.4x
             btn_def_zoom = self._create_mini_btn("0.4x", lambda: self.slider_zoom.setValue(40))
             h_lbl_zoom.addWidget(btn_def_zoom)
             l.addLayout(h_lbl_zoom)
@@ -110,7 +101,7 @@ class ModalEditMedia(QDialog):
             
             self.slider_zoom = QSlider(Qt.Orientation.Horizontal)
             self.slider_zoom.setStyleSheet("background-color: transparent;")
-            self.slider_zoom.setRange(10, 150) 
+            self.slider_zoom.setRange(10, 150)
             self.slider_zoom.setValue(int(self.scale * 100))
             self.slider_zoom.valueChanged.connect(lambda v: self.lbl_zoom.setText(f"{v/100:.1f}x"))
             
@@ -135,10 +126,9 @@ class ModalEditMedia(QDialog):
         h_btns.addWidget(btn_cancel)
         h_btns.addWidget(btn_save)
         l.addLayout(h_btns)
-        
-        layout.addWidget(body)
 
     def _create_mini_btn(self, text, func):
+        """Helper para botones pequeños de presets"""
         btn = QPushButton(text)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setFixedSize(50, 30)
@@ -147,9 +137,11 @@ class ModalEditMedia(QDialog):
         return btn
 
     def _save_data(self):
+        # Guardamos los datos en las variables de instancia
         self.cmd = self.txt_cmd.text().strip()
         self.cost = self.spin_cost.value()
         self.dur = self.spin_dur.value()
         self.vol = self.slider_vol.value()
         self.scale = self.slider_zoom.value() / 100.0 if self.ftype == "video" else 1.0
+        
         self.accept()

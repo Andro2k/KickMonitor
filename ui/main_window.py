@@ -1,11 +1,13 @@
 # ui/main_window.py
+
 import ctypes
+from datetime import datetime
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QHBoxLayout, 
+    QApplication, QMainWindow, QMenu, QSystemTrayIcon, QWidget, QHBoxLayout, 
     QStackedWidget, QDialog
 )
 from PyQt6.QtCore import QTimer
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QAction, QIcon
 # Backend
 from backend.core.controller import MainController
 
@@ -40,7 +42,8 @@ class MainWindow(QMainWindow):
         self._init_pages()
         self.setup_ui()
         self._connect_signals()
-        
+        self._setup_tray_icon()
+
         # Estado Inicial
         self.controller.force_user_refresh()
         self.ui_home.refresh_data()
@@ -159,7 +162,18 @@ class MainWindow(QMainWindow):
         elif "❌" in text: 
             self.ui_chat.lbl_status.setText("Error")
 
-    def append_chat_message(self, timestamp, real_user, display_content):
+    def append_chat_message(self, timestamp, real_user, display_content):       
+        fmt_pref = self.controller.db.get("time_fmt", "Sistema")
+        now = datetime.now()
+        
+        if "12-hour" in fmt_pref:
+            final_time = now.strftime("%I:%M %p") # 02:30 PM
+        elif "24-hour" in fmt_pref:
+            final_time = now.strftime("%H:%M")    # 14:30
+        else:
+            final_time = timestamp # Usar el que viene por defecto (Sistema)
+
+        # Colores y lógica existente...
         c_user = "#00E701"
         current_streamer = self.controller.db.get("kick_username")
         if current_streamer and real_user.lower() == current_streamer.lower(): 
@@ -167,7 +181,7 @@ class MainWindow(QMainWindow):
             
         html = f"""
         <div style="line-height: 150%; margin-bottom: 6px;">
-            <span style="color:#666; font-size: 11px;">[{timestamp}] </span>
+            <span style="color:#666; font-size: 11px;">[{final_time}] </span>
             <span style="color:{c_user}; font-weight: 700; padding-left: 4px;">{real_user}: </span>
             <span style="color:#DDD; padding-left: 4px;">{display_content}</span>
         </div>
@@ -179,9 +193,61 @@ class MainWindow(QMainWindow):
     def show_toast(self, title, body, type_msg): 
         ToastNotification(self, title, body, type_msg).show_toast()
 
-    def closeEvent(self, event): 
-        if ModalConfirm(self, "Salir", "¿Cerrar?").exec() == QDialog.DialogCode.Accepted:
-            self.controller.shutdown()
-            event.accept()
-        else: 
-            event.ignore()
+    def closeEvent(self, event):
+        # Verificar configuración en DB
+        minimize_on_close = self.controller.db.get_bool("minimize_to_tray")
+        
+        if minimize_on_close:
+            event.ignore() # Cancelar cierre
+            self.hide()    # Ocultar ventana
+            self.tray_icon.showMessage(
+                "Kick Monitor", 
+                "La aplicación sigue ejecutándose en segundo plano.",
+                QSystemTrayIcon.MessageIcon.Information,
+                2000
+            )
+        else:
+            # Tu lógica original de confirmación
+            if ModalConfirm(self, "Salir", "¿Cerrar la aplicación?").exec() == QDialog.DialogCode.Accepted:
+                self.controller.shutdown()
+                event.accept()
+            else:
+                event.ignore()
+
+    def _setup_tray_icon(self):
+        """Configura el icono en la barra de tareas."""
+        self.tray_icon = QSystemTrayIcon(self)
+        self.tray_icon.setIcon(QIcon(resource_path("icon.ico"))) # Usa tu icono
+        
+        # Menú del Tray (Click derecho)
+        tray_menu = QMenu()
+        
+        action_show = QAction("Mostrar Monitor", self)
+        action_show.triggered.connect(self.show_window)
+        
+        action_quit = QAction("Cerrar Totalmente", self)
+        action_quit.triggered.connect(self.force_close)
+        
+        tray_menu.addAction(action_show)
+        tray_menu.addSeparator()
+        tray_menu.addAction(action_quit)
+        
+        self.tray_icon.setContextMenu(tray_menu)
+        self.tray_icon.activated.connect(self._on_tray_activated)
+        self.tray_icon.show()
+
+    def _on_tray_activated(self, reason):
+        """Al hacer doble click en el icono, restaurar ventana."""
+        if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
+            self.show_window()
+
+    def show_window(self):
+        self.show()
+        self.raise_()
+        self.activateWindow()
+
+    def force_close(self):
+        """Cierra la app saltándose la protección de minimizado."""
+        # Podemos reutilizar tu lógica de confirmación si quieres
+        self.tray_icon.hide()
+        QApplication.quit()

@@ -1,72 +1,49 @@
 # ui/dialogs/command_modal.py
 
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-    QLineEdit, QPushButton, QFrame, QSpinBox, 
+    QVBoxLayout, QHBoxLayout, QLabel, 
+    QLineEdit, QPushButton, QSpinBox, 
     QPlainTextEdit
 )
 from PyQt6.QtCore import Qt
 from ui.theme import LAYOUT, THEME_DARK, STYLES
+from ui.components.base_modal import BaseModal
 
-class ModalEditCommand(QDialog):
+class ModalEditCommand(BaseModal):
     def __init__(self, parent=None, trigger="", response="", cooldown=5):
-        super().__init__(parent)
+        super().__init__(parent, width=500, height=480)
+        
+        # Guardamos el trigger original para saber si es un renombrado
+        self.original_trigger = trigger
+        
         self.trigger_result = trigger
         self.response_result = response
         self.cooldown_result = cooldown
         
-        # Configuración de Ventana (Frameless / Sin bordes)
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setFixedSize(500, 480)
-        
         self._setup_ui(trigger, response, cooldown)
 
     def _setup_ui(self, trigger, response, cooldown):
-        # Contenedor Principal con Borde y Fondo
-        container = QFrame(self)
-        container.setGeometry(0, 0, 500, 480)
-        container.setStyleSheet(f"""
-            QFrame {{
-                background-color: {THEME_DARK['Black_N2']};
-                border: 1px solid {THEME_DARK['Black_N4']};
-                border-radius: 16px;
-            }}
-        """)
+        layout = self.body_layout
         
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(*LAYOUT["margins"])
-        layout.setSpacing(LAYOUT["spacing"])
-        
-        # 1. Título
+        # Título
         lbl_title = QLabel("Editar Comando" if trigger else "Nuevo Comando")
         lbl_title.setStyleSheet("font-size: 18px; font-weight: bold; color: white; border: none;")
         layout.addWidget(lbl_title)
         
-        # 2. Trigger (Input)
+        # Trigger (Input)
         layout.addWidget(QLabel("Comando (Ej: !redes):", styleSheet="color: #AAA; border: none;"))
         self.txt_trigger = QLineEdit(trigger)
         self.txt_trigger.setPlaceholderText("!comando")
-        self.txt_trigger.setStyleSheet(self._input_style())
-        if trigger:
-            self.txt_trigger.setReadOnly(True) # No permitir cambiar el trigger si ya existe (clave primaria)
-            self.txt_trigger.setStyleSheet(self._input_style(readonly=True))
+        self.txt_trigger.setStyleSheet(STYLES["input"])
+        
         layout.addWidget(self.txt_trigger)
         
-        # 3. Respuesta (TextArea)
+        # Respuesta (TextArea)
         layout.addWidget(QLabel("Respuesta del Bot:", styleSheet="color: #AAA; border: none;"))
         self.txt_response = QPlainTextEdit(response)
         self.txt_response.setPlaceholderText("Escribe aquí lo que dirá el bot.")
-        self.txt_response.setStyleSheet(f"""
-            QPlainTextEdit {{
-                background-color: {THEME_DARK['Black_N3']};
-                color: white;
-                border: 1px solid {THEME_DARK['Gray_Border']};
-                border-radius: 8px;
-                padding: 8px;
-            }}
-            QPlainTextEdit:focus {{ border: 1px solid {THEME_DARK['Black_N4']}; }}
-        """)
+        self.txt_response.setStyleSheet(STYLES["textarea"])
+        
         layout.addWidget(self.txt_response)
         
         # Variables de ayuda
@@ -74,7 +51,7 @@ class ModalEditCommand(QDialog):
                           styleSheet=f"color: {THEME_DARK['Gray_N2']}; font-size: 11px; border: none;")
         layout.addWidget(lbl_vars)
 
-        # 4. Cooldown (SpinBox)
+        # Cooldown (SpinBox)
         row_cd = QHBoxLayout()
         row_cd.addWidget(QLabel("Cooldown (segundos):", styleSheet="color: #AAA; border: none;"))
         
@@ -88,7 +65,7 @@ class ModalEditCommand(QDialog):
         
         layout.addStretch()
         
-        # 5. Botones (Cancelar / Guardar)
+        # Botones
         h_btns = QHBoxLayout()
         h_btns.addStretch()
         
@@ -106,22 +83,7 @@ class ModalEditCommand(QDialog):
         h_btns.addWidget(btn_save)
         layout.addLayout(h_btns)
 
-    def _input_style(self, readonly=False):
-        bg = THEME_DARK['Black_N4'] if readonly else THEME_DARK['Black_N3']
-        color = THEME_DARK['Gray_N1'] if readonly else "white"
-        return f"""
-            QLineEdit {{
-                background-color: {bg};
-                color: {color};
-                border: 1px solid {THEME_DARK['Gray_Border']};
-                border-radius: 8px;
-                padding: 8px;
-            }}
-            QLineEdit:focus {{ border: 1px solid {THEME_DARK['Black_N4']}; }}
-        """
-
     def _save(self):
-        # Guardar valores en las variables de instancia para que el padre las lea
         self.trigger_result = self.txt_trigger.text().strip()
         self.response_result = self.txt_response.toPlainText().strip()
         self.cooldown_result = self.spin_cd.value()

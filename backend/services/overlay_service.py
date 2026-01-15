@@ -1,8 +1,6 @@
 # services/overlay_service.py
 
-import csv
 import os
-import socket
 from urllib.parse import quote
 from typing import List, Dict, Any, Tuple
 
@@ -26,18 +24,10 @@ class OverlayService:
     # =========================================================================
     def get_local_ip_url(self) -> str:
         """
-        Detecta la IP local de la máquina para mostrar la URL que se debe poner en OBS.
+        Retorna la URL local (localhost) para el Overlay.
         """
+        # Forzamos siempre el uso de la IP local de loopback
         local_ip = "127.0.0.1"
-        try:
-            # Usamos socket UDP para obtener la IP real de la interfaz (no envía datos)
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(("8.8.8.8", 80)) 
-            local_ip = s.getsockname()[0]
-            s.close()
-        except Exception: 
-            pass # Fallback a localhost si no hay red
-            
         return f"http://{local_ip}:8081"
 
     def get_media_folder(self) -> str:

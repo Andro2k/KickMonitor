@@ -1,12 +1,13 @@
 # backend/kick_bot.py
 
 import asyncio
+import datetime
 import json
 import os
 import aiohttp
 import cloudscraper
 from typing import Optional, Dict, Any, Tuple
-
+from datetime import datetime
 # --- LIBRERÍAS EXTERNAS ---
 from kickpython import KickAPI
 from PyQt6.QtCore import QThread, pyqtSignal, QUrl
@@ -24,17 +25,12 @@ from backend.services.oauth_service import OAuthService
 DATA_PATH = get_app_data_path()
 SESSION_FILE = os.path.join(DATA_PATH, "session.json")
 DB_FILE_PATH = os.path.join(DATA_PATH, "kick_data.db")
-CHAT_SEPARATOR = "|||" 
 KICK_API_BASE = "https://kick.com/api/v1"
 KICK_CHAT_API = "https://api.kick.com/public/v1/chat"
 
 class KickBotWorker(QThread):
-    """
-    Worker principal que maneja la conexión asíncrona con Kick.
-    Actúa como puente entre la UI (PyQt) y la lógica de negocio (Asyncio).
-    """
     # --- SEÑALES UI ---
-    chat_received = pyqtSignal(str, str)         
+    chat_received = pyqtSignal(str, str, list, str)         
     log_received = pyqtSignal(str)               
     disconnected_signal = pyqtSignal()           
     user_info_signal = pyqtSignal(str, int, str)
@@ -44,14 +40,11 @@ class KickBotWorker(QThread):
         super().__init__()
         self.config = config
         self.db = DBHandler()  
-        # Estado del Worker
         self._is_running = True
         self.loop: Optional[asyncio.AbstractEventLoop] = None
         self.api: Optional[KickAPI] = None 
-        # Estado de la Sesión Kick
         self.chatroom_id = str(self.config.get('chatroom_id', ''))
         self.broadcaster_user_id: Optional[int] = None       
-        # Cliente HTTP persistente para scraping (evita recrear sesiones)
         self.scraper = cloudscraper.create_scraper()
 
     # =========================================================================
@@ -342,27 +335,39 @@ class KickBotWorker(QThread):
             self.log_received.emit(Log.error(f"Fallo conexión WebSocket: {e}"))
             return False
 
-    async def _on_message_received(self, msg: dict):
-        """Callback principal de recepción de mensajes."""
+    async def _on_message_received(self, msg):
+        """
+        Callback principal.
+        """
         try:
-            # 1. Parsear el mensaje entrante (maneja JSON anidado)
-            username, content = self._parse_incoming_message(msg)  
-            # 2. Si no es válido, descartar
-            if not username or not content or username == "System":
+            # Si msg es string (json), intentamos convertirlo
+            if isinstance(msg, str):
+                try: msg = json.loads(msg)
+                except: pass
+            # Validación básica
+            if not isinstance(msg, dict):
                 return
-            # 3. Mostrar Debug crudo (Opcional, sin límite de caracteres)
-            # self.log_received.emit(Log.debug(f"RAW MSG: {msg}"))
-            # 4. Construir payload visual HTML
-            html_data = (
-                f'<span style="color:#5DD62C; font-weight:bold;">{username}:</span> '
-                f'<span style="color:#FFF;">{content}</span>'
-            )
-            # 5. Payload lógico para el Controller
-            raw_data = f"{username}{CHAT_SEPARATOR}{content}"
+            
+            content = msg.get('content', '')
+            if not content: return
+            # 1. Extraer Usuario (Según tus logs es 'sender_username')
+            sender = msg.get('sender_username')
+            if not sender and 'sender' in msg and isinstance(msg['sender'], dict):
+                sender = msg['sender'].get('username')
+            
+            if not sender: sender = "Desconocido"
+            # 2. Extraer Insignias (Según tus logs es una lista directa de strings)
+            badges = msg.get('badges', [])
+            
+            # 3. Timestamp actual
+            timestamp = datetime.now().strftime("%H:%M:%S")
 
-            self.chat_received.emit(html_data, raw_data)
+            # 4. Emitir señal limpia
+            self.chat_received.emit(sender, content, badges, timestamp)
+
         except Exception as e:
             self.log_received.emit(Log.error(f"Error procesando mensaje: {e}"))
+            # print(f"DEBUG MSG ERROR: {msg}")
 
     def _parse_incoming_message(self, msg: dict) -> Tuple[Optional[str], Optional[str]]:
         """

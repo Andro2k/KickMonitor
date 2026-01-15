@@ -1,12 +1,16 @@
 # ui/dialogs/connection_modal.py
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, 
-                             QHBoxLayout, QFrame, QApplication)
+
+from PyQt6.QtWidgets import (QVBoxLayout, QLabel, QLineEdit, QPushButton, 
+                             QHBoxLayout, QApplication)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIcon
-from ui.theme import THEME_DARK, STYLES, LAYOUT
+from ui.components.base_modal import BaseModal
+from ui.theme import THEME_DARK, STYLES
+
+# Necesitamos get_icon para el botón de copiar
 from ui.utils import get_icon
 
-class ConnectionModal(QDialog):
+class ConnectionModal(BaseModal):
     """
     Diálogo para configurar credenciales de API (Kick, Spotify, etc).
     """
@@ -14,8 +18,6 @@ class ConnectionModal(QDialog):
     SERVICE_CONFIG = {
         "kick": {
             "title": "Configuración Kick API",
-            "btn_color": THEME_DARK["NeonGreen_Main"],
-            "btn_hover": THEME_DARK["NeonGreen_Light"],
             "keys": { 
                 "id": "client_id", 
                 "secret": "client_secret", 
@@ -26,29 +28,25 @@ class ConnectionModal(QDialog):
         },
         "spotify": {
             "title": "Configuración Spotify",
-            "btn_color": "#1db954",
-            "btn_hover": "#1ed760",
             "keys": { 
                 "id": "spotify_client_id", 
                 "secret": "spotify_secret", 
                 "uri": "spotify_redirect_uri" 
             },
             "uri_readonly": False,
-            "show_copy": True  # <--- CAMBIO AQUÍ: Antes estaba en False
+            "show_copy": True
         }
     }
 
     def __init__(self, db, service_type: str, worker=None, parent=None):
-        super().__init__(parent)
         self.db = db
         self.service = service_type
         self.worker = worker
         
         self.current_conf = self.SERVICE_CONFIG.get(service_type, self.SERVICE_CONFIG["kick"])
         
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setFixedSize(450, 420)
+        # Inicializamos la BaseModal con el tamaño deseado
+        super().__init__(parent, width=450, height=420)
         
         self.init_ui()
 
@@ -60,20 +58,8 @@ class ConnectionModal(QDialog):
         return current_val
 
     def init_ui(self):
-        container = QFrame(self)
-        container.setGeometry(10, 10, 430, 400)
-        container.setStyleSheet(f"""
-            QFrame {{
-                background-color: {THEME_DARK['Black_N2']};
-                border: 1px solid {THEME_DARK['Black_N4']}; 
-                border-radius: 16px;
-            }}
-        """)
-        
-        layout = QVBoxLayout(container)
-        margins = LAYOUT.get("margins", (30, 30, 30, 30))
-        layout.setContentsMargins(*margins)
-        layout.setSpacing(LAYOUT["spacing"])
+        # Usamos el layout que nos regala BaseModal (self.body_layout)
+        layout = self.body_layout
 
         # Título
         lbl_tit = QLabel(self.current_conf["title"])
@@ -114,7 +100,7 @@ class ConnectionModal(QDialog):
         
         h_uri.addWidget(self.txt_uri)
 
-        # BOTÓN COPIAR (Con el fix del icono)
+        # BOTÓN COPIAR
         if self.current_conf["show_copy"]:
             btn_copy = QPushButton()
             btn_copy.setIcon(get_icon("copy.svg"))
@@ -139,11 +125,11 @@ class ConnectionModal(QDialog):
         btn_cancel = QPushButton("Cancelar")
         btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_cancel.setStyleSheet(STYLES["btn_outlined"])
+        # Usamos self.reject() que ahora tiene animación gracias a BaseModal
         btn_cancel.clicked.connect(self.reject)
         
         btn_save = QPushButton("Guardar")
         btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
-        
         btn_save.setStyleSheet(STYLES["btn_solid_primary"])
         btn_save.clicked.connect(self.save_data)
         
@@ -152,7 +138,6 @@ class ConnectionModal(QDialog):
         parent_layout.addLayout(h_btns)
 
     def copy_uri(self):
-        # 1. Obtener texto (o default)
         text = self.txt_uri.text()
         if not text:
             keys = self.current_conf["keys"]
@@ -160,19 +145,16 @@ class ConnectionModal(QDialog):
             
         QApplication.clipboard().setText(text)
         
-        # 2. Feedback visual (Con fix anti-crash)
         sender = self.sender()
         if sender: 
             sender.setIcon(QIcon()) 
             sender.setText("OK")
-            
             def restore():
                 try:
                     sender.setText("") 
                     sender.setIcon(get_icon("copy.svg"))
                 except RuntimeError:
                     pass
-
             QTimer.singleShot(2000, restore)
 
     def save_data(self):
@@ -190,5 +172,6 @@ class ConnectionModal(QDialog):
         
         if self.service == "spotify" and self.worker:
             self.worker.authenticate()
-            
+        
+        # Usamos self.accept() que ahora tiene animación
         self.accept()

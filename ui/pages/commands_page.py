@@ -8,12 +8,11 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from ui.factories import create_icon_btn, create_nav_btn, create_page_header
 from ui.theme import LAYOUT, THEME_DARK, STYLES
-from ui.utils import get_icon
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
 from backend.services.commands_service import CommandsService
 
-# Modal importado
+# Modal importado (Ya refactorizado con BaseModal)
 from ui.dialogs.command_modal import ModalEditCommand 
 
 class CommandsPage(QWidget):
@@ -34,7 +33,7 @@ class CommandsPage(QWidget):
         l_content.setContentsMargins(*LAYOUT["margins"])
         l_content.setSpacing(LAYOUT["spacing"])
         
-        # 1. HEADER (Título y Botón Agregar)
+        # 1. HEADER
         header = QHBoxLayout()
         header.addWidget(create_page_header("Comandos Personalizados", "Configuración y Gestión de comandos."))
         header.addStretch()
@@ -56,7 +55,7 @@ class CommandsPage(QWidget):
         self.table.verticalHeader().setVisible(False)
         self.table.setShowGrid(False)
         self.table.setAlternatingRowColors(True)
-        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setStyleSheet(STYLES["table_clean"])
         
@@ -90,29 +89,28 @@ class CommandsPage(QWidget):
             item_trig = QTableWidgetItem(trigger)
             item_trig.setForeground(Qt.GlobalColor.white if is_active else Qt.GlobalColor.gray)
             
-            # 2. Response (recortado si es muy largo)
+            # 2. Response
             short_resp = (response[:150] + '...') if len(response) > 150 else response
             item_resp = QTableWidgetItem(short_resp)
-            item_resp.setToolTip(response) # Tooltip con texto completo
+            item_resp.setToolTip(response)
             
             # 3. Cooldown
             item_cd = QTableWidgetItem(str(cooldown))
             item_cd.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             
-            # 4. Acciones (Botones)
+            # 4. Acciones
             container = QFrame()
             container.setStyleSheet("background-color: transparent;")
             l_actions = QHBoxLayout(container)
             l_actions.setContentsMargins(0, 0, 0, 0)
             l_actions.setSpacing(4)
-            
-            # Btn Editar
+            l_actions.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
             btn_edit = create_icon_btn(
                 "edit.svg", 
                 lambda _, t=trigger, r=response, c=cooldown: self._open_edit_modal(t, r, c),
                 color_hover=THEME_DARK['info']
             )
-            # Btn Eliminar
             btn_del = create_icon_btn(
                 "trash.svg",
                 lambda _, t=trigger: self._delete_command(t),
@@ -121,7 +119,6 @@ class CommandsPage(QWidget):
 
             l_actions.addWidget(btn_edit)
             l_actions.addWidget(btn_del)
-            l_actions.addStretch()
             
             self.table.setItem(row_idx, 0, item_trig)
             self.table.setItem(row_idx, 1, item_resp)
@@ -133,16 +130,22 @@ class CommandsPage(QWidget):
         self._open_edit_modal("", "", 5)
 
     def _open_edit_modal(self, trigger, response, cooldown):
-        # Instanciamos el Modal importado
+        # Instanciamos el Modal
         modal = ModalEditCommand(self, trigger, response, cooldown)
         
         if modal.exec() == QDialog.DialogCode.Accepted:
-            # Recuperamos los datos del modal
+            # Recuperamos los datos NUEVOS y el ORIGINAL
             new_trig = modal.trigger_result
             new_resp = modal.response_result
             new_cd = modal.cooldown_result
+            original = modal.original_trigger # Accedemos a la variable que añadimos al modal
+
+            # LÓGICA DE RENOMBRADO:
+            # Si había un nombre original y es diferente al nuevo, borramos el viejo.
+            if original and original != new_trig:
+                self.service.delete_command(original)
             
-            # Guardamos vía servicio
+            # Guardamos el nuevo (o el actualizado)
             if self.service.add_or_update_command(new_trig, new_resp, new_cd):
                 self.load_data()
                 ToastNotification(self, "Comandos", "Guardado correctamente", "Status_Green").show_toast()
@@ -155,7 +158,7 @@ class CommandsPage(QWidget):
                 self.load_data()
                 ToastNotification(self, "Comandos", "Eliminado", "info").show_toast()
     
-    # --- IMPORTAR / EXPORTAR ---
+    # --- IMPORTAR / EXPORTAR (Sin cambios) ---
     def _handle_export(self):
         file_path, _ = QFileDialog.getSaveFileName(self, "Exportar Comandos", "comandos.csv", "CSV Files (*.csv)")
         if not file_path: return
@@ -172,15 +175,11 @@ class CommandsPage(QWidget):
         if not ModalConfirm(self, "Importar CSV", "¿Deseas importar? Esto podría sobrescribir comandos existentes.").exec():
             return
             
-        # Delegamos al servicio. Si el archivo es incorrecto, retorna 0,0
         ok, fail = self.service.import_csv(file_path)
-        
         self.load_data() 
         
-        # Validación de cabeceras
         if ok == 0 and fail == 0:
-            # Si ambos son 0, significa que DataManager rechazó el archivo por cabeceras incorrectas
-            ToastNotification(self, "Archivo Incorrecto", "El CSV no tiene las columnas 'Trigger' y 'Response'.", "Status_Red").show_toast()
+            ToastNotification(self, "Archivo Incorrecto", "El CSV no tiene las columnas requeridas.", "Status_Red").show_toast()
         else:
             msg_type = "Status_Green" if fail == 0 else "Status_Yellow"
             ToastNotification(self, "Importación", f"Importados: {ok} | Fallidos: {fail}", msg_type).show_toast()

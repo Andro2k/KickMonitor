@@ -143,9 +143,11 @@ class DBHandler:
     # =========================================================================
     # REGIÓN 3: FACHADA - CONFIGURACIÓN (SETTINGS)
     # =========================================================================
-    def get(self, key: str) -> str: return self.settings.get(key)
-    def set(self, key: str, val: Any): self.settings.set(key, val)   
-    def get_bool(self, key: str) -> bool: return self.settings.get(key) == "1"   
+    # CAMBIO AQUÍ: Agregamos el parámetro 'default'
+    def get(self, key: str, default: str = "") -> str: 
+        return self.settings.get(key, default)
+    def set(self, key: str, val: Any): self.settings.set(key, val)       
+    def get_bool(self, key: str) -> bool: return self.settings.get(key) == "1"       
     def get_int(self, key: str, default: int = 0) -> int: 
         try: return int(self.settings.get(key, str(default)))
         except: return default

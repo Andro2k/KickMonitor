@@ -1,37 +1,22 @@
 # ui/dialogs/user_modal.py
 
-from PyQt6.QtWidgets import (QDialog, QFrame, QVBoxLayout, QHBoxLayout, QLabel, 
+from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, 
                              QLineEdit, QPushButton)
 from PyQt6.QtCore import Qt
 from ui.utils import get_icon
 from ui.theme import STYLES, THEME_DARK, LAYOUT
+from ui.components.base_modal import BaseModal
 
-class UsernameInputDialog(QDialog):
+class UsernameInputDialog(BaseModal):
     def __init__(self, parent=None):
-        super().__init__(parent)
+        # Inicializamos BaseModal con el tamaño específico para este diálogo
+        super().__init__(parent, width=360, height=430)
         self.username = None
         self._setup_ui()
 
     def _setup_ui(self):
-        self.setWindowTitle("Configurar Canal")
-        self.setFixedSize(360, 430)
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-
-        # Contenedor principal
-        container = QFrame(self)
-        container.setGeometry(0, 0, 360, 430)
-        container.setStyleSheet(f"""
-            QFrame {{
-                background-color: {THEME_DARK['Black_N3']};
-                border: 1px solid {THEME_DARK['Black_N4']}; 
-                border-radius: 16px;
-            }}
-        """)
-        
-        layout = QVBoxLayout(container)
-        layout.setSpacing(LAYOUT["spacing"])
-        layout.setContentsMargins(*LAYOUT["margins"])
+        # Usamos el layout del cuerpo provisto por BaseModal
+        layout = self.body_layout
 
         # 1. Imagen
         lbl_img = QLabel()
@@ -62,16 +47,7 @@ class UsernameInputDialog(QDialog):
         self.txt_user.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.txt_user.setFixedHeight(40)
         self.txt_user.returnPressed.connect(self._on_save)
-        self.txt_user.setStyleSheet(f"""
-            QLineEdit {{
-                background-color: {THEME_DARK['Black_N4']};
-                color: white;
-                border: 1px solid #444;
-                border-radius: 8px;
-                font-size: 14px;
-            }}
-            QLineEdit:focus {{ border: 1px solid {THEME_DARK['Black_N4']}; }}
-        """)
+        self.txt_user.setStyleSheet(STYLES["input_cmd"])
         layout.addWidget(self.txt_user)
 
         layout.addSpacing(LAYOUT["spacing"])
@@ -80,14 +56,15 @@ class UsernameInputDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(LAYOUT["spacing"])
 
-        # Botón CANCELAR (Estilo Outline / Fantasma)
+        # Botón CANCELAR
         btn_cancel = QPushButton("Cancelar")
         btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_cancel.setFixedHeight(45)
         btn_cancel.setStyleSheet(STYLES["btn_outlined"])
-        btn_cancel.clicked.connect(self.reject) # Cierra el diálogo retornando "Rejected"
+        # BaseModal se encarga de la animación al rechazar
+        btn_cancel.clicked.connect(self.reject) 
 
-        # Botón GUARDAR (Estilo Sólido / Primario)
+        # Botón GUARDAR
         btn_save = QPushButton("Confirmar")
         btn_save.setDefault(True)
         btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -95,20 +72,16 @@ class UsernameInputDialog(QDialog):
         btn_save.setStyleSheet(STYLES["btn_solid_primary"])
         btn_save.clicked.connect(self._on_save)
 
-        # Añadir botones al layout horizontal
         btn_layout.addWidget(btn_cancel)
         btn_layout.addWidget(btn_save)
 
-        # Añadir layout de botones al layout principal
         layout.addLayout(btn_layout)
 
     def _on_save(self):
         text = self.txt_user.text().strip()
         if text:
-            # Formateo automático: minúsculas y espacios por guiones
             formatted_slug = text.lower().replace(" ", "-")
             self.username = formatted_slug
             self.accept()
         else:
-            # Feedback de error visual
             self.txt_user.setStyleSheet(self.txt_user.styleSheet().replace("#444", "#ff453a"))

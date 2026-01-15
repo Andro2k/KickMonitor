@@ -32,9 +32,9 @@ class CustomModal(QDialog):
         # El borde ahora usa el color de la configuración (self.config['color'])
         body.setStyleSheet(f"""
             QFrame {{
-                background-color: {THEME_DARK['Black_N1']}; 
+                background-color: {THEME_DARK['Black_N3']}; 
                 border-radius: 16px; 
-                border: 2px solid {self.config['color']};
+                border: 1px solid {self.config['color']};
             }}
         """)
         
@@ -88,10 +88,7 @@ class CustomModal(QDialog):
                     border: 1px solid {color};
                     border-radius: 8px;
                     font-weight: bold;
-                    font-size: 13px;
-                }}
-                QPushButton:hover {{
-                    border: 2px solid #FFFFFF;
+                    font-size: 12px;
                 }}
             """
         else:
@@ -102,10 +99,10 @@ class CustomModal(QDialog):
                     color: {THEME_DARK['Gray_N1']};
                     border: 1px solid {THEME_DARK['border']};
                     border-radius: 8px;
-                    font-size: 13px;
+                    font-size: 12px;
                 }}
                 QPushButton:hover {{
-                    background-color: {THEME_DARK['Black_N3']};
+                    background-color: {THEME_DARK['Black_N2']};
                     color: {THEME_DARK['White_N1']};
                     border: 1px solid {THEME_DARK['Gray_N1']};
                 }}
@@ -149,6 +146,5 @@ def ModalAlert(parent, titulo, mensaje, tipo="info"):
     return CustomModal(parent, titulo, mensaje, tipo, mode="alert")
 
 def ModalConfirm(parent, titulo, mensaje):
-    # Detecta palabras clave para poner el modal en rojo automáticamente
     tipo = "Status_Red" if any(x in titulo.lower() for x in ["salir", "eliminar", "borrar", "duplicado"]) else "info"
     return CustomModal(parent, titulo, mensaje, tipo, mode="confirm")

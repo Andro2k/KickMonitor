@@ -1,6 +1,7 @@
 # backend/controller.py
 
 from datetime import datetime
+import os
 from typing import Optional
 
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer, QThread
@@ -9,6 +10,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, QTimer, QThread
 from backend.core.db_controller import DBHandler
 from backend.handlers.antibot_handler import AntibotHandler
 from backend.utils.logger import Log
+from backend.utils.paths import get_app_data_path
 from backend.workers.overlay_server import OverlayServerWorker
 from backend.core.kick_bot import KickBotWorker   
 from backend.workers.spotify_worker import SpotifyWorker
@@ -68,6 +70,10 @@ class MainController(QObject):
         self._manual_check = False
         self._update_found = False
         self.check_updates(manual=False)
+        # 7. Logs
+        self.log_signal.connect(self._write_log_to_file)
+        if hasattr(self, 'kick_bot'):
+            self.kick_bot.log_received.connect(self._write_log_to_file)
     
     def _setup_timers(self):
         # Timer Puntos: Distribuye puntos cada minuto
@@ -82,56 +88,45 @@ class MainController(QObject):
     # =========================================================================
     # REGIÓN 1: PIPELINE DE PROCESAMIENTO DE CHAT
     # =========================================================================
-    def on_chat_received(self, raw_msg):
+    def on_chat_received(self, user, content, badges, timestamp):
         """
-        Punto central de entrada de mensajes. Decide qué handler debe procesar el mensaje.
+        Recibe datos ya limpios desde KickBot.
         """
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        user, content, badges = self.chat_handler.parse_message(raw_msg)
         msg_lower = content.strip().lower()
-
-        # 0. ANTIBOT (Seguridad Prioritaria)
+        # 0. ANTIBOT
         if self.antibot.check_user(user, self._ban_user, self.emit_log):
-            # Si retorna True, el usuario fue detectado como bot y baneado.
-            return 
-
-        # 1. Filtros de seguridad (Mute / Ignore Bots)
-        if self.chat_handler.should_ignore_user(user): 
-            self.emit_log(Log.warning(f"Usuario ignorado (Mute): {user}"))
-            self._update_ui_chat(timestamp, user, content)
             return
         if self.chat_handler.is_bot(user):
-            self.emit_log(Log.debug(f"Mensaje de Bot ignorado: {user}"))
             self._update_ui_chat(timestamp, user, content)
             return
-
-        # 2. Economía (Dar puntos por actividad)
+        # 1. Filtros de seguridad
+        if self.chat_handler.should_ignore_user(user): 
+            self._update_ui_chat(timestamp, user, content)
+            return           
+        # 2. Economía
         self.chat_handler.process_points(user, msg_lower, badges)
-
-        # 3. Delegación a Handlers (Cadena de Responsabilidad)     
-        
-        # A) Música (!song, !sr)
+        # 3. Delegación a Handlers (Cadena de Responsabilidad)
+        # Música
         if self.music_handler.handle_command(user, content, msg_lower, self.send_msg, self.emit_log):
             self._finalize_message(timestamp, user, content)
-            return
-        # B) Juegos (!gamble, !slots)
+            return           
+        # Juegos
         if self.game_handler.handle_command(user, msg_lower, self.send_msg, self.gamble_result_signal.emit):
             self._finalize_message(timestamp, user, content)
             return
-        # C) Comandos Personalizados (DB)
+        # Comandos Custom
         if self._handle_custom_responses(user, msg_lower):
             self._finalize_message(timestamp, user, content)
             return
-        # D) Alertas Multimedia (Overlay)
+        # Alertas / Overlay
         if self.alert_handler.handle_trigger(user, msg_lower, self.send_msg, self.emit_log):
             self._finalize_message(timestamp, user, content)
             return
-        # E) Consultas Simples (!puntos)
+        # Consulta Puntos
         if self._handle_points_query(user, msg_lower):
             self._finalize_message(timestamp, user, content)
             return
-
-        # 4. Procesamiento Final (TTS y Resultados de Juegos pasivos)
+        # 4. Procesamiento Final
         if self.tts_enabled: 
             self._process_tts(user, content)
             
@@ -404,3 +399,33 @@ class MainController(QObject):
     def _on_update_progress(self, percent):
         if percent % 10 == 0:
             self.emit_log(Log.system(f"Descargando actualización: {percent}%"))
+
+    # =========================================================================
+    # REGIÓN 6: LOGS
+    # =========================================================================
+
+    def _write_log_to_file(self, html_msg: str):
+        """
+        Escribe el log en un archivo de texto plano, limpiando las etiquetas HTML.
+        """
+        try:
+            # 1. Limpiar HTML básico para que el txt sea legible
+            clean_msg = html_msg.replace("<b>", "").replace("</b>", "")
+            # (Puedes usar regex si quieres ser más estricto, pero esto suele bastar)
+            if "<span" in clean_msg:
+                # Extraer solo el texto si es complejo, o simplemente guardar crudo
+                # Para simplificar, guardamos una versión simple con fecha
+                import re
+                clean_msg = re.sub(r'<[^>]+>', '', clean_msg)
+
+            # 2. Definir ruta del archivo (uno por día para no hacerlo gigante)
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            log_file = os.path.join(get_app_data_path(), f"log_{date_str}.log")
+
+            # 3. Escribir (Append mode)
+            timestamp = datetime.now().strftime("[%H:%M:%S]")
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(f"{clean_msg}\n")
+                
+        except Exception as e:
+            print(f"Error escribiendo log en disco: {e}")

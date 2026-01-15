@@ -218,13 +218,35 @@ STYLES = {
             font-family: Consolas, monospace; font-size: 12px; padding: 10px; border: none;
         }}
     """,
+    "textarea": f"""
+        QPlainTextEdit {{
+            background-color: {c.Black_N3};
+            color: {c.White_N1};
+            border: 1px solid {c.border};
+            border-radius: {r['input']};
+            padding: 8px;
+        }}
+        QPlainTextEdit:focus {{
+            border: 1px solid {c.Gray_N1}; 
+        }}
+    """,
+    "text_browser": f"""
+        QTextBrowser {{
+            background-color: {c.Black_N4};
+            color: #DDD;
+            border: 1px solid {c.border};
+            border-radius: {r['input']};
+            padding: 10px;
+            font-size: 12px;
+        }}
+    """,
 
     # --- BOTONES ---
     # Botón estándar para barra superior (Importar/Exportar)
     "btn_nav": f"""
         QPushButton {{
             background-color: {c.Black_N2}; color: {c.White_N1};
-            padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold;
+            padding: 6px; border-radius: 6px; font-size: 12px; font-weight: bold;
             border: 1px solid {c.Black_N2};
         }}
         QPushButton:hover {{ 
@@ -325,17 +347,12 @@ STYLES = {
         }}
         QSpinBox::up-button:hover, QSpinBox::down-button:hover {{ background-color: {c.Black_N4}; }}
     """,
-    "slider_modern": f"""
-        QSlider::groove:horizontal {{ height: 4px; background: {c.Black_N1}; border-radius: 2px; }}
-        QSlider::handle:horizontal {{ background: {c.Gray_N1}; width: 12px; margin: -4px 0; border-radius: 6px; }}
-        QSlider::handle:horizontal:hover {{ background: {c.NeonGreen_Main}; }}
-    """,
     
     # --- SIDEBAR (Existente) ---
     "sidebar_btn": f"""
         QPushButton {{
-            background-color: transparent; color: {c.Gray_N1}; border: none;
-            border-radius: 8px; text-align: left; padding: 6px; font-weight: 500; margin: 2px;
+            background-color: transparent; color: {c.Gray_N1}; 
+            padding: 6px; border: none; border-radius: 8px; text-align: left; font-weight: 500; margin: 2px;
         }}
         QPushButton:hover {{ background-color: {c.White_Alpha_08}; color: {c.White_N1}; }}
         QPushButton:checked {{ background-color: rgba(83, 252, 24, 0.15); color: {c.NeonGreen_Main}; font-weight: bold; }}
