@@ -14,7 +14,6 @@ from backend.database.repositories import (
     ChatCommandsRepository,
     AutomationsRepository
 )
-from backend.utils.logger import Log
 
 class DBHandler:
     """

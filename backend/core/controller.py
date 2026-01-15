@@ -3,7 +3,6 @@
 from datetime import datetime
 import os
 from typing import Optional
-
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer, QThread
 
 # --- INFRAESTRUCTURA Y WORKERS ---
@@ -354,7 +353,7 @@ class MainController(QObject):
                 self.emit_log(Log.system(f"Timer automático ejecutado: '{name}'"))
                 self.db.update_timer_run(name, now)
     # =========================================================================
-    # REGIÓN 5: ACTUALIZACIONES (MODIFICADO)
+    # REGIÓN 5: ACTUALIZACIONES
     # =========================================================================
     def check_updates(self, manual=False):
         """
@@ -405,7 +404,7 @@ class MainController(QObject):
             self.emit_log(Log.system(f"Descargando actualización: {percent}%"))
 
     # =========================================================================
-    # REGIÓN 6: LOGS
+    # REGIÓN 6: LOGS & DEBUG
     # =========================================================================
 
     def _write_log_to_file(self, html_msg: str):
@@ -431,7 +430,6 @@ class MainController(QObject):
         except Exception as e:
             self.emit_log(Log.debug(f"Error crítico de disco: {e}"))
 
-    # Nuevo método para emitir logs solo si el debug está activo
     def set_debug_mode(self, enabled: bool):
         """Sincroniza el estado global de la clase Log."""
         self.debug_enabled = enabled
