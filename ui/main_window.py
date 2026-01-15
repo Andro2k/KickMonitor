@@ -53,11 +53,11 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(1000, self.controller.start_bot)
 
     def _setup_app_id(self):
-        myappid = 'kickmonitor.v1.8.0' 
+        myappid = u'kickmonitor.v1.8.0' 
         try: 
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-        except: 
-            pass
+        except Exception as e:
+            print(f"Error estableciendo AppID: {e}")
 
     def _init_pages(self):
         db = self.controller.db
@@ -217,7 +217,7 @@ class MainWindow(QMainWindow):
     def _setup_tray_icon(self):
         """Configura el icono en la barra de tareas."""
         self.tray_icon = QSystemTrayIcon(self)
-        self.tray_icon.setIcon(QIcon(resource_path("icon.ico"))) # Usa tu icono
+        self.tray_icon.setIcon(QIcon(resource_path("icon.ico")))
         
         # Menú del Tray (Click derecho)
         tray_menu = QMenu()

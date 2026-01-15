@@ -47,12 +47,9 @@ if __name__ == "__main__":
         msg.setWindowIcon(QIcon(resource_path("icon.ico"))) 
         msg.exec()
         sys.exit(0)
-    # ---------------------------------------------
 
     # Cargar icono de la aplicación
-    basedir = os.path.dirname(os.path.abspath(__file__))
-    icon_path = os.path.join(basedir, "icon.ico")
-    app.setWindowIcon(QIcon(icon_path))
+    app.setWindowIcon(QIcon(resource_path("icon.ico")))
     
     w = MainWindow()
     w.show()
