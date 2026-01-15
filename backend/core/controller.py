@@ -15,7 +15,7 @@ from backend.workers.overlay_server import OverlayServerWorker
 from backend.core.kick_bot import KickBotWorker   
 from backend.workers.spotify_worker import SpotifyWorker
 from backend.workers.tts import TTSWorker   
-from backend.workers.updater import CURRENT_VERSION, UpdateCheckerWorker, UpdateDownloaderWorker
+from backend.workers.updater import UpdateCheckerWorker, UpdateDownloaderWorker
 from backend.workers.workers import FollowMonitorWorker
 
 # --- LÓGICA DE NEGOCIO (SERVICIOS Y HANDLERS) ---
@@ -30,7 +30,6 @@ from ui.dialogs.update_modal import UpdateModal
 class MainController(QObject):
     """
     Controlador Principal (Facade Pattern).
-    Coordina la comunicación entre la UI, la Base de Datos y los Workers en segundo plano.
     """
     # --- SEÑALES UI ---
     log_signal = pyqtSignal(str)
@@ -41,7 +40,6 @@ class MainController(QObject):
     toast_signal = pyqtSignal(str, str, str)
     gamble_result_signal = pyqtSignal(str, str, str, bool)
     username_needed = pyqtSignal()
-    VERSION = CURRENT_VERSION
 
     def __init__(self):
         super().__init__()       
@@ -49,33 +47,37 @@ class MainController(QObject):
         self.db = DBHandler()
         self.cmd_service = CommandsService(self.db)
         self.casino_system = CasinoSystem(self.db)       
-        # 2. Inicialización de Workers (Hilos secundarios)
+        
+        # 2. Inicialización de Workers
         self._init_spotify()
         self._init_tts()
         self._init_overlay()        
-        # 3. Handlers de Lógica (Estrategias)
+        
+        # 3. Handlers de Lógica
         self.chat_handler = ChatHandler(self.db)
         self.music_handler = MusicHandler(self.db, self.spotify) 
         self.game_handler = GameHandler(self.db, self.casino_system)
         self.alert_handler = AlertHandler(self.db, self.overlay_server)
         self.antibot = AntibotHandler(self.db)
+        
         # 4. Estado Interno
         self.worker: Optional[KickBotWorker] = None          
         self.monitor_worker: Optional[FollowMonitorWorker] = None  
         self.tts_enabled = False
         self.command_only = False       
-        # 5. Timers Recurrentes
+        
+        # 5. Configuración
         self._setup_timers()
-        # 6. Actualizaciones
+        self.debug_enabled = self.db.get_bool("debug_mode")
+        Log.enabled_debug = self.debug_enabled # Sincronizar clase Log
+        
+        # 6. Registro de Logs (Solo la señal principal)
+        self.log_signal.connect(self._write_log_to_file)
+        
+        # 7. Actualizaciones
         self._manual_check = False
         self._update_found = False
         self.check_updates(manual=False)
-        # 7. Logs
-        self.log_signal.connect(self._write_log_to_file)
-        if hasattr(self, 'kick_bot'):
-            self.kick_bot.log_received.connect(self._write_log_to_file)
-        # 8. Debug
-        self.debug_enabled = self.db.get_bool("debug_mode")
     
     def _setup_timers(self):
         # Timer Puntos: Distribuye puntos cada minuto

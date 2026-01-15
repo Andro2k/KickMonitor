@@ -102,7 +102,7 @@ class DBHandler:
                     )
                 self.conn_handler.conn.commit()
             except Exception as e:
-                self.emit_log(Log.debug(f"Error DB: {e}"))
+                print(f"[DB_DEBUG] Error Init: {e}")
 
     def _run_migrations(self):
         """Verifica y crea columnas faltantes (Migración básica)."""
@@ -137,8 +137,9 @@ class DBHandler:
                     for col_name, col_def in cols:
                         if col_name not in existing_cols:
                             cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_def}")
-                except Exception: 
-                    pass # Ignoramos errores si la tabla no existe aún
+                except Exception as e:
+                    # Usar el formato de debug que definimos
+                    print(f"[DB_DEBUG] Error migrando {table}: {e}")
             self.conn_handler.conn.commit()
 
     # =========================================================================
@@ -225,11 +226,9 @@ class DBHandler:
     def factory_reset_user(self):
         """
         Borra credenciales de Kick y Spotify, y elimina al usuario actual.
-        No toca la configuración del sistema ni la economía.
         """
         keys_to_wipe = [
             "kick_username", "chatroom_id", "client_id", "client_secret", 
-            "access_token", "refresh_token", 
             "spotify_client_id", "spotify_secret", "spotify_enabled"
         ]
         
@@ -245,7 +244,6 @@ class DBHandler:
     def wipe_economy_data(self):
         """
         Reinicia la economía: Pone puntos a 0 para todos y borra historial de apuestas.
-        Mantiene a los usuarios registrados (para no perder roles/bans).
         """
         with QMutexLocker(self.conn_handler.mutex):
             self.conn_handler.conn.execute("UPDATE data_users SET points = 0")

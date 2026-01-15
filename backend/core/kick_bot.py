@@ -1,7 +1,7 @@
 # backend/kick_bot.py
 
 import asyncio
-import datetime
+# import datetime
 import json
 import os
 import aiohttp
@@ -24,7 +24,7 @@ from backend.services.oauth_service import OAuthService
 # ==========================================
 DATA_PATH = get_app_data_path()
 SESSION_FILE = os.path.join(DATA_PATH, "session.json")
-DB_FILE_PATH = os.path.join(DATA_PATH, "kick_data.db")
+# DB_FILE_PATH = os.path.join(DATA_PATH, "kick_data.db")
 KICK_API_BASE = "https://kick.com/api/v1"
 KICK_CHAT_API = "https://api.kick.com/public/v1/chat"
 
@@ -45,7 +45,7 @@ class KickBotWorker(QThread):
         self.api: Optional[KickAPI] = None 
         self.chatroom_id = str(self.config.get('chatroom_id', ''))
         self.broadcaster_user_id: Optional[int] = None       
-        self.scraper = cloudscraper.create_scraper()
+        # self.scraper = cloudscraper.create_scraper()
 
     # =========================================================================
     # REGIÓN 1: CICLO DE VIDA (THREAD & ASYNC LOOP)
@@ -120,7 +120,7 @@ class KickBotWorker(QThread):
             client_id=self.config.get('client_id'), 
             client_secret=self.config.get('client_secret'), 
             redirect_uri=self.config.get('redirect_uri'),
-            db_path=DB_FILE_PATH 
+            # db_path=DB_FILE_PATH 
         )
         # PASO 1: Autenticación OAuth
         if not await self._ensure_authentication():
@@ -366,36 +366,38 @@ class KickBotWorker(QThread):
             self.chat_received.emit(sender, content, badges, timestamp)
 
         except Exception as e:
+            # Reporte de error para el usuario
             self.log_received.emit(Log.error(f"Error procesando mensaje: {e}"))
-            self.log_received.emit(Log.debug(f"Contenido del mensaje fallido: {msg}"))
+            # Reporte técnico para el Modo Debug (Si está activo)
+            self.log_received.emit(Log.debug(f"Contenido crudo del mensaje fallido: {msg}"))
 
-    def _parse_incoming_message(self, msg: dict) -> Tuple[Optional[str], Optional[str]]:
-        """
-        Extrae usuario y contenido limpiando la estructura anidada de Kick/Pusher.
-        Retorna (username, content) o (None, None).
-        """
-        payload = msg
-        # Desempaquetar string JSON en 'data' si existe
-        if 'data' in msg:
-            if isinstance(msg['data'], str):
-                try: payload = json.loads(msg['data'])
-                except json.JSONDecodeError: pass
-            elif isinstance(msg['data'], dict):
-                payload = msg['data']
-        # Extraer contenido
-        content = payload.get('content') or payload.get('message')
-        # Extraer usuario
-        sender = payload.get('sender', {})
-        username = None
+    # def _parse_incoming_message(self, msg: dict) -> Tuple[Optional[str], Optional[str]]:
+    #     """
+    #     Extrae usuario y contenido limpiando la estructura anidada de Kick/Pusher.
+    #     Retorna (username, content) o (None, None).
+    #     """
+    #     payload = msg
+    #     # Desempaquetar string JSON en 'data' si existe
+    #     if 'data' in msg:
+    #         if isinstance(msg['data'], str):
+    #             try: payload = json.loads(msg['data'])
+    #             except json.JSONDecodeError: pass
+    #         elif isinstance(msg['data'], dict):
+    #             payload = msg['data']
+    #     # Extraer contenido
+    #     content = payload.get('content') or payload.get('message')
+    #     # Extraer usuario
+    #     sender = payload.get('sender', {})
+    #     username = None
         
-        if isinstance(sender, dict) and 'username' in sender:
-            username = sender['username']
-        elif 'sender_username' in payload:
-            username = payload['sender_username']
-        elif 'username' in payload:
-            username = payload['username']
+    #     if isinstance(sender, dict) and 'username' in sender:
+    #         username = sender['username']
+    #     elif 'sender_username' in payload:
+    #         username = payload['sender_username']
+    #     elif 'username' in payload:
+    #         username = payload['username']
 
-        return username, content
+    #     return username, content
 
     def send_chat_message(self, text: str):
         """Encolar envío de mensaje al hilo asyncio."""
