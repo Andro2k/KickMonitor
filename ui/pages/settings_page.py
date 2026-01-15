@@ -8,7 +8,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QUrl
 from PyQt6.QtGui import QDesktopServices
 
 from backend.utils.paths import get_app_data_path
-from backend.workers.updater import INTERNAL_VERSION
+from backend.workers.update_worker import INTERNAL_VERSION
 from ui.factories import (
     create_header_page,
     create_section_header,

@@ -12,7 +12,7 @@ from PyQt6.QtGui import QAction, QIcon
 from backend.core.controller import MainController
 
 # UI Components
-from backend.workers.updater import INTERNAL_VERSION
+from backend.workers.update_worker import INTERNAL_VERSION
 from ui.components.sidebar import Sidebar
 from ui.theme import get_sheet
 from ui.components.modals import ModalConfirm

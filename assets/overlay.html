@@ -44,11 +44,6 @@
         }
 
         function playMedia(data) {
-            // ============================================================
-            // ¡IMPORTANTE! NO LIMPIAMOS EL CONTENEDOR AQUÍ.
-            // Al quitar "container.innerHTML = '';" permitimos simultáneos.
-            // ============================================================
-
             let element;
             
             // Cálculo de volumen (0-100 a 0.0-1.0)
@@ -67,11 +62,10 @@
                 element.style.opacity = "0";
 
                 // Auto-eliminación
-                if (data.duration > 0) {
-                    setTimeout(() => { if(element) element.remove(); }, data.duration * 1000);
-                } else {
-                    element.onended = () => element.remove();
-                }
+                element.onerror = () => {
+                    console.error("Error cargando medio:", data.url);
+                    element.remove();
+                };
 
                 // Posicionamiento cuando carguen los metadatos
                 element.onloadedmetadata = () => {

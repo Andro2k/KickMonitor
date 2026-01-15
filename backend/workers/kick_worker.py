@@ -1,8 +1,6 @@
 # backend/workers.py
 
 import time
-import cloudscraper
-from typing import Optional, Dict, Any
 from PyQt6.QtCore import QThread, pyqtSignal
 
 # ==========================================
@@ -12,51 +10,7 @@ KICK_API_BASE = "https://kick.com/api/v1/channels"
 DEFAULT_MONITOR_INTERVAL = 30
 
 # =========================================================================
-# WORKER 1: API CHECKER (Búsqueda inicial de un solo uso)
-# =========================================================================
-class KickApiWorker(QThread):
-    """
-    Worker efímero. Realiza una única consulta HTTP para validar 
-    si un usuario existe y obtener sus datos básicos (ID, Foto, Slug).
-    """    
-    # Señal: (Exito, Mensaje, Slug, ChatID, UsernameReal, Followers, ProfilePic)
-    finished = pyqtSignal(bool, str, str, str, str, int, str)
-
-    def __init__(self, username: str):
-        super().__init__()
-        self.username = username
-
-    def run(self):
-        scraper = cloudscraper.create_scraper()
-        try:
-            url = f"{KICK_API_BASE}/{self.username}"
-            resp = scraper.get(url)
-            
-            if resp.status_code == 200:
-                data = resp.json()
-                self._process_success(data)
-            else:
-                self.finished.emit(False, f"Error {resp.status_code}: Usuario no encontrado", "", "", "", 0, "")
-                
-        except Exception as e:
-            self.finished.emit(False, f"Error de Conexión: {str(e)}", "", "", "", 0, "")
-
-    def _process_success(self, data: Dict[str, Any]):
-        """Extrae los datos del JSON de forma segura."""
-        chat_id = str(data.get('chatroom', {}).get('id', ''))
-        slug = data.get('slug', '')
-        
-        user_data = data.get('user', {})
-        real_username = user_data.get('username', self.username)
-        profile_pic = user_data.get('profile_pic', '')
-        
-        followers = data.get('followersCount', 0)
-        
-        self.finished.emit(True, "Encontrado", slug, chat_id, real_username, followers, profile_pic)
-
-
-# =========================================================================
-# WORKER 2: MONITOR DE SEGUIDORES (Proceso en segundo plano)
+# WORKER 1: MONITOR DE SEGUIDORES (Proceso en segundo plano)
 # =========================================================================
 class FollowMonitorWorker(QThread):
     """
@@ -64,18 +18,15 @@ class FollowMonitorWorker(QThread):
     detectar cambios en el contador de seguidores.
     """ 
     # Señales UI
-    new_follower = pyqtSignal(int, int, str) # (Total, Diferencia, Nombre)
-    error_signal = pyqtSignal(str)           # Errores internos (Logs)
+    new_follower = pyqtSignal(int, int, str)
+    error_signal = pyqtSignal(str)
 
     def __init__(self, username: str, interval: int = DEFAULT_MONITOR_INTERVAL):
         super().__init__()
         self.username = username
         self.interval = interval     
-        # Estado
         self.is_running = True
-        self.last_count = -1   
-        # Cliente HTTP persistente (reutiliza conexión TCP/TLS)
-        self.scraper = cloudscraper.create_scraper()
+        self.last_count = -1 
 
     # =========================================================================
     # REGIÓN 1: BUCLE PRINCIPAL (THREAD RUN)
@@ -105,7 +56,7 @@ class FollowMonitorWorker(QThread):
         resp = self.scraper.get(url)
         
         if resp.status_code != 200:
-            return # Fallo de red temporal, ignoramos este ciclo
+            return
 
         data = resp.json()
         current_count = data.get('followersCount', 0)        

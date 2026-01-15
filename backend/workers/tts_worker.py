@@ -54,7 +54,7 @@ class TTSWorker(QThread):
             try:
                 self.current_engine.stop()
             except Exception as e:
-                self.log_received.emit(Log.error(f"TTS Stop Error: {e}"))
+                self.error_signal.emit(Log.error(f"TTS Stop Error: {e}"))
 
     # ==========================================
     # LOOP PRINCIPAL
@@ -68,7 +68,7 @@ class TTSWorker(QThread):
             except queue.Empty:
                 continue
             except Exception as e:
-                self.error_signal.emit(f"TTS Error General: {e}")
+                self.error_signal.emit(Log.error(f"TTS Error General: {e}"))
 
     # ==========================================
     # PROCESAMIENTO INTERNO
@@ -80,7 +80,6 @@ class TTSWorker(QThread):
 
     def _speak(self, text: str):
         try:
-            # Guardamos la referencia en self.current_engine
             self.current_engine = pyttsx3.init()
             
             if self.selected_voice_id:
@@ -96,10 +95,8 @@ class TTSWorker(QThread):
             self.current_engine.stop()
             
         except Exception as e:
-            # Ignoramos errores si fue por una interrupción forzada
             pass 
         finally:
-            # Limpieza crítica
             if self.current_engine:
                 try:
                     del self.current_engine

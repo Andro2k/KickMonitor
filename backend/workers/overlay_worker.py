@@ -132,7 +132,7 @@ class OverlayServerWorker(QThread):
             return web.Response(status=404, text="Carpeta multimedia no configurada.")
             
         full_path = os.path.join(user_media_folder, filename)
-        # Seguridad: Prevenir Directory Traversal (../)
+        
         try:
             full_path = os.path.abspath(full_path)
             base_path = os.path.abspath(user_media_folder)
@@ -156,9 +156,8 @@ class OverlayServerWorker(QThread):
         self.websockets.add(ws)
         try:
             async for msg in ws:
-                # Ignoramos mensajes entrantes del overlay (solo es output)
                 if msg.type == WSMsgType.ERROR:
-                    self.log_received.emit(Log.error(f'WS Error: {ws.exception()}'))
+                    self.log_signal.emit(Log.error(f'WS Error: {ws.exception()}'))
         finally:
             self.websockets.discard(ws)
         return ws
@@ -168,7 +167,7 @@ class OverlayServerWorker(QThread):
         if not self.websockets: return
         data = {"action": action}
         if payload: data.update(payload)
-        # Copia de la lista para iterar seguro
+
         active_sockets = list(self.websockets)
         
         for ws in active_sockets:
@@ -183,13 +182,10 @@ class OverlayServerWorker(QThread):
     def _get_asset_path(self, filename: str) -> str:
         """
         Resuelve rutas de archivos estáticos. 
-        Compatible con modo desarrollo y modo compilado (PyInstaller).
         """
         if hasattr(sys, '_MEIPASS'): 
-            # Modo .EXE (PyInstaller)
             base_dir = os.path.join(sys._MEIPASS, "assets")
         else:
-            # Modo Script Python: Subir 2 niveles desde backend/
             root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             base_dir = os.path.join(root_dir, "assets")
 

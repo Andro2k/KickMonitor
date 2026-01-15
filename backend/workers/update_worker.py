@@ -1,4 +1,5 @@
 # backend/updater.py
+
 import subprocess
 import sys
 import os
@@ -11,7 +12,6 @@ from packaging import version
 # CONFIGURACIÓN DE VERSIÓN
 # =========================================================================
 INTERNAL_VERSION = "1.8.1"
-CURRENT_VERSION = INTERNAL_VERSION
 UPDATE_JSON_URL = "https://raw.githubusercontent.com/Andro2k/KickMonitor/refs/heads/main/version.json"
 
 # =========================================================================
@@ -37,13 +37,14 @@ class UpdateCheckerWorker(QThread):
             changelog = data.get("changelog", "")
 
             # 2. Comparar versiones
-            if version.parse(remote_ver) > version.parse(CURRENT_VERSION):
+            if version.parse(remote_ver) > version.parse(INTERNAL_VERSION):
                 self.update_available.emit(remote_ver, url, changelog)
             else:
                 self.no_update.emit()
 
         except Exception as e:
-            self.error.emit(f"Error de conexión: {str(e)}")
+            print(f"[DEBUG_UPDATER] Error de conexión: {e}")
+            self.error.emit("No se pudo verificar la actualización.")
 
 # =========================================================================
 # WORKER 2: DESCARGADOR E INSTALADOR
@@ -92,13 +93,8 @@ class UpdateDownloaderWorker(QThread):
             
             try:
                 # 2. FIX PARA PYINSTALLER:
-                # 'close_fds=True' y 'shell=True' ayudan a desvincular el proceso.
                 subprocess.Popen([self.installer_path], shell=True, close_fds=True)
-                
-                # Damos un pequeño respiro para asegurar que el comando se envió al SO
                 QThread.msleep(1000) 
-                
-                # Cerramos la aplicación
                 sys.exit(0)
                 
             except Exception as e:

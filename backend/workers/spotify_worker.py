@@ -4,7 +4,6 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import os
 from urllib.parse import urlparse, parse_qs
 from typing import Optional, Dict
-import threading
 import os
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer, QThread, QUrl
 from PyQt6.QtGui import QDesktopServices
@@ -209,9 +208,8 @@ class SpotifyWorker(QObject):
                     data['title'], data['artist'], data['art'], 
                     data['progress'], data['duration'], data['is_playing']
                 )
-        except Exception:
-            # Errores de red temporales son normales, no logueamos para no ensuciar
-            pass
+        except Exception as e:
+            print(f"[DEBUG_SPOTIFY] Error en polling: {e}")
 
     def _parse_track_data(self, playback_json: Dict) -> Optional[Dict]:
         """Extrae datos limpios del JSON crudo de Spotify."""
