@@ -2,12 +2,13 @@
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QScrollArea, QFrame, 
-    QCheckBox, QDialog, QFileDialog, QApplication
+    QCheckBox, QDialog, QFileDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QUrl
 from PyQt6.QtGui import QDesktopServices
 
 from backend.utils.paths import get_app_data_path
+from backend.workers.updater import INTERNAL_VERSION
 from ui.factories import (
     create_header_page,
     create_section_header,
@@ -32,9 +33,7 @@ class SettingsPage(QWidget):
         self.service = SettingsService(db_handler)
         self.controller = controller
         self.db = db_handler 
-        
-        # Versión actual (puedes moverla a una constante global luego)
-        self.app_version = "1.8.0" 
+        self.app_version = INTERNAL_VERSION 
         
         self.init_ui()
         self.load_data()

@@ -12,6 +12,7 @@ from PyQt6.QtGui import QAction, QIcon
 from backend.core.controller import MainController
 
 # UI Components
+from backend.workers.updater import INTERNAL_VERSION
 from ui.components.sidebar import Sidebar
 from ui.theme import get_sheet
 from ui.components.modals import ModalConfirm
@@ -34,7 +35,7 @@ class MainWindow(QMainWindow):
         super().__init__() 
         self._setup_app_id()     
         self.setWindowIcon(QIcon(resource_path("icon.ico")))
-        self.setWindowTitle("Kick Monitor")
+        self.setWindowTitle(f"Kick Monitor v{INTERNAL_VERSION}")
         self.resize(1000, 650)
         
         self.controller = MainController()

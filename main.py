@@ -29,12 +29,8 @@ except ImportError:
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    
-    # --- PROTECCIÓN DE INSTANCIA ÚNICA (NUEVO) ---
-    # Creamos un identificador único. Si cambias de versión, puedes mantenerlo igual.
+
     mutex_id = "3E28ED4F-E3D1-466D-8140-E080992D5092"
-    
-    # Intentamos crear el Mutex en el Kernel de Windows
     mutex = ctypes.windll.kernel32.CreateMutexW(None, False, mutex_id)
     
     # Si el error es 183 (ERROR_ALREADY_EXISTS), ya hay una instancia abierta

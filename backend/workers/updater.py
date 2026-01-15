@@ -10,10 +10,7 @@ from packaging import version
 # =========================================================================
 # CONFIGURACIÓN DE VERSIÓN
 # =========================================================================
-# IMPORTANTE: Cambia este valor MANUALMENTE antes de compilar una nueva versión.
-# Al ser una constante, garantizamos que el EXE siempre sepa qué versión es.
 INTERNAL_VERSION = "1.8.0"
-
 CURRENT_VERSION = INTERNAL_VERSION
 UPDATE_JSON_URL = "https://raw.githubusercontent.com/Andro2k/KickMonitor/refs/heads/main/version.json"
 
@@ -21,7 +18,7 @@ UPDATE_JSON_URL = "https://raw.githubusercontent.com/Andro2k/KickMonitor/refs/he
 # WORKER 1: VERIFICADOR DE ACTUALIZACIONES
 # =========================================================================
 class UpdateCheckerWorker(QThread):
-    update_available = pyqtSignal(str, str, str) # version, url, changelog
+    update_available = pyqtSignal(str, str, str)
     no_update = pyqtSignal()
     error = pyqtSignal(str)
 
@@ -41,7 +38,6 @@ class UpdateCheckerWorker(QThread):
             changelog = data.get("changelog", "")
 
             # 2. Comparar versiones
-            # Usamos packaging.version para comparaciones robustas (ej: 1.7.10 > 1.7.2)
             if version.parse(remote_ver) > version.parse(CURRENT_VERSION):
                 # print(f"[UPDATER] Actualización encontrada: {remote_ver}")
                 self.update_available.emit(remote_ver, url, changelog)
@@ -71,7 +67,6 @@ class UpdateDownloaderWorker(QThread):
             # 1. Preparar ruta temporal
             temp_dir = tempfile.gettempdir()
             self.installer_path = os.path.join(temp_dir, "KickMonitor_Update.exe")
-            
             # print(f"[UPDATER] Descargando en: {self.installer_path}")
 
             # 2. Descargar con stream para barra de progreso
@@ -85,8 +80,6 @@ class UpdateDownloaderWorker(QThread):
                         if chunk:
                             dl += len(chunk)
                             f.write(chunk)
-                            
-                            # Calcular porcentaje
                             if total_length > 0:
                                 percent = int((dl / total_length) * 100)
                                 self.progress.emit(percent)
@@ -106,7 +99,6 @@ class UpdateDownloaderWorker(QThread):
             
             try:
                 # 2. FIX PARA PYINSTALLER:
-                # Usamos Popen en lugar de os.startfile.
                 # 'close_fds=True' y 'shell=True' ayudan a desvincular el proceso.
                 subprocess.Popen([self.installer_path], shell=True, close_fds=True)
                 
