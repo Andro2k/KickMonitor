@@ -62,10 +62,11 @@
                 element.style.opacity = "0";
 
                 // Auto-eliminación
-                element.onerror = () => {
-                    console.error("Error cargando medio:", data.url);
-                    element.remove();
-                };
+                if (data.duration > 0) {
+                    setTimeout(() => { if(element) element.remove(); }, data.duration * 1000);
+                } else {
+                    element.onended = () => element.remove();
+                }
 
                 // Posicionamiento cuando carguen los metadatos
                 element.onloadedmetadata = () => {
