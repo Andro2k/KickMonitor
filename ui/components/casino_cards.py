@@ -34,9 +34,9 @@ class GameConfigCard(BaseAccordionCard):
 
         # 3. Construir el Contenido (Inputs)
         for lbl_text, key, default, is_int in settings:
-            self.add_content_widget(self._create_setting_row(lbl_text, key, default, is_int))
+            self.add_content_widget(self._create_content_row(lbl_text, key, default, is_int))
 
-    def _create_setting_row(self, text, key, default, is_int):
+    def _create_content_row(self, text, key, default, is_int):
         """Crea una fila horizontal: Etiqueta ----------- Input"""
         row_widget = QWidget()
         row_widget.setStyleSheet("background: transparent;")

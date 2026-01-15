@@ -19,7 +19,7 @@ from ui.utils import crop_to_square, get_colored_icon, get_icon, get_rounded_pix
 # --- IMPORTS NUEVOS ---
 from ui.components.flow_layout import FlowLayout
 from ui.components.music_player import MusicPlayerPanel
-from ui.factories import create_card_header, create_dashboard_action_btn, create_shortcut_btn # Usamos factory para headers
+from ui.factories import create_card_header, create_dashboard_action_btn, create_shortcut_btn 
 
 class DashboardPage(QWidget):
     navigate_signal = pyqtSignal(int) 

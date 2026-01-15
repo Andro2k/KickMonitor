@@ -29,7 +29,6 @@ class CustomModal(QDialog):
         layout.setContentsMargins(10, 30, 10, 10)
         
         body = QFrame()
-        # El borde ahora usa el color de la configuración (self.config['color'])
         body.setStyleSheet(f"""
             QFrame {{
                 background-color: {THEME_DARK['Black_N3']}; 
@@ -95,14 +94,14 @@ class CustomModal(QDialog):
             # Botón Secundario: Transparente, Hover gris oscuro
             style = f"""
                 QPushButton {{
-                    background-color: transparent;
+                    background-color: {THEME_DARK['Black_N2']};
                     color: {THEME_DARK['Gray_N1']};
                     border: 1px solid {THEME_DARK['border']};
                     border-radius: 8px;
                     font-size: 12px;
                 }}
                 QPushButton:hover {{
-                    background-color: {THEME_DARK['Black_N2']};
+                    background-color: {THEME_DARK['Black_N1']};
                     color: {THEME_DARK['White_N1']};
                     border: 1px solid {THEME_DARK['Gray_N1']};
                 }}

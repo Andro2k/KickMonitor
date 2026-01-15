@@ -93,7 +93,6 @@ def create_switch_widget(checked: bool, func, tooltip: str = "") -> QWidget:
 # ==========================================
 # HEADERS Y TÍTULOS
 # ==========================================
-
 def create_page_header(title: str, subtitle: str) -> QWidget:
     """Crea el bloque de título estándar para el inicio de cada página."""
     container = QWidget()
@@ -112,6 +111,7 @@ def create_page_header(title: str, subtitle: str) -> QWidget:
     
     return container
 
+# -- Dashboard Page --
 def create_card_header(title: str, icon_name: str = None) -> QWidget:
     """Crea una cabecera para las tarjetas (Cards) con icono opcional."""
     w = QWidget()
@@ -134,13 +134,14 @@ def create_card_header(title: str, icon_name: str = None) -> QWidget:
     
     return w
 
+# -- Settings Page --
 def create_header_page(title: str, description: str) -> QFrame:
     """Crea el encabezado estilo GitLab (Fondo oscuro) usado en Settings."""
     frame = QFrame()
     frame.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']};")
     
     layout = QVBoxLayout(frame)
-    layout.setContentsMargins(20, 20, 20, 20)
+    layout.setContentsMargins(15,15,15,15)
     
     lbl_head = QLabel(title)
     lbl_head.setObjectName("h1")
@@ -152,7 +153,6 @@ def create_header_page(title: str, description: str) -> QFrame:
     layout.addWidget(lbl_desc)
     
     return frame
-
 def create_section_header(text: str) -> QLabel:
     """Crea el encabezado de sección con línea divisoria visual implícita"""
     lbl = QLabel(text)
@@ -188,6 +188,7 @@ def create_styled_input(placeholder: str = "", is_cmd: bool = False, callback=No
             
     return inp
 
+# -- Settings Page --
 def create_setting_row(title: str, description: str, widget: QWidget) -> QWidget:
     """Crea una fila de configuración: Texto izquierda | Widget derecha."""
     container = QWidget()
@@ -207,7 +208,6 @@ def create_setting_row(title: str, description: str, widget: QWidget) -> QWidget
     layout.addWidget(widget, 0, 1, 2, 1, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
     
     return container
-
 def create_styled_button(text: str, style_key: str, func=None) -> QPushButton:
     """Crea un botón genérico aplicando una clave del diccionario STYLES."""
     btn = QPushButton(text)
@@ -218,7 +218,6 @@ def create_styled_button(text: str, style_key: str, func=None) -> QPushButton:
         btn.clicked.connect(func)
         
     return btn
-
 def create_styled_combobox(items: list[str], width: int = 0) -> QComboBox:
     """Crea un ComboBox pre-estilizado."""
     combo = QComboBox()
@@ -231,7 +230,7 @@ def create_styled_combobox(items: list[str], width: int = 0) -> QComboBox:
     return combo
 
 # ==========================================
-# BOTONES DASHBOARD (GRANDES)
+# BOTONES DASHBOARD (GRANDES) DASHBOARD PAGE
 # ==========================================
 
 def create_dashboard_action_btn(text: str, icon_name: str, func=None) -> QPushButton:
@@ -240,7 +239,7 @@ def create_dashboard_action_btn(text: str, icon_name: str, func=None) -> QPushBu
     btn.setIcon(get_icon(icon_name))
     btn.setCheckable(True)
     btn.setCursor(Qt.CursorShape.PointingHandCursor)
-    btn.setFixedHeight(32)
+    btn.setFixedHeight(28)
     btn.setMinimumWidth(160)
     
     btn.setStyleSheet(f"""
@@ -261,7 +260,7 @@ def create_shortcut_btn(text: str, icon_name: str, func=None) -> QPushButton:
     """Crea el botón cuadrado vertical para el grid de accesos directos."""
     btn = QPushButton()
     btn.setCursor(Qt.CursorShape.PointingHandCursor)
-    btn.setMinimumHeight(70)
+    btn.setMinimumHeight(64)
     btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
     
     l = QVBoxLayout(btn)
@@ -275,7 +274,7 @@ def create_shortcut_btn(text: str, icon_name: str, func=None) -> QPushButton:
     
     lbl = QLabel(text)
     lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    lbl.setStyleSheet("border:none; font-weight:600; font-size:11px; background:transparent;")
+    lbl.setStyleSheet("border:none; font-weight:500; font-size:11px; background:transparent;")
     
     l.addWidget(ico)
     l.addWidget(lbl)
