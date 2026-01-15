@@ -5,6 +5,7 @@ import csv
 from typing import List, Tuple, Dict, Optional
 
 from backend.utils.data_manager import DataManager
+from backend.utils.logger import Log
 
 class CommandsService:
     """
@@ -52,7 +53,7 @@ class CommandsService:
         rows, error = DataManager.import_csv(path, required)
         
         if rows is None:
-            print(f"[Import Error] {error}")
+            self.log_received.emit(Log.error(f"[Import Error] {error}"))
             return 0, 0 # O podrías lanzar excepción para avisar a la UI
 
         count_ok = 0

@@ -78,7 +78,7 @@ class KickBotWorker(QThread):
             self.loop.run_until_complete(self._shutdown_sequence())
             self.loop.close()
         except Exception as e:
-            print(f"Error cerrando loop: {e}")
+            self.log_received.emit(Log.debug(f"Error cerrando loop asíncrono: {e}"))
 
     async def _shutdown_sequence(self):
         """Cierra conexiones WebSocket y HTTP pendientes."""
@@ -367,7 +367,7 @@ class KickBotWorker(QThread):
 
         except Exception as e:
             self.log_received.emit(Log.error(f"Error procesando mensaje: {e}"))
-            # print(f"DEBUG MSG ERROR: {msg}")
+            self.log_received.emit(Log.debug(f"Contenido del mensaje fallido: {msg}"))
 
     def _parse_incoming_message(self, msg: dict) -> Tuple[Optional[str], Optional[str]]:
         """

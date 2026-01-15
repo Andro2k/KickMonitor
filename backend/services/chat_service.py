@@ -3,6 +3,8 @@
 from typing import List, Dict, Any
 import pyttsx3
 
+from backend.utils.logger import Log
+
 class ChatService:
     """
     Servicio de Configuración del Chat y TTS (Text-to-Speech).
@@ -32,7 +34,7 @@ class ChatService:
                 })
             del engine # Importante: liberar el recurso COM
         except Exception as e:
-            print(f"[TTS Error] Al cargar voces: {e}")
+            self.log_received.emit(Log.error(f"[TTS Error] Al cargar voces: {e}"))
         return voices_list
 
     # =========================================================================

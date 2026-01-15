@@ -158,7 +158,7 @@ class OverlayServerWorker(QThread):
             async for msg in ws:
                 # Ignoramos mensajes entrantes del overlay (solo es output)
                 if msg.type == WSMsgType.ERROR:
-                    print(f'WS Error: {ws.exception()}')
+                    self.log_received.emit(Log.error(f'WS Error: {ws.exception()}'))
         finally:
             self.websockets.discard(ws)
         return ws

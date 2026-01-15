@@ -1,7 +1,10 @@
-# backend/logger.py
+# backend/utils/logger.py
 from datetime import datetime
 
 class Log:
+    # --- NUEVA VARIABLE GLOBAL DE CONTROL ---
+    enabled_debug = False 
+
     # Paleta de colores (estilo Terminal Dark)
     COLORS = {
         "INFO": "#29b6f6",    # Azul claro
@@ -16,7 +19,6 @@ class Log:
     def _format(level, message):
         """Genera el string HTML con el formato [LEVEL] Mensaje"""
         color = Log.COLORS.get(level, "#ffffff")
-        # Timestamp opcional, si tu UI ya lo pone, puedes quitar la parte de datetime
         timestamp = datetime.now().strftime("%H:%M:%S")
         
         return (
@@ -25,6 +27,7 @@ class Log:
             f'<span style="color:#ddd;">{message}</span>'
         )
 
+    # --- MÉTODOS ESTÁNDAR ---
     @staticmethod
     def info(msg): return Log._format("INFO", msg)
 
@@ -38,7 +41,11 @@ class Log:
     def error(msg): return Log._format("ERROR", msg)
 
     @staticmethod
-    def debug(msg): return Log._format("DEBUG", msg)
-    
-    @staticmethod
     def system(msg): return Log._format("SYSTEM", msg)
+
+    # --- MÉTODO DEBUG FILTRADO ---
+    @staticmethod
+    def debug(msg):
+        if Log.enabled_debug:
+            return Log._format("DEBUG", msg)
+        return None

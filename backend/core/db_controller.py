@@ -14,6 +14,7 @@ from backend.database.repositories import (
     ChatCommandsRepository,
     AutomationsRepository
 )
+from backend.utils.logger import Log
 
 class DBHandler:
     """
@@ -67,7 +68,7 @@ class DBHandler:
         "gamble_enabled": "1", "gamble_win_rate": "45", "gamble_multiplier": "2.0",
         "gamble_min": "10", "gamble_max": "1000", "slots_jackpot_x": "10",
         "roulette_multi_num": "35.0", "roulette_multi_col": "2.0", "highcard_multiplier": "2.0", 
-        "auto_connect": "0", "minimize_to_tray": "0","app_language": "es", "date_format": "24h",
+        "auto_connect": "0", "minimize_to_tray": "0","app_language": "es", "date_format": "24h", "debug_mode": "0",
     }
 
     # =========================================================================
@@ -101,7 +102,7 @@ class DBHandler:
                     )
                 self.conn_handler.conn.commit()
             except Exception as e:
-                print(f"[DB] Init Error: {e}") 
+                self.emit_log(Log.debug(f"Error DB: {e}"))
 
     def _run_migrations(self):
         """Verifica y crea columnas faltantes (Migración básica)."""

@@ -67,8 +67,9 @@ class SettingsPage(QWidget):
         self._setup_integrations_section()
         self._setup_economy_section()
         self._setup_danger_section()
-        self._setup_system_section() # <--- NUEVA SECCIÓN
-        
+        self._setup_system_section()
+        self._setup_debug_section()
+
         self.content_layout.addStretch()
         
         scroll.setWidget(self.content_widget)
@@ -211,6 +212,96 @@ class SettingsPage(QWidget):
             "Comprueba si hay una nueva versión disponible en GitHub.",
             btn_update
         ))
+
+    # ==========================================
+    # SECCIÓN 6: DEBUG AVANZADO (NUEVA)
+    # ==========================================
+    def _setup_debug_section(self):
+        self.content_layout.addWidget(create_section_header("Herramientas de Depuración (Avanzado)"))
+
+        # Switch para activar/desactivar Debug en terminal
+        self.chk_debug = QCheckBox()
+        self.chk_debug.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.chk_debug.setStyleSheet(get_switch_style())
+        self.chk_debug.setChecked(self.controller.debug_enabled)
+        self.chk_debug.toggled.connect(self.controller.set_debug_mode)
+
+        self.content_layout.addWidget(create_setting_row(
+            "Ver Logs de Depuración",
+            "Muestra mensajes técnicos de Handlers y Workers en la consola del Dashboard.",
+            self.chk_debug
+        ))
+
+        # 1. Test de Overlay (Simular Alerta)
+        btn_test_overlay = create_styled_button("Simular Evento WS", "btn_outlined", self._debug_test_overlay)
+        self.content_layout.addWidget(create_setting_row(
+            "Probar Servidor Overlay",
+            "Envía un mensaje de prueba al WebSocket para verificar la conexión con OBS.",
+            btn_test_overlay
+        ))
+
+        # 2. Reset de Base de Datos (Limpieza técnica)
+        btn_db_check = create_styled_button("Verificar Integridad DB", "btn_outlined", self._debug_check_db)
+        self.content_layout.addWidget(create_setting_row(
+            "Mantenimiento de Datos",
+            "Ejecuta un PRAGMA integrity_check y optimiza el archivo de base de datos.",
+            btn_db_check
+        ))
+
+        # 3. Dump de Sesión Kick
+        btn_session = create_styled_button("Ver Sesión Actual", "btn_outlined", self._debug_show_session)
+        self.content_layout.addWidget(create_setting_row(
+            "Tokens y Sesión",
+            "Muestra los tokens almacenados en el archivo session.json (Solo para desarrollo).",
+            btn_session
+        ))
+
+        # 4. Estado de Workers (Threads)
+        btn_threads = create_styled_button("Refrescar Hilos", "btn_outlined", self._debug_show_threads)
+        self.content_layout.addWidget(create_setting_row(
+            "Monitor de Workers",
+            "Verifica cuántos procesos secundarios (Spotify, Bot, TTS) están activos.",
+            btn_threads
+        ))
+
+    # ==========================================
+    # HANDLERS DE DEBUG
+    # ==========================================
+    def _debug_test_overlay(self):
+        """Simula un evento play_media sin necesidad de un comando en el chat."""
+        try:
+            payload = {
+                "action": "play_media",
+                "url": "http://127.0.0.1:8081/assets/test.mp4",
+                "type": "video",
+                "volume": 50
+            }
+            self.controller.overlay_server.send_event("debug_test", payload)
+            ToastNotification(self, "Debug", "Evento enviado al servidor.", "info").show_toast()
+        except Exception as e:
+            ToastNotification(self, "Error Debug", str(e), "Status_Red").show_toast()
+
+    def _debug_check_db(self):
+        """Ejecuta comandos de mantenimiento en la conexión SQLite."""
+        path = self.db.get_db_path()
+        ToastNotification(self, "DB Debug", f"Archivo: {path}", "info").show_toast()
+        # Aquí podrías llamar a self.db.execute_query("VACUUM") o similares
+
+    def _debug_show_session(self):
+        """Abre el archivo de sesión para inspeccionar los tokens."""
+        import os
+        from backend.utils.paths import get_app_data_path
+        session_path = os.path.join(get_app_data_path(), "session.json")
+        if os.path.exists(session_path):
+            QDesktopServices.openUrl(QUrl.fromLocalFile(session_path))
+        else:
+            ToastNotification(self, "Error", "No existe archivo de sesión.", "Status_Red").show_toast()
+
+    def _debug_show_threads(self):
+        """Muestra el conteo de hilos activos de la aplicación."""
+        import threading
+        count = threading.active_count()
+        ToastNotification(self, "Threads", f"Hilos activos: {count}", "info").show_toast()
 
     # ==========================================
     # LÓGICA DE CARGA DE DATOS

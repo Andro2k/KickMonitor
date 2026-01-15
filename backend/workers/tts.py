@@ -5,6 +5,8 @@ import re
 import pyttsx3
 from PyQt6.QtCore import QThread, pyqtSignal
 
+from backend.utils.logger import Log
+
 class TTSWorker(QThread):
     error_signal = pyqtSignal(str)
 
@@ -52,7 +54,7 @@ class TTSWorker(QThread):
             try:
                 self.current_engine.stop()
             except Exception as e:
-                print(f"TTS Stop Error: {e}")
+                self.log_received.emit(Log.error(f"TTS Stop Error: {e}"))
 
     # ==========================================
     # LOOP PRINCIPAL

@@ -5,6 +5,7 @@ from urllib.parse import quote
 from typing import List, Dict, Any, Tuple
 
 from backend.utils.data_manager import DataManager
+from backend.utils.logger import Log
 
 class OverlayService:
     """
@@ -90,7 +91,7 @@ class OverlayService:
                         "config": config 
                     })
         except Exception as e:
-            print(f"[OverlayService] Error escaneando carpeta: {e}")
+            self.log_received.emit(Log.error(f"[OverlayService] Error escaneando carpeta: {e}"))
             return []
             
         return results

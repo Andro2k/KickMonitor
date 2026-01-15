@@ -4,6 +4,8 @@ import asyncio
 from typing import Optional
 from aiohttp import web
 
+from backend.utils.logger import Log
+
 class OAuthService:
     """
     Servicio de autenticación OAuth2 local (usando aiohttp).
@@ -36,7 +38,7 @@ class OAuthService:
         except asyncio.TimeoutError:
             return None
         except Exception as e:
-            print(f"[OAuth] Error esperando código: {e}")
+            self.log_received.emit(Log.error(f"[OAuth] Error esperando código: {e}"))
             return None
         finally:
             # 3. Limpieza garantizada

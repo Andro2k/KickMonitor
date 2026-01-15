@@ -74,6 +74,8 @@ class MainController(QObject):
         self.log_signal.connect(self._write_log_to_file)
         if hasattr(self, 'kick_bot'):
             self.kick_bot.log_received.connect(self._write_log_to_file)
+        # 8. Debug
+        self.debug_enabled = self.db.get_bool("debug_mode")
     
     def _setup_timers(self):
         # Timer Puntos: Distribuye puntos cada minuto
@@ -411,10 +413,7 @@ class MainController(QObject):
         try:
             # 1. Limpiar HTML básico para que el txt sea legible
             clean_msg = html_msg.replace("<b>", "").replace("</b>", "")
-            # (Puedes usar regex si quieres ser más estricto, pero esto suele bastar)
             if "<span" in clean_msg:
-                # Extraer solo el texto si es complejo, o simplemente guardar crudo
-                # Para simplificar, guardamos una versión simple con fecha
                 import re
                 clean_msg = re.sub(r'<[^>]+>', '', clean_msg)
 
@@ -428,4 +427,19 @@ class MainController(QObject):
                 f.write(f"{clean_msg}\n")
                 
         except Exception as e:
-            print(f"Error escribiendo log en disco: {e}")
+            self.emit_log(Log.debug(f"Error crítico de disco: {e}"))
+
+    # Nuevo método para emitir logs solo si el debug está activo
+    def set_debug_mode(self, enabled: bool):
+        """Sincroniza el estado global de la clase Log."""
+        self.debug_enabled = enabled
+        self.db.set("debug_mode", enabled)
+        Log.enabled_debug = enabled 
+        
+        status = "ACTIVADO" if enabled else "DESACTIVADO"
+        self.emit_log(Log.system(f"Modo Depuración: {status}"))
+
+    def emit_log(self, text):
+        """Emite logs a la UI, ignorando los None (Debug desactivado)."""
+        if text:
+            self.log_signal.emit(text)
