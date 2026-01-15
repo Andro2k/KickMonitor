@@ -1,10 +1,8 @@
 # backend/database/connection.py
+
 import sqlite3
 import os
-import sys
 from PyQt6.QtCore import QMutex, QMutexLocker
-
-from backend.utils.logger import Log
 from backend.utils.paths import get_app_data_path
 
 class DatabaseConnection:
@@ -12,7 +10,6 @@ class DatabaseConnection:
         
         base_path = get_app_data_path()
         self.db_path = os.path.join(base_path, db_name)
-
         self.mutex = QMutex()
         
         # Conexión Segura
@@ -22,7 +19,7 @@ class DatabaseConnection:
             self.conn.row_factory = sqlite3.Row 
             self._init_wal()
         except sqlite3.OperationalError as e:
-            self.log_msg(Log.debug(f"Error DB Crítico en ruta {self.db_path}: {e}"))
+            print(f"[DB_DEBUG] No se pudo abrir {self.db_path}: {e}")
             self.conn = sqlite3.connect(":memory:", check_same_thread=False)
 
     def _init_wal(self):

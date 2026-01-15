@@ -15,12 +15,10 @@ CHAT_MAX_CHARS = 400  # Límite seguro para mensajes de Kick
 class AlertHandler:
     """
     Gestiona las alertas multimedia (Overlay) y la Tienda del Chat.
-    Controla triggers automáticos, cooldowns y economía de puntos.
     """
     def __init__(self, db_handler, overlay_worker):
         self.db = db_handler
-        self.overlay = overlay_worker   
-        # Diccionario para controlar tiempos de espera: { "comando": timestamp }
+        self.overlay = overlay_worker
         self.cooldowns: Dict[str, float] = {}
 
     # =========================================================================
@@ -31,7 +29,6 @@ class AlertHandler:
                       log_msg: Callable[[str], None]) -> bool:
         """
         Evalúa si el mensaje activa la tienda o una alerta multimedia.
-        Retorna True si el mensaje fue procesado (para no seguir buscando).
         """       
         # 1. Comando Especial: !tienda
         if msg_lower == "!tienda":
@@ -117,22 +114,16 @@ class AlertHandler:
         # D) Ejecutar Alerta en Overlay
         try:
             full_url = OVERLAY_URL_TEMPLATE.format(quote(fn))
-            
             payload = {
                 "url": full_url, 
                 "type": ftype, 
-                "duration": 0,    # 0 = automático según duración del archivo
+                "duration": 0,
                 "scale": scale, 
                 "volume": vol, 
                 "random": self.db.get_bool("random_pos")
-            }
-            
+            }           
             self.overlay.send_event("play_media", payload)
-            
-            # Actualizar estado
-            self.cooldowns[command] = now
-            
-            # Loguear con formato bonito
+            self.cooldowns[command] = now           
             log_msg(Log.info(f"🎬 {user} canjeó {command} (-{cost} pts)"))
             return True
 

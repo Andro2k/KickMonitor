@@ -1,11 +1,9 @@
 # backend/handlers/chat_handler.py
 
-import ast
 import re
-import json
 import random
 from datetime import datetime
-from typing import Tuple, List, Dict, Any
+from typing import List, Dict, Any
 
 class ChatHandler:
     """

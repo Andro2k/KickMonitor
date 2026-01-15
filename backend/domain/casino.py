@@ -59,7 +59,6 @@ class CasinoSystem:
             "slots": lambda: self._play_slots(user, amount),
             "dice": lambda: self._play_dice(user, amount),
             "highcard": lambda: self._play_high_card(user, amount),
-            # Ruleta necesita un argumento extra (la predicción)
             "roulette": lambda: self._play_roulette(user, amount, args[0] if args else None)
         }
 
@@ -182,7 +181,7 @@ class CasinoSystem:
         
         # Normalizar colores (español/inglés)
         color_map = {"red": "rojo", "black": "negro", "green": "verde"}
-        user_pred = color_map.get(pred_str, pred_str) # Si es "red" lo pasa a "rojo", si es "14" lo deja "14"
+        user_pred = color_map.get(pred_str, pred_str)
         
         valid_colors = ["rojo", "negro", "verde"]
         is_number_bet = user_pred.isdigit()

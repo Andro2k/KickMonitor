@@ -6,12 +6,10 @@ from backend.utils.logger import Log
 class MusicHandler:
     """
     Maneja los comandos de música (Spotify).
-    Verifica triggers en DB y ejecuta acciones en el SpotifyWorker.
     """   
     def __init__(self, db_handler, spotify_worker):
         self.db = db_handler
         self.spotify = spotify_worker      
-        # Mapeo: Clave interna de DB -> Nombre de la columna/ajuste
         self.keys = {
             "song": "music_cmd_song",
             "skip": "music_cmd_skip",
@@ -36,7 +34,6 @@ class MusicHandler:
                       log_msg: Callable[[str], None]) -> bool:
         """
         Evalúa si el mensaje es un comando musical y lo ejecuta.
-        Retorna True si se procesó una acción.
         """
         # Si Spotify no está activo, abortamos inmediatamente
         if not self.spotify.is_active:
@@ -44,7 +41,7 @@ class MusicHandler:
         # Helpers para lectura limpia de configuración
         def is_active(k): return self.db.get(f"{self.keys[k]}_active") != "0"
         def get_trigger(k, default): return (self.db.get(self.keys[k]) or default).lower()
-        # Cargar configuración actual
+
         cmd_song = get_trigger("song", "!song")
         cmd_req = get_trigger("req", "!sr")
         cmd_skip = get_trigger("skip", "!skip")
