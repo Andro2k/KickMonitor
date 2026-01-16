@@ -2,6 +2,7 @@
 
 import time
 from PyQt6.QtCore import QThread, pyqtSignal
+import cloudscraper
 
 # ==========================================
 # CONSTANTES Y CONFIGURACIÓN
@@ -27,6 +28,7 @@ class FollowMonitorWorker(QThread):
         self.interval = interval     
         self.is_running = True
         self.last_count = -1 
+        self.scraper = cloudscraper.create_scraper()
 
     # =========================================================================
     # REGIÓN 1: BUCLE PRINCIPAL (THREAD RUN)

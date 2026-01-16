@@ -7,6 +7,7 @@ import aiohttp
 from typing import Optional, Dict, Any
 from datetime import datetime
 # --- LIBRERÍAS EXTERNAS ---
+import cloudscraper
 from kickpython import KickAPI
 from PyQt6.QtCore import QThread, pyqtSignal, QUrl
 from PyQt6.QtGui import QDesktopServices
@@ -42,7 +43,7 @@ class KickBotWorker(QThread):
         self.api: Optional[KickAPI] = None 
         self.chatroom_id = str(self.config.get('chatroom_id', ''))
         self.broadcaster_user_id: Optional[int] = None
-
+        self.scraper = cloudscraper.create_scraper()
     # =========================================================================
     # REGIÓN 1: CICLO DE VIDA (THREAD & ASYNC LOOP)
     # =========================================================================
@@ -110,13 +111,13 @@ class KickBotWorker(QThread):
     async def _main_orchestrator(self):
         """Controla el flujo lógico de inicio del bot."""
         self.log_received.emit(Log.info("Iniciando motor Kick."))
-
+        token_db_path = os.path.join(get_app_data_path(), "kick_tokens.db")
         # Inicializar Wrapper de API
         self.api = KickAPI(
             client_id=self.config.get('client_id'), 
             client_secret=self.config.get('client_secret'), 
             redirect_uri=self.config.get('redirect_uri'),
-            # db_path=DB_FILE_PATH 
+            db_path=token_db_path 
         )
         # PASO 1: Autenticación OAuth
         if not await self._ensure_authentication():

@@ -1,5 +1,5 @@
 {
-    "version": "1.8.2",
-    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.8.2/KickMonitor_Setup_v1.8.2.exe",
+    "version": "1.8.1",
+    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.8.1/KickMonitor_Setup_v1.8.1.exe",
     "changelog": "<ul><li><b>NÚCLEO:</b> Auditoría completa del Backend; eliminación de importaciones duplicadas y código basura en el motor principal.</li><li><b>DEPURACIÓN:</b> Estandarización del sistema de logs mediante el nuevo 'Modo Debug' centralizado en la terminal de la aplicación.</li><li><b>EFICIENCIA:</b> Migración de consultas SQL a sentencias 'ON CONFLICT' para mejorar la velocidad de persistencia y reducir la carga de la DB.</li><li><b>ESTABILIDAD:</b> Corrección de fallos de comunicación (señales rotas) en los servicios de Spotify, OAuth y Overlay.</li><li><b>CONECTIVIDAD:</b> Eliminación de workers redundantes y optimización del flujo de detección de canales en Kick.</li></ul>"
 }
