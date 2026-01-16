@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 from ui.theme import LAYOUT, THEME_DARK, STYLES
-from ui.utils import get_colored_icon, get_icon
+from ui.utils import get_icon_colored, get_icon
 from ui.factories import create_icon_btn
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
@@ -165,7 +165,7 @@ class MediaCard(QFrame):
         icon_preview = QIcon()
         
         if is_active:
-            pix_black = get_colored_icon("play-circle.svg", THEME_DARK['Black_N1']).pixmap(24, 24)
+            pix_black = get_icon_colored("play-circle.svg", THEME_DARK['Black_N1']).pixmap(24, 24)
             icon_preview.addPixmap(pix_black, QIcon.Mode.Normal)
             icon_preview.addPixmap(pix_black, QIcon.Mode.Active)
 
@@ -176,7 +176,7 @@ class MediaCard(QFrame):
             self.setStyleSheet(self.styleSheet().replace("QFrame { opacity: 0.6; }", ""))
 
         else:
-            pix_gray = get_colored_icon("play-circle.svg", THEME_DARK['White_N1']).pixmap(24, 24)
+            pix_gray = get_icon_colored("play-circle.svg", THEME_DARK['White_N1']).pixmap(24, 24)
             
             # Añadimos ambos estados al icono
             icon_preview.addPixmap(pix_gray, QIcon.Mode.Normal)

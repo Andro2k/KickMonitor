@@ -14,7 +14,7 @@ from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
 from ui.dialogs.connection_modal import ConnectionModal
 from ui.theme import LAYOUT, STYLES, THEME_DARK
-from ui.utils import crop_to_square, get_colored_icon, get_icon, get_rounded_pixmap
+from ui.utils import crop_to_square, get_icon_colored, get_icon, get_rounded_pixmap
 
 # --- IMPORTS NUEVOS ---
 from ui.components.flow_layout import FlowLayout
@@ -293,7 +293,7 @@ class DashboardPage(QWidget):
         fg = "black" if active else THEME_DARK['White_N1']
         txt = "Spotify: On" if active else "Conectar Spotify"
         
-        self.btn_spotify.setIcon(get_colored_icon("spotify.svg", fg))
+        self.btn_spotify.setIcon(get_icon_colored("spotify.svg", fg))
         self.btn_spotify.setText(txt)
         self.btn_spotify.setStyleSheet(f"""
             QPushButton {{ 
@@ -307,7 +307,7 @@ class DashboardPage(QWidget):
         bg = THEME_DARK['NeonGreen_Main'] if connected else THEME_DARK['Black_N3']
         fg = "black" if connected else THEME_DARK['White_N1']
         msg = "Bot Conectado" if connected else "Conectar Bot"
-        self.btn_connect.setIcon(get_colored_icon("kick.svg", fg))
+        self.btn_connect.setIcon(get_icon_colored("kick.svg", fg))
         self.btn_connect.setText(msg)
         self.btn_connect.setStyleSheet(f"""
             QPushButton {{ 

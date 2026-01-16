@@ -1,7 +1,6 @@
 # ui/utils.py
 
 import cv2
-import numpy as np
 import sys
 import os
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QPainterPath, QImage
@@ -20,7 +19,7 @@ def get_icon(name):
     full_path = resource_path(os.path.join("assets", "icons", name))
     return QIcon(full_path)
 
-def get_colored_icon(name, color_str, size=24):
+def get_icon_colored(name, color_str, size=24):
     """
     Carga un SVG, lo pinta de color y maneja errores si el archivo no existe.
     """
@@ -61,7 +60,6 @@ def get_rounded_pixmap(pixmap: QPixmap, radius: int = 0, is_circle: bool = False
     
     path = QPainterPath()
     if is_circle:
-        # Asumimos que la imagen ya viene cuadrada o queremos un círculo centrado
         s = min(size.width(), size.height())
         path.addEllipse(0, 0, s, s)
     else:
@@ -84,7 +82,6 @@ def crop_to_square(pixmap: QPixmap, size: int) -> QPixmap:
 def get_video_thumbnail(file_path, width=300):
     """
     Extrae el primer frame de un video y devuelve un QPixmap.
-    Devuelve None si falla.
     """
     if not os.path.exists(file_path):
         return None
@@ -115,9 +112,8 @@ def get_video_thumbnail(file_path, width=300):
     
     return None
 
-# Necesitamos una clase de señales porque QRunnable no tiene señales por defecto
 class WorkerSignals(QObject):
-    finished = pyqtSignal(object) # Enviará el QPixmap resultante
+    finished = pyqtSignal(object)
 
 class ThumbnailWorker(QRunnable):
     def __init__(self, path, width):
@@ -127,7 +123,5 @@ class ThumbnailWorker(QRunnable):
         self.signals = WorkerSignals()
 
     def run(self):
-        # Esto se ejecuta en otro hilo y NO congela la UI
         pixmap = get_video_thumbnail(self.path, self.width)
-        # Enviamos el resultado de vuelta
         self.signals.finished.emit(pixmap)

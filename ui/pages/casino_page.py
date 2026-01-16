@@ -11,7 +11,7 @@ from PyQt6.QtCore import Qt
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
 from ui.factories import create_page_header
-from ui.utils import get_icon, get_colored_icon
+from ui.utils import get_icon, get_icon_colored
 from ui.theme import LAYOUT, THEME_DARK, STYLES, get_switch_style
 from backend.services.gambling_service import GamblingService
 from ui.components.flow_layout import FlowLayout 

@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from ui.factories import create_page_header
 from ui.theme import LAYOUT, THEME_DARK, STYLES
-from ui.utils import get_icon, get_colored_icon
+from ui.utils import get_icon, get_icon_colored
 from backend.services.chat_service import ChatService
 from ui.components.flow_layout import FlowLayout
 
@@ -265,5 +265,5 @@ class ChatPage(QWidget):
         icon_name = "volume_on.svg" if is_active else "volume_off.svg"
         color = THEME_DARK['NeonGreen_Main'] if is_active else THEME_DARK['Gray_N1']
         
-        self.voice_btn.setIcon(get_colored_icon(icon_name, color))
+        self.voice_btn.setIcon(get_icon_colored(icon_name, color))
         self.voice_btn.setStyleSheet(STYLES["btn_nav"])

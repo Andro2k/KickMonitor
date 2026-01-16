@@ -18,7 +18,7 @@ from ui.factories import (
     create_switch_widget
 )
 from ui.theme import LAYOUT, THEME_DARK, STYLES
-from ui.utils import get_icon, get_colored_icon
+from ui.utils import get_icon, get_icon_colored
 from ui.components.modals import ModalConfirm
 from ui.components.toast import ToastNotification
 from backend.services.points_service import PointsService
@@ -118,7 +118,7 @@ class PointsPage(QWidget):
 
         # Botón Aplicar (Estilo Sólido)
         btn_apply = QPushButton(" Aplicar")
-        btn_apply.setIcon(get_colored_icon("save.svg", THEME_DARK['Black_N1']))
+        btn_apply.setIcon(get_icon_colored("save.svg", THEME_DARK['Black_N1']))
         btn_apply.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_apply.setFixedHeight(34)
         btn_apply.setStyleSheet(STYLES["btn_solid_primary"])
