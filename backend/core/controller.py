@@ -9,7 +9,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, QTimer, QThread
 from backend.core.db_controller import DBHandler
 from backend.handlers.antibot_handler import AntibotHandler
 from backend.utils.logger import Log
-from backend.utils.paths import get_app_data_path
+from backend.utils.paths import get_cache_path
 from backend.workers.overlay_worker import OverlayServerWorker
 from backend.core.kick_bot import KickBotWorker   
 from backend.workers.spotify_worker import SpotifyWorker
@@ -412,18 +412,14 @@ class MainController(QObject):
         Escribe el log en un archivo de texto plano, limpiando las etiquetas HTML.
         """
         try:
-            # 1. Limpiar HTML básico para que el txt sea legible
             clean_msg = html_msg.replace("<b>", "").replace("</b>", "")
             if "<span" in clean_msg:
                 import re
                 clean_msg = re.sub(r'<[^>]+>', '', clean_msg)
 
-            # 2. Definir ruta del archivo (uno por día para no hacerlo gigante)
             date_str = datetime.now().strftime("%Y-%m-%d")
-            log_file = os.path.join(get_app_data_path(), f"log_{date_str}.log")
+            log_file = os.path.join(get_cache_path(), f"log_{date_str}.log")
 
-            # 3. Escribir (Append mode)
-            timestamp = datetime.now().strftime("[%H:%M:%S]")
             with open(log_file, "a", encoding="utf-8") as f:
                 f.write(f"{clean_msg}\n")
                 

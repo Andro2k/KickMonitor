@@ -3,12 +3,12 @@
 import sqlite3
 import os
 from PyQt6.QtCore import QMutex, QMutexLocker
-from backend.utils.paths import get_app_data_path
+from backend.utils.paths import get_config_path
 
 class DatabaseConnection:
     def __init__(self, db_name="kick_data.db"):
         
-        base_path = get_app_data_path()
+        base_path = get_config_path()
         self.db_path = os.path.join(base_path, db_name)
         self.mutex = QMutex()
         

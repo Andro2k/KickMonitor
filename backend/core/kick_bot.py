@@ -15,15 +15,15 @@ from PyQt6.QtGui import QDesktopServices
 # --- MÓDULOS INTERNOS ---
 from backend.core.db_controller import DBHandler 
 from backend.utils.logger import Log
-from backend.utils.paths import get_app_data_path
+from backend.utils.paths import get_config_path
 from backend.services.oauth_service import OAuthService
 
 # ==========================================
 # CONSTANTES & CONFIGURACIÓN
 # ==========================================
-DATA_PATH = get_app_data_path()
-SESSION_FILE = os.path.join(DATA_PATH, "session.json")
-DB_FILE_PATH = os.path.join(DATA_PATH, "kick_data.db")
+CONFIG_DIR = get_config_path()
+SESSION_FILE = os.path.join(CONFIG_DIR, "session.json")
+DB_FILE_PATH = os.path.join(CONFIG_DIR, "kick_data.db")
 KICK_API_BASE = "https://kick.com/api/v1"
 KICK_CHAT_API = "https://api.kick.com/public/v1/chat"
 
@@ -240,24 +240,20 @@ class KickBotWorker(QThread):
     async def _detect_user_and_channel(self) -> bool:
         """
         Obtiene los IDs del canal basándose estrictamente en la configuración local.
-        Ya no intenta adivinar el usuario mediante la API.
         """
         # 1. Recuperar usuario de la configuración (DB)
         target_user = self.config.get('kick_username') 
         
         if not target_user:
-            # Esto no debería pasar si la UI hizo su trabajo
             self.log_received.emit(Log.error("Falta configurar el nombre de usuario del canal."))
             return False
 
         self.log_received.emit(Log.info(f"Cargando datos para el canal: {target_user}"))
 
-        # 2. Intentar cargar IDs desde caché (DB) para arranque rápido
         if self._load_from_cache(target_user):
             self.log_received.emit(Log.success("Datos de canal cargados desde caché."))
             return True
 
-        # 3. Si no están en caché, consultamos la info PÚBLICA del canal
         if await self._fetch_channel_data(target_user): 
             return True
             
@@ -308,7 +304,6 @@ class KickBotWorker(QThread):
         cached = self.db.get_kick_user(target_user)
         if cached and cached.get('user_id'):
             self.broadcaster_user_id = cached['user_id']
-            # Intentar recuperar chatroom_id de settings si no está en user
             chat_id_db = self.db.get("chatroom_id")
             if chat_id_db:
                 self.chatroom_id = chat_id_db
@@ -365,15 +360,12 @@ class KickBotWorker(QThread):
             self.chat_received.emit(sender, content, badges, timestamp)
 
         except Exception as e:
-            # Reporte de error para el usuario
             self.log_received.emit(Log.error(f"Error procesando mensaje: {e}"))
-            # Reporte técnico para el Modo Debug (Si está activo)
             self.log_received.emit(Log.debug(f"Contenido crudo del mensaje fallido: {msg}"))
 
     def _parse_incoming_message(self, msg: dict) -> Tuple[Optional[str], Optional[str]]:
         """
         Extrae usuario y contenido limpiando la estructura anidada de Kick/Pusher.
-        Retorna (username, content) o (None, None).
         """
         payload = msg
         # Desempaquetar string JSON en 'data' si existe

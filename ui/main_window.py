@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(1000, self.controller.start_bot)
 
     def _setup_app_id(self):
-        myappid = u'kickmonitor.v1.8.1' 
+        myappid = u'kickmonitor.v1.8.2' 
         try: 
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
         except Exception as e:
@@ -118,16 +118,15 @@ class MainWindow(QMainWindow):
     def _connect_signals(self):
         # Navegación interna (ej: Cards del Dashboard -> Sidebar)
         self.ui_home.navigate_signal.connect(self.switch_page)
-        
-        # Resto de conexiones existentes...
         self.ui_home.connect_signal.connect(self.toggle_connection)
+
         self.ui_conf.user_changed.connect(self.controller.force_user_refresh)
         
         self.ui_chat.voice_btn.toggled.connect(self.controller.set_tts_enabled)
         self.ui_chat.chk_command_only.toggled.connect(self.controller.set_command_only)
+
         self.controller.set_tts_enabled(self.ui_chat.voice_btn.isChecked())
         self.controller.set_command_only(self.ui_chat.chk_command_only.isChecked())
-
         self.controller.log_signal.connect(self.on_log_received)
         self.controller.chat_signal.connect(self.append_chat_message)
         self.controller.status_signal.connect(self.ui_chat.lbl_status.setText)
@@ -168,11 +167,11 @@ class MainWindow(QMainWindow):
         now = datetime.now()
         
         if "12-hour" in fmt_pref:
-            final_time = now.strftime("%I:%M %p") # 02:30 PM
+            final_time = now.strftime("%I:%M %p")
         elif "24-hour" in fmt_pref:
-            final_time = now.strftime("%H:%M")    # 14:30
+            final_time = now.strftime("%H:%M")
         else:
-            final_time = timestamp # Usar el que viene por defecto (Sistema)
+            final_time = timestamp
 
         # Colores y lógica existente...
         c_user = "#00E701"
@@ -199,8 +198,8 @@ class MainWindow(QMainWindow):
         minimize_on_close = self.controller.db.get_bool("minimize_to_tray")
         
         if minimize_on_close:
-            event.ignore() # Cancelar cierre
-            self.hide()    # Ocultar ventana
+            event.ignore()
+            self.hide()
             self.tray_icon.showMessage(
                 "Kick Monitor", 
                 "La aplicación sigue ejecutándose en segundo plano.",
@@ -219,8 +218,7 @@ class MainWindow(QMainWindow):
         """Configura el icono en la barra de tareas."""
         self.tray_icon = QSystemTrayIcon(self)
         self.tray_icon.setIcon(QIcon(resource_path("icon.ico")))
-        
-        # Menú del Tray (Click derecho)
+
         tray_menu = QMenu()
         
         action_show = QAction("Mostrar Monitor", self)
@@ -249,6 +247,5 @@ class MainWindow(QMainWindow):
 
     def force_close(self):
         """Cierra la app saltándose la protección de minimizado."""
-        # Podemos reutilizar tu lógica de confirmación si quieres
         self.tray_icon.hide()
         QApplication.quit()

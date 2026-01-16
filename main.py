@@ -20,8 +20,7 @@ if sys.platform.startswith('win'):
 if not hasattr(sys, '_MEIPASS'):
     pass
 
-# Configurar ID de Windows para la barra de tareas
-myappid = 'kickmonitor.v1.8.1' 
+myappid = 'kickmonitor.v1.8.2' 
 try:
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except ImportError:
@@ -33,7 +32,6 @@ if __name__ == "__main__":
     mutex_id = "3E28ED4F-E3D1-466D-8140-E080992D5092"
     mutex = ctypes.windll.kernel32.CreateMutexW(None, False, mutex_id)
     
-    # Si el error es 183 (ERROR_ALREADY_EXISTS), ya hay una instancia abierta
     if ctypes.windll.kernel32.GetLastError() == 183:
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Icon.Warning)
@@ -44,7 +42,6 @@ if __name__ == "__main__":
         msg.exec()
         sys.exit(0)
 
-    # Cargar icono de la aplicación
     app.setWindowIcon(QIcon(resource_path("icon.ico")))
     
     w = MainWindow()

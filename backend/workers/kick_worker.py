@@ -2,7 +2,7 @@
 
 import time
 import cloudscraper
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 from PyQt6.QtCore import QThread, pyqtSignal
 
 # ==========================================
@@ -16,8 +16,7 @@ DEFAULT_MONITOR_INTERVAL = 30
 # =========================================================================
 class KickApiWorker(QThread):
     """
-    Worker efímero. Realiza una única consulta HTTP para validar 
-    si un usuario existe y obtener sus datos básicos (ID, Foto, Slug).
+    Worker efímero. Realiza una única consulta HTTP para validar
     """    
     # Señal: (Exito, Mensaje, Slug, ChatID, UsernameReal, Followers, ProfilePic)
     finished = pyqtSignal(bool, str, str, str, str, int, str)
@@ -64,17 +63,15 @@ class FollowMonitorWorker(QThread):
     detectar cambios en el contador de seguidores.
     """ 
     # Señales UI
-    new_follower = pyqtSignal(int, int, str) # (Total, Diferencia, Nombre)
-    error_signal = pyqtSignal(str)           # Errores internos (Logs)
+    new_follower = pyqtSignal(int, int, str)
+    error_signal = pyqtSignal(str)
 
     def __init__(self, username: str, interval: int = DEFAULT_MONITOR_INTERVAL):
         super().__init__()
         self.username = username
-        self.interval = interval     
-        # Estado
+        self.interval = interval
         self.is_running = True
         self.last_count = -1   
-        # Cliente HTTP persistente (reutiliza conexión TCP/TLS)
         self.scraper = cloudscraper.create_scraper()
 
     # =========================================================================
@@ -105,7 +102,7 @@ class FollowMonitorWorker(QThread):
         resp = self.scraper.get(url)
         
         if resp.status_code != 200:
-            return # Fallo de red temporal, ignoramos este ciclo
+            return
 
         data = resp.json()
         current_count = data.get('followersCount', 0)        
@@ -129,12 +126,10 @@ class FollowMonitorWorker(QThread):
             resp = self.scraper.get(url_list)            
             if resp.status_code == 200:
                 data = resp.json()
-                # Kick devuelve los más recientes primero (índice 0)
                 if data and 'followers' in data:
                     items = data['followers']
                     if items and len(items) > 0:
                         return items[0].get('username', 'Nuevo Seguidor')
         except:
-            # Si falla esta sub-consulta, no rompemos el flujo, devolvemos genérico
             pass           
         return "Nuevo Seguidor"

@@ -11,7 +11,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
 from backend.utils.logger import Log
-from backend.utils.paths import get_app_data_path
+from backend.utils.paths import get_cache_path
 
 # ==========================================
 # CONFIGURACIÓN
@@ -80,8 +80,8 @@ class SpotifyLoginThread(QThread):
 # =========================================================================
 class SpotifyWorker(QObject):
     # --- SEÑALES ---
-    track_changed = pyqtSignal(str, str, str, int, int, bool) # UI Update
-    status_msg = pyqtSignal(str)                              # Logs/Toast
+    track_changed = pyqtSignal(str, str, str, int, int, bool)
+    status_msg = pyqtSignal(str)                              
     # --- SLOTS DE CONTROL ---
     sig_do_auth = pyqtSignal()
     sig_do_disconnect = pyqtSignal()
@@ -115,10 +115,11 @@ class SpotifyWorker(QObject):
             return
 
         # DEFINIR RUTA DEL CACHE EN APPDATA
-        cache_path = os.path.join(get_app_data_path(), ".spotify_cache")
+        cache_folder = get_cache_path()
+        cache_path = os.path.join(cache_folder, ".spotify_cache")
 
         try:
-            cache_path = os.path.join(get_app_data_path(), ".spotify_cache")
+            cache_path = os.path.join(get_cache_path(), ".spotify_cache")
             self.auth_manager = SpotifyOAuth(
                 client_id=cid, 
                 client_secret=secret, 
