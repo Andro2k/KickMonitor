@@ -44,14 +44,14 @@ class Palette:
     NeonGreen_Dark  = "#3da812"
     
     # --- 5. Estados ---
-    Status_Red      = "#FF453A"
-    Status_Green    = "#32D74B"
-    Status_Yellow   = "#FFD60A"
-    Status_Blue     = "#0A84FF"
+    status_error      = "#FF453A"
+    status_success    = "#32D74B"
+    status_warning   = "#FFD60A"
+    status_info     = "#0A84FF"
 
     # --- 6. Alias Funcionales ---    
     border        = Gray_Border
-    info          = Status_Blue
+    info          = status_info
 
 class Dims:
     """Dimensiones y Espaciados."""
@@ -116,14 +116,6 @@ def get_sheet(is_dark: bool = True) -> str:
         border: 1px solid {c.NeonGreen_Main}; background-color: {c.Black_N3}; 
     }}
     QLineEdit[readOnly="true"] {{ color: {c.NeonGreen_Main}; font-family: Consolas; }}
-
-    /* --- BOTONES --- */
-    QPushButton {{ 
-        background-color: {c.Black_N2}; color: {c.White_N1}; 
-        border-radius: {r['button']}; padding: 6px;
-    }}
-    QPushButton:hover {{ background-color: {c.White_Alpha_08}; border-color: {c.Gray_N1}; }}
-    QPushButton:pressed {{ background-color: {c.border}; }}
     
     /* Botón Sidebar */
     QPushButton#MenuBtnMini {{ 
@@ -258,7 +250,7 @@ STYLES = {
     "btn_solid_primary": f"""
         QPushButton {{ 
             background-color: {c.NeonGreen_Main}; color: {c.Black_N1};
-            font-weight: bold; border-radius: 6px; border: none; padding: 8px 15px;
+            font-weight: bold; border-radius: 6px; border: none; padding: 6px;
         }}
         QPushButton:hover {{ background-color: {c.NeonGreen_Light}; }}
     """,
@@ -266,7 +258,7 @@ STYLES = {
     "btn_outlined": f"""
         QPushButton {{ 
             background-color: {c.Black_N3}; color: {c.White_N1}; 
-            border: 1px solid {c.Gray_Border}; border-radius: 8px; padding: 8px;
+            border: 1px solid {c.Gray_Border}; border-radius: 8px; padding: 6px;
         }} 
         QPushButton:hover {{ border-color: {c.NeonGreen_Main}; color: {c.White_N1}; }}
     """,
@@ -274,10 +266,10 @@ STYLES = {
     "btn_danger_outlined": f"""
         QPushButton {{
             background-color: rgba(239, 83, 80, 0.1);
-            border: 1px solid {c.Status_Red}; color: {c.White_N1};
-            border-radius: 8px; padding: 10px; font-weight: 600;
+            border: 1px solid {c.status_error}; color: {c.White_N1};
+            border-radius: 8px; padding: 6px; font-weight: 500;
         }}
-        QPushButton:hover {{ background-color: {c.Status_Red}; color: white; }}
+        QPushButton:hover {{ background-color: {c.status_error}; color: white; }}
     """,
     # Botón pequeño de acción (Editar, Borrar en tablas)
     "btn_icon_ghost": f"""
@@ -323,11 +315,11 @@ STYLES = {
             color: {c.White_N1}; border-radius: {r['input']}; padding: 6px; min-height: 20px;
         }}
         QComboBox:hover, QComboBox:focus {{
-            border: 1px solid {c.Gray_N1}; background-color: {c.Black_N3};
+            border: 1px solid {c.Gray_N1}; background-color: {c.Black_N3}; border-radius: {r['input']};
         }}
-        QComboBox::drop-down {{ subcontrol-origin: padding; subcontrol-position: top right; width: 20px; border: none; }}
+        QComboBox::drop-down {{ subcontrol-origin: padding; subcontrol-position: top right; width: 20px; border: none; border-radius: {r['input']}; }}
         QComboBox QAbstractItemView {{
-            background-color: {c.Black_N1}; color: {c.White_N1};
+            background-color: {c.NeonGreen_Dark}; color: {c.White_N1}; border-radius: {r['input']};
             selection-background-color: {c.NeonGreen_Main}; selection-color: {c.Black_N0}; padding: 4px;
         }}
     """,
@@ -390,9 +382,9 @@ THEME_DARK = COLORS
 TOAST_THEME = {
     "bg": "#232324",
     "states": { 
-        "Status_Green": Palette.Status_Green, 
-        "Status_Red":  Palette.Status_Red, 
-        "Status_Yellow": Palette.Status_Yellow, 
-        "info":    Palette.info 
+        "status_success": Palette.status_success, 
+        "status_error":  Palette.status_error, 
+        "status_warning": Palette.status_warning, 
+        "status_info":    Palette.info 
     }
 }

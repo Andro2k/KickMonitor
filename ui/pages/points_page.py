@@ -276,11 +276,11 @@ class PointsPage(QWidget):
         qty = self.spin_manual_pts.value()
         
         if not user:
-            ToastNotification(self, "Error", "Ingresa un usuario", "Status_Yellow").show_toast()
+            ToastNotification(self, "Error", "Ingresa un usuario", "status_warning").show_toast()
             return
             
         new_total = self.service.add_manual_points(user, qty)
-        ToastNotification(self, "Puntos", f"{user}: {qty:+} pts (Total: {new_total})", "Status_Green").show_toast()
+        ToastNotification(self, "Puntos", f"{user}: {qty:+} pts (Total: {new_total})", "status_success").show_toast()
         self.inp_manual_user.clear()
         self.load_table_data()
 
@@ -305,16 +305,16 @@ class PointsPage(QWidget):
         if ModalConfirm(self, "Eliminar", f"¿Estás seguro de eliminar a {user}? Se perderán sus puntos.").exec():
             if self.service.delete_user(user):
                 self.load_table_data()
-                ToastNotification(self, "Eliminado", "Usuario eliminado correctamente.", "Status_Green").show_toast()
+                ToastNotification(self, "Eliminado", "Usuario eliminado correctamente.", "status_success").show_toast()
 
     def _handle_export_csv(self):
         path, _ = QFileDialog.getSaveFileName(self, "Exportar Puntos", "data_users.csv", "CSV Files (*.csv)")
         if not path: return
 
         if self.service.export_points_csv(path):
-            ToastNotification(self, "Exportado", f"Datos guardados en {path}", "Status_Green").show_toast()
+            ToastNotification(self, "Exportado", f"Datos guardados en {path}", "status_success").show_toast()
         else:
-            ToastNotification(self, "Error", "No se pudo escribir el archivo.", "Status_Red").show_toast()
+            ToastNotification(self, "Error", "No se pudo escribir el archivo.", "status_error").show_toast()
 
     def _handle_import_csv(self):
         path, _ = QFileDialog.getOpenFileName(self, "Importar Puntos", "", "CSV Files (*.csv)")
@@ -325,9 +325,9 @@ class PointsPage(QWidget):
 
         success, title, msg = self.service.import_points_csv(path)
         
-        msg_type = "Status_Green" if success else "Status_Red"
+        msg_type = "status_success" if success else "status_error"
         if success and "Errores" in msg and not msg.endswith("(Errores: 0)"):
-             msg_type = "Status_Yellow" 
+             msg_type = "status_warning" 
 
         ToastNotification(self, title, msg, msg_type).show_toast()
         

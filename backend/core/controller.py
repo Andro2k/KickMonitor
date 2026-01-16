@@ -226,7 +226,7 @@ class MainController(QObject):
             "redirect_uri": self.db.get("redirect_uri") 
         }        
         if not all([config["client_id"], config["client_secret"]]):
-            self.toast_signal.emit("Error", "Faltan Client ID / Secret", "Status_Red")
+            self.toast_signal.emit("Error", "Faltan Client ID / Secret", "status_error")
             self.connection_changed.emit(False)
             return
 
@@ -261,7 +261,7 @@ class MainController(QObject):
             self.monitor_worker = None            
         self.status_signal.emit("Desconectado")
         self.connection_changed.emit(False)
-        self.toast_signal.emit("Sistema", "Desconectado", "Status_Yellow")
+        self.toast_signal.emit("Sistema", "Desconectado", "status_warning")
 
     def shutdown(self):
         """Cierre total de la aplicación (Cleanup)."""
@@ -285,7 +285,7 @@ class MainController(QObject):
     # =========================================================================
     def set_manual_username(self, username):
         self.db.set("kick_username", username)
-        self.toast_signal.emit("Configuración", f"Usuario '{username}' guardado.", "Status_Green")
+        self.toast_signal.emit("Configuración", f"Usuario '{username}' guardado.", "status_success")
         QTimer.singleShot(500, self.start_bot)
 
     def _start_monitor(self, username):
@@ -296,7 +296,7 @@ class MainController(QObject):
 
     def on_new_follower(self, count, name):
         # 1. Notificación Visual
-        self.toast_signal.emit("¡NUEVO!", f"{name} (+{count})", "Status_Green")
+        self.toast_signal.emit("¡NUEVO!", f"{name} (+{count})", "status_success")
         self.emit_log(Log.success(f"NUEVO SEGUIDOR: {name}"))
         # 2. Voz
         if self.tts_enabled: 
@@ -316,7 +316,7 @@ class MainController(QObject):
     def force_user_refresh(self):
         if self.worker: 
             self.stop_bot()
-            self.toast_signal.emit("Reinicio", "Cambio usuario detectado", "Status_Yellow")
+            self.toast_signal.emit("Reinicio", "Cambio usuario detectado", "status_warning")
         username = self.db.get("kick_username")
         if username: 
             data = self.db.get_kick_user(username)
@@ -377,7 +377,7 @@ class MainController(QObject):
         modal = UpdateModal(new_ver, notes, parent=None) 
         
         if modal.exec():
-            self.toast_signal.emit("Sistema", "Descargando actualización.", "Status_Green")
+            self.toast_signal.emit("Sistema", "Descargando actualización.", "status_success")
             self.start_download(url)
         else:
             self.emit_log(Log.system("El usuario pospuso la actualización."))
@@ -386,7 +386,7 @@ class MainController(QObject):
         """Se ejecuta siempre que el worker termina de buscar."""
 
         if self._manual_check and not self._update_found:
-            self.toast_signal.emit("Sistema", "Ya tienes la última versión.", "Status_Green")
+            self.toast_signal.emit("Sistema", "Ya tienes la última versión.", "status_success")
         
         # Limpieza
         self._manual_check = False
@@ -396,7 +396,7 @@ class MainController(QObject):
     def start_download(self, url):
         self.downloader = UpdateDownloaderWorker(url)
         self.downloader.progress.connect(self._on_update_progress)
-        self.downloader.error.connect(lambda e: self.toast_signal.emit("Error Update", str(e), "Status_Red"))
+        self.downloader.error.connect(lambda e: self.toast_signal.emit("Error Update", str(e), "status_error"))
         self.downloader.start()
 
     def _on_update_progress(self, percent):

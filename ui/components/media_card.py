@@ -82,7 +82,7 @@ class MediaCard(QFrame):
         
         self.btn_conf = create_icon_btn("sliders.svg", self._open_advanced_settings, tooltip="Ajustes Avanzados")
         self.btn_toggle = create_icon_btn("eye.svg", self._toggle_active, tooltip="Activar/Desactivar")
-        self.btn_del = create_icon_btn("trash.svg", self._delete_config, color_hover=THEME_DARK['Status_Red'])
+        self.btn_del = create_icon_btn("trash.svg", self._delete_config, color_hover=THEME_DARK['status_error'])
 
         row_btns.addWidget(self.btn_play, stretch=1)
         row_btns.addWidget(self.btn_conf)

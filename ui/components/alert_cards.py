@@ -161,7 +161,7 @@ class AlertCard(BaseAccordionCard):
     def _save(self):
         txt = self.txt_msg.toPlainText()
         if self.service.save_alert(self.event_type, txt, self.is_active):
-            ToastNotification(self, "Guardado", "Configuración actualizada", "Status_Green").show_toast()
+            ToastNotification(self, "Guardado", "Configuración actualizada", "status_success").show_toast()
 
 # =========================================================================
 # COMPONENTE 2: TARJETA DE TIMER (Mensajes Recurrentes)
@@ -216,4 +216,4 @@ class TimerCard(BaseAccordionCard):
 
     def _save(self):
         if self.service.save_timer(self.name, self.txt_msg.toPlainText(), self.spin.value(), self.chk_active.isChecked()):
-             ToastNotification(self, "Timer", "Guardado correctamente", "Status_Green").show_toast()
+             ToastNotification(self, "Timer", "Guardado correctamente", "status_success").show_toast()

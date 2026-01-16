@@ -318,7 +318,7 @@ class DashboardPage(QWidget):
 
     def _handle_spotify_status_alert(self, msg):
         if any(x in msg for x in ["❌", "Error", "Cancelado"]):
-            ToastNotification(self, "Spotify", msg, "Status_Red").show_toast()
+            ToastNotification(self, "Spotify", msg, "status_error").show_toast()
             self._update_spotify_btn_style(False)
 
     def append_log(self, text):

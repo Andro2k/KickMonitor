@@ -114,7 +114,7 @@ class CommandsPage(QWidget):
             btn_del = create_icon_btn(
                 "trash.svg",
                 lambda _, t=trigger: self._delete_command(t),
-                color_hover=THEME_DARK['Status_Red']
+                color_hover=THEME_DARK['status_error']
             )
 
             l_actions.addWidget(btn_edit)
@@ -148,9 +148,9 @@ class CommandsPage(QWidget):
             # Guardamos el nuevo (o el actualizado)
             if self.service.add_or_update_command(new_trig, new_resp, new_cd):
                 self.load_data()
-                ToastNotification(self, "Comandos", "Guardado correctamente", "Status_Green").show_toast()
+                ToastNotification(self, "Comandos", "Guardado correctamente", "status_success").show_toast()
             else:
-                ToastNotification(self, "Error", "No se pudo guardar", "Status_Red").show_toast()
+                ToastNotification(self, "Error", "No se pudo guardar", "status_error").show_toast()
 
     def _delete_command(self, trigger):
         if ModalConfirm(self, "Eliminar Comando", f"¿Borrar {trigger}?").exec():
@@ -164,9 +164,9 @@ class CommandsPage(QWidget):
         if not file_path: return
         
         if self.service.export_csv(file_path):
-            ToastNotification(self, "Exportar", "Archivo guardado con éxito", "Status_Green").show_toast()
+            ToastNotification(self, "Exportar", "Archivo guardado con éxito", "status_success").show_toast()
         else:
-            ToastNotification(self, "Error", "No se pudo exportar el archivo", "Status_Red").show_toast()
+            ToastNotification(self, "Error", "No se pudo exportar el archivo", "status_error").show_toast()
 
     def _handle_import(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Importar Comandos", "", "CSV Files (*.csv)")
@@ -179,7 +179,7 @@ class CommandsPage(QWidget):
         self.load_data() 
         
         if ok == 0 and fail == 0:
-            ToastNotification(self, "Archivo Incorrecto", "El CSV no tiene las columnas requeridas.", "Status_Red").show_toast()
+            ToastNotification(self, "Archivo Incorrecto", "El CSV no tiene las columnas requeridas.", "status_error").show_toast()
         else:
-            msg_type = "Status_Green" if fail == 0 else "Status_Yellow"
+            msg_type = "status_success" if fail == 0 else "status_warning"
             ToastNotification(self, "Importación", f"Importados: {ok} | Fallidos: {fail}", msg_type).show_toast()

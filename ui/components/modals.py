@@ -5,9 +5,9 @@ from ui.theme import THEME_DARK, LAYOUT
 
 class CustomModal(QDialog):
     CONFIGS = {
-        "Status_Green":  {"icon": "✓", "color": THEME_DARK['Status_Green']},
-        "Status_Red":    {"icon": "✕", "color": THEME_DARK['Status_Red']},
-        "Status_Yellow": {"icon": "!", "color": THEME_DARK['Status_Yellow']},
+        "status_success":  {"icon": "✓", "color": THEME_DARK['status_success']},
+        "status_error":    {"icon": "✕", "color": THEME_DARK['status_error']},
+        "status_warning": {"icon": "!", "color": THEME_DARK['status_warning']},
         "info":          {"icon": "i", "color": THEME_DARK['info']}
     }
 
@@ -145,5 +145,5 @@ def ModalAlert(parent, titulo, mensaje, tipo="info"):
     return CustomModal(parent, titulo, mensaje, tipo, mode="alert")
 
 def ModalConfirm(parent, titulo, mensaje):
-    tipo = "Status_Red" if any(x in titulo.lower() for x in ["salir", "eliminar", "borrar", "duplicado"]) else "info"
+    tipo = "status_error" if any(x in titulo.lower() for x in ["salir", "eliminar", "borrar", "duplicado"]) else "info"
     return CustomModal(parent, titulo, mensaje, tipo, mode="confirm")

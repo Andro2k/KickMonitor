@@ -227,14 +227,14 @@ class GamblingPage(QWidget):
         if ModalConfirm(self, "Borrar Historial", "¿Estás seguro? Se eliminarán todos los registros.").exec():
             if self.service.clear_all_history():
                 self.table.setRowCount(0)
-                ToastNotification(self, "Limpieza", "Historial eliminado", "Status_Green").show_toast()
+                ToastNotification(self, "Limpieza", "Historial eliminado", "status_success").show_toast()
             else:
-                ToastNotification(self, "Error", "No se pudo borrar", "Status_Red").show_toast()
+                ToastNotification(self, "Error", "No se pudo borrar", "status_error").show_toast()
 
     def _handler_toggle_casino(self, checked):
         self.service.set_status(checked)
         status = "HABILITADO" if checked else "DESHABILITADO"
-        color = "Status_Green" if checked else "Status_Yellow"
+        color = "status_success" if checked else "status_warning"
         ToastNotification(self, "Casino", f"Sistema {status}", color).show_toast()
 
     def _font_bold(self):

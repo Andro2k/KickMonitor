@@ -277,14 +277,14 @@ class SettingsPage(QWidget):
                 "volume": 50
             }
             self.controller.overlay_server.send_event("debug_test", payload)
-            ToastNotification(self, "Debug", "Evento enviado al servidor.", "info").show_toast()
+            ToastNotification(self, "Debug", "Evento enviado al servidor.", "status_info").show_toast()
         except Exception as e:
-            ToastNotification(self, "Error Debug", str(e), "Status_Red").show_toast()
+            ToastNotification(self, "Error Debug", str(e), "status_error").show_toast()
 
     def _debug_check_db(self):
         """Ejecuta comandos de mantenimiento en la conexión SQLite."""
         path = self.db.get_db_path()
-        ToastNotification(self, "DB Debug", f"Archivo: {path}", "info").show_toast()
+        ToastNotification(self, "DB Debug", f"Archivo: {path}", "status_info").show_toast()
         # Aquí podrías llamar a self.db.execute_query("VACUUM") o similares
 
     def _debug_show_session(self):
@@ -295,13 +295,13 @@ class SettingsPage(QWidget):
         if os.path.exists(session_path):
             QDesktopServices.openUrl(QUrl.fromLocalFile(session_path))
         else:
-            ToastNotification(self, "Error", "No existe archivo de sesión.", "Status_Red").show_toast()
+            ToastNotification(self, "Error", "No existe archivo de sesión.", "status_error").show_toast()
 
     def _debug_show_threads(self):
         """Muestra el conteo de hilos activos de la aplicación."""
         import threading
         count = threading.active_count()
-        ToastNotification(self, "Threads", f"Hilos activos: {count}", "info").show_toast()
+        ToastNotification(self, "Threads", f"Hilos activos: {count}", "status_info").show_toast()
 
     # ==========================================
     # LÓGICA DE CARGA DE DATOS
@@ -325,32 +325,32 @@ class SettingsPage(QWidget):
     def _handle_kick_auth(self):
         modal = ConnectionModal(self.db, service_type="kick", parent=self)
         if modal.exec() == QDialog.DialogCode.Accepted:
-            ToastNotification(self, "Sistema", "Credenciales guardadas", "Status_Green").show_toast()
+            ToastNotification(self, "Sistema", "Credenciales guardadas", "status_success").show_toast()
 
     def _handle_spotify_auth(self):
         modal = ConnectionModal(self.db, service_type="spotify", worker=self.controller.spotify, parent=self)
         if modal.exec() == QDialog.DialogCode.Accepted:
-             ToastNotification(self, "Spotify", "Configuración guardada", "Status_Green").show_toast()
+             ToastNotification(self, "Spotify", "Configuración guardada", "status_success").show_toast()
 
     def _handle_backup(self):
         folder = QFileDialog.getExistingDirectory(self, "Seleccionar carpeta")
         if folder:
             try:
                 path = self.service.create_backup(folder)
-                ToastNotification(self, "Backup", f"Guardado en: {path}", "Status_Green").show_toast()
+                ToastNotification(self, "Backup", f"Guardado en: {path}", "status_success").show_toast()
             except Exception as e:
-                ToastNotification(self, "Error", str(e), "Status_Red").show_toast()
+                ToastNotification(self, "Error", str(e), "status_error").show_toast()
 
     def _handle_reset_economy(self):
         if ModalConfirm(self, "¿Reiniciar Economía?", "¿Seguro? Puntos a 0.").exec():
             self.service.reset_economy()
-            ToastNotification(self, "Economía", "Reiniciada", "Status_Green").show_toast()
+            ToastNotification(self, "Economía", "Reiniciada", "status_success").show_toast()
 
     def _handle_unlink_account(self):
         if ModalConfirm(self, "¿Desvincular?", "Se borrarán credenciales y cerrará el bot.").exec():
             self.service.reset_user_data()
             self.user_changed.emit() 
-            ToastNotification(self, "Cuenta", "Desvinculada correctamente", "Status_Green").show_toast()
+            ToastNotification(self, "Cuenta", "Desvinculada correctamente", "status_success").show_toast()
 
     def _handle_open_logs_folder(self):
         """Abre la carpeta real donde se guardan los logs y la DB."""
@@ -358,18 +358,12 @@ class SettingsPage(QWidget):
         QDesktopServices.openUrl(QUrl.fromLocalFile(folder_path))
 
     def _handle_check_updates(self):
-        # Aquí emitimos la señal para que el Controller (que tiene la lógica de red) haga el trabajo
-        # O si tienes la lógica aquí, la llamas directo.
-        ToastNotification(self, "Sistema", "Buscando actualizaciones...", "info").show_toast()
-        
-        # Si tienes el método en el controller:
+        ToastNotification(self, "Sistema", "Buscando actualizaciones...", "status_info").show_toast()
         if hasattr(self.controller, 'check_for_updates'):
             self.controller.check_for_updates()
         else:
-            # Placeholder si aún no conectas el backend
             self.check_updates_signal.emit()
 
     def _handle_time_fmt_changed(self):
-        # Guardamos el texto seleccionado para leerlo fácil en MainWindow
         val = self.combo_time.currentText()
         self.service.set_setting("time_fmt", val)

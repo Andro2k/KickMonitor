@@ -128,7 +128,7 @@ class OverlayPage(QWidget):
         layout.addWidget(self.lbl_path, stretch=1)
         layout.addWidget(create_icon_btn("folder.svg", self._handle_pick_folder))
         layout.addWidget(create_icon_btn("refresh-cw.svg", self.load_data))
-        layout.addWidget(create_icon_btn("trash.svg", self._handle_clean_all, color_hover=THEME_DARK['Status_Red']))
+        layout.addWidget(create_icon_btn("trash.svg", self._handle_clean_all, color_hover=THEME_DARK['status_error']))
         
         card.layout.addLayout(layout)
         return card
@@ -283,7 +283,7 @@ class OverlayPage(QWidget):
 
     def _handle_copy_url(self):
         QApplication.clipboard().setText(self.txt_url.text())
-        ToastNotification(self, "Copiado", "URL copiada al portapapeles", "Status_Green").show_toast()
+        ToastNotification(self, "Copiado", "URL copiada al portapapeles", "status_success").show_toast()
 
     def _handle_toggle_eye(self):
         current_mode = self.txt_url.echoMode()
@@ -302,9 +302,9 @@ class OverlayPage(QWidget):
         path, _ = QFileDialog.getSaveFileName(self, "Exportar Configuración", "alertas.csv", "CSV Files (*.csv)")
         if path:
             if self.service.export_csv(path): 
-                ToastNotification(self, "Éxito", "Configuración exportada correctamente", "Status_Green").show_toast()
+                ToastNotification(self, "Éxito", "Configuración exportada correctamente", "status_success").show_toast()
             else:
-                ToastNotification(self, "Error", "No se pudo exportar el archivo", "Status_Red").show_toast()
+                ToastNotification(self, "Error", "No se pudo exportar el archivo", "status_error").show_toast()
 
     def _handle_import(self):
         path, _ = QFileDialog.getOpenFileName(self, "Importar Configuración", "", "CSV Files (*.csv)")
@@ -321,7 +321,7 @@ class OverlayPage(QWidget):
             if len(missing_files) > 5: msg_missing += "\n... y más."
             ModalConfirm(self, "Archivos Faltantes", f"La configuración referencia archivos que no tienes:\n{msg_missing}").exec()
         
-        ToastNotification(self, "Importación Finalizada", f"Éxito: {ok_count} | Errores: {fail_count}", "Status_Green").show_toast()
+        ToastNotification(self, "Importación Finalizada", f"Éxito: {ok_count} | Errores: {fail_count}", "status_success").show_toast()
 
     def handle_command_update(self, filename: str, new_cmd: str):
         """
@@ -383,7 +383,7 @@ class OverlayPage(QWidget):
         success, msg = self.service.save_trigger(filename, ftype, data)
         
         if not silent:
-            type_msg = "Status_Green" if success else "Status_Red"
+            type_msg = "status_success" if success else "status_error"
             title = "Guardado" if success else "Error"
             ToastNotification(self, title, msg, type_msg).show_toast()
         
@@ -396,6 +396,6 @@ class OverlayPage(QWidget):
     def preview_item(self, filename: str, ftype: str, config: dict):
         """Callback llamado por MediaCard para previsualizar alertas."""
         if not self.chk_on.isChecked():
-            return ToastNotification(self, "Overlay Apagado", "Activa el switch superior para probar.", "Status_Yellow").show_toast()
+            return ToastNotification(self, "Overlay Apagado", "Activa el switch superior para probar.", "status_warning").show_toast()
         
         self.service.preview_media(filename, ftype, config)

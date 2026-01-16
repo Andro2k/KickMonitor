@@ -143,7 +143,7 @@ class MainWindow(QMainWindow):
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self.controller.set_manual_username(dialog.username)
         else:
-            self.show_toast("Error", "Se requiere el usuario para conectar.", "Status_Yellow")
+            self.show_toast("Error", "Se requiere el usuario para conectar.", "status_warning")
             self.ui_home.update_connection_state(False)
 
     def toggle_connection(self):
