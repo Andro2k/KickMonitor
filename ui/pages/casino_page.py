@@ -8,8 +8,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
-from ui.components.modals import ModalConfirm
-from ui.components.toast import ToastNotification
+from ui.alerts.modal_alert import ModalConfirm
+from ui.alerts.toast_alert import ToastNotification
 from ui.factories import create_page_header
 from ui.utils import get_icon, get_icon_colored
 from ui.theme import LAYOUT, THEME_DARK, STYLES, get_switch_style

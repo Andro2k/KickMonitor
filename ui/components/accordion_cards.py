@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve
 from ui.theme import LAYOUT, THEME_DARK, STYLES, get_switch_style
-from ui.components.toast import ToastNotification
+from ui.alerts.toast_alert import ToastNotification
 from ui.utils import get_icon
 
 # =========================================================================

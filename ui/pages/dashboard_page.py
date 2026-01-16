@@ -10,15 +10,15 @@ from PyQt6.QtGui import QPixmap, QPainter, QPainterPath
 from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 
 from backend.services.dashboard_service import DashboardService
-from ui.components.modals import ModalConfirm
-from ui.components.toast import ToastNotification
+from ui.alerts.modal_alert import ModalConfirm
+from ui.alerts.toast_alert import ToastNotification
 from ui.dialogs.connection_modal import ConnectionModal
 from ui.theme import LAYOUT, STYLES, THEME_DARK
 from ui.utils import crop_to_square, get_icon_colored, get_icon, get_rounded_pixmap
 
 # --- IMPORTS NUEVOS ---
 from ui.components.flow_layout import FlowLayout
-from ui.components.music_player import MusicPlayerPanel
+from ui.components.music_card import MusicPlayerPanel
 from ui.factories import create_card_header, create_dashboard_action_btn, create_shortcut_btn 
 
 class DashboardPage(QWidget):

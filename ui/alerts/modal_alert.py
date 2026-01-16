@@ -38,17 +38,17 @@ class CustomModal(QDialog):
         """)
         
         body_layout = QVBoxLayout(body)
-        body_layout.setContentsMargins(20, 35, 20, 20)
+        body_layout.setContentsMargins(10, 45, 10, 10)
         body_layout.setSpacing(LAYOUT["spacing"])
 
         lbl_tit = QLabel(titulo)
         lbl_tit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lbl_tit.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {THEME_DARK['White_N1']}; border: none;")
+        lbl_tit.setStyleSheet(f"font-size: 16px; font-weight: bold; color: {THEME_DARK['White_N1']}; border: none;")
         
         lbl_msg = QLabel(mensaje)
         lbl_msg.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lbl_msg.setWordWrap(True)
-        lbl_msg.setStyleSheet(f"font-size: 13px; color: {THEME_DARK['Gray_N1']}; border: none;")
+        lbl_msg.setStyleSheet(f"font-size: 12px; color: {THEME_DARK['Gray_N1']}; border: none;")
 
         body_layout.addWidget(lbl_tit)
         body_layout.addWidget(lbl_msg)
@@ -75,7 +75,7 @@ class CustomModal(QDialog):
     def _make_btn(self, text, primary):
         btn = QPushButton(text)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setFixedHeight(38)
+        btn.setFixedHeight(32)
         
         if primary:
             # Botón Primario: Fondo de color, Hover con borde blanco
@@ -118,9 +118,8 @@ class CustomModal(QDialog):
             background-color: {self.config['color']}; 
             color: #000; 
             border-radius: 32px; 
-            font-size: 26px; 
-            font-weight: 900; 
-            border: 4px solid {THEME_DARK['Black_N1']};
+            font-size: 24px; 
+            font-weight: 900;
         """)
 
     def _animate_entry(self):

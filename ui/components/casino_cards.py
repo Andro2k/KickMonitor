@@ -4,9 +4,9 @@ from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QLabel, QSpinBox, 
     QDoubleSpinBox
 )
-from ui.components.alert_cards import BaseAccordionCard
+from ui.components.accordion_cards import BaseAccordionCard
 from ui.utils import get_icon
-from ui.theme import STYLES, THEME_DARK
+from ui.theme import STYLES
 
 class GameConfigCard(BaseAccordionCard):
     """

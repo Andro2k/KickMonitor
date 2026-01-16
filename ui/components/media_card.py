@@ -7,8 +7,8 @@ from PyQt6.QtGui import QIcon
 from ui.theme import LAYOUT, THEME_DARK, STYLES
 from ui.utils import get_icon_colored, get_icon
 from ui.factories import create_icon_btn
-from ui.components.modals import ModalConfirm
-from ui.components.toast import ToastNotification
+from ui.alerts.modal_alert import ModalConfirm
+from ui.alerts.toast_alert import ToastNotification
 from ui.dialogs.edit_media_modal import ModalEditMedia
 
 class MediaCard(QFrame):

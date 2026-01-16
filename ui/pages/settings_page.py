@@ -18,8 +18,8 @@ from ui.factories import (
     create_styled_combobox 
 )
 from ui.theme import get_switch_style
-from ui.components.toast import ToastNotification
-from ui.components.modals import ModalConfirm
+from ui.alerts.toast_alert import ToastNotification
+from ui.alerts.modal_alert import ModalConfirm
 from ui.dialogs.connection_modal import ConnectionModal
 from backend.services.settings_service import SettingsService
 

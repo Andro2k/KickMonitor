@@ -8,8 +8,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from ui.factories import create_icon_btn, create_nav_btn, create_page_header
 from ui.theme import LAYOUT, THEME_DARK, STYLES
-from ui.components.modals import ModalConfirm
-from ui.components.toast import ToastNotification
+from ui.alerts.modal_alert import ModalConfirm
+from ui.alerts.toast_alert import ToastNotification
 from backend.services.commands_service import CommandsService
 
 # Modal importado (Ya refactorizado con BaseModal)

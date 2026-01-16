@@ -378,13 +378,3 @@ COLORS = {k: v for k, v in Palette.__dict__.items() if not k.startswith("__")}
 LAYOUT = Dims.layout
 RADIUS = Dims.radius
 THEME_DARK = COLORS 
-
-TOAST_THEME = {
-    "bg": "#232324",
-    "states": { 
-        "status_success": Palette.status_success, 
-        "status_error":  Palette.status_error, 
-        "status_warning": Palette.status_warning, 
-        "status_info":    Palette.info 
-    }
-}

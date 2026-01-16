@@ -9,8 +9,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QTimer
 
 from ui.components.cards import Card
-from ui.components.modals import ModalConfirm
-from ui.components.toast import ToastNotification
+from ui.alerts.modal_alert import ModalConfirm
+from ui.alerts.toast_alert import ToastNotification
 from ui.components.flow_layout import FlowLayout 
 from ui.components.media_card import MediaCard
 from ui.factories import create_nav_btn, create_page_header, create_styled_input, create_icon_btn

@@ -15,8 +15,8 @@ from backend.core.controller import MainController
 from backend.workers.update_worker import INTERNAL_VERSION
 from ui.components.sidebar import Sidebar
 from ui.theme import get_sheet
-from ui.components.modals import ModalConfirm
-from ui.components.toast import ToastNotification
+from ui.alerts.modal_alert import ModalConfirm
+from ui.alerts.toast_alert import ToastNotification
 from ui.dialogs.user_modal import UsernameInputDialog
 
 # Páginas

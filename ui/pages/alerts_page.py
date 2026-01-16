@@ -7,7 +7,7 @@ from ui.factories import create_page_header
 from ui.theme import LAYOUT
 from backend.services.alerts_service import AlertsService
 from ui.components.flow_layout import FlowLayout
-from ui.components.alert_cards import AlertCard, TimerCard
+from ui.components.accordion_cards import AlertCard, TimerCard
 
 class AlertsPage(QWidget):
     def __init__(self, db_handler, parent=None):

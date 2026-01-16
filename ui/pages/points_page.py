@@ -19,8 +19,8 @@ from ui.factories import (
 )
 from ui.theme import LAYOUT, THEME_DARK, STYLES
 from ui.utils import get_icon, get_icon_colored
-from ui.components.modals import ModalConfirm
-from ui.components.toast import ToastNotification
+from ui.alerts.modal_alert import ModalConfirm
+from ui.alerts.toast_alert import ToastNotification
 from backend.services.points_service import PointsService
 
 class PointsPage(QWidget):
