@@ -4,10 +4,10 @@ import asyncio
 import json
 import os
 import aiohttp
-from typing import Optional, Dict, Any
+import cloudscraper
+from typing import Optional, Dict, Any, Tuple
 from datetime import datetime
 # --- LIBRERÍAS EXTERNAS ---
-import cloudscraper
 from kickpython import KickAPI
 from PyQt6.QtCore import QThread, pyqtSignal, QUrl
 from PyQt6.QtGui import QDesktopServices
@@ -23,6 +23,7 @@ from backend.services.oauth_service import OAuthService
 # ==========================================
 DATA_PATH = get_app_data_path()
 SESSION_FILE = os.path.join(DATA_PATH, "session.json")
+DB_FILE_PATH = os.path.join(DATA_PATH, "kick_data.db")
 KICK_API_BASE = "https://kick.com/api/v1"
 KICK_CHAT_API = "https://api.kick.com/public/v1/chat"
 
@@ -42,8 +43,9 @@ class KickBotWorker(QThread):
         self.loop: Optional[asyncio.AbstractEventLoop] = None
         self.api: Optional[KickAPI] = None 
         self.chatroom_id = str(self.config.get('chatroom_id', ''))
-        self.broadcaster_user_id: Optional[int] = None
+        self.broadcaster_user_id: Optional[int] = None       
         self.scraper = cloudscraper.create_scraper()
+
     # =========================================================================
     # REGIÓN 1: CICLO DE VIDA (THREAD & ASYNC LOOP)
     # =========================================================================
@@ -111,13 +113,13 @@ class KickBotWorker(QThread):
     async def _main_orchestrator(self):
         """Controla el flujo lógico de inicio del bot."""
         self.log_received.emit(Log.info("Iniciando motor Kick."))
-        token_db_path = os.path.join(get_app_data_path(), "kick_tokens.db")
+
         # Inicializar Wrapper de API
         self.api = KickAPI(
             client_id=self.config.get('client_id'), 
             client_secret=self.config.get('client_secret'), 
             redirect_uri=self.config.get('redirect_uri'),
-            db_path=token_db_path 
+            db_path=DB_FILE_PATH 
         )
         # PASO 1: Autenticación OAuth
         if not await self._ensure_authentication():
@@ -238,18 +240,23 @@ class KickBotWorker(QThread):
     async def _detect_user_and_channel(self) -> bool:
         """
         Obtiene los IDs del canal basándose estrictamente en la configuración local.
+        Ya no intenta adivinar el usuario mediante la API.
         """
         # 1. Recuperar usuario de la configuración (DB)
-        target_user = self.config.get('kick_username')        
+        target_user = self.config.get('kick_username') 
+        
         if not target_user:
+            # Esto no debería pasar si la UI hizo su trabajo
             self.log_received.emit(Log.error("Falta configurar el nombre de usuario del canal."))
             return False
 
         self.log_received.emit(Log.info(f"Cargando datos para el canal: {target_user}"))
+
         # 2. Intentar cargar IDs desde caché (DB) para arranque rápido
         if self._load_from_cache(target_user):
             self.log_received.emit(Log.success("Datos de canal cargados desde caché."))
             return True
+
         # 3. Si no están en caché, consultamos la info PÚBLICA del canal
         if await self._fetch_channel_data(target_user): 
             return True
@@ -301,6 +308,7 @@ class KickBotWorker(QThread):
         cached = self.db.get_kick_user(target_user)
         if cached and cached.get('user_id'):
             self.broadcaster_user_id = cached['user_id']
+            # Intentar recuperar chatroom_id de settings si no está en user
             chat_id_db = self.db.get("chatroom_id")
             if chat_id_db:
                 self.chatroom_id = chat_id_db
@@ -345,12 +353,14 @@ class KickBotWorker(QThread):
             sender = msg.get('sender_username')
             if not sender and 'sender' in msg and isinstance(msg['sender'], dict):
                 sender = msg['sender'].get('username')
-           
+            
             if not sender: sender = "Desconocido"
             # 2. Extraer Insignias (Según tus logs es una lista directa de strings)
-            badges = msg.get('badges', [])           
+            badges = msg.get('badges', [])
+            
             # 3. Timestamp actual
             timestamp = datetime.now().strftime("%H:%M:%S")
+
             # 4. Emitir señal limpia
             self.chat_received.emit(sender, content, badges, timestamp)
 
@@ -359,6 +369,34 @@ class KickBotWorker(QThread):
             self.log_received.emit(Log.error(f"Error procesando mensaje: {e}"))
             # Reporte técnico para el Modo Debug (Si está activo)
             self.log_received.emit(Log.debug(f"Contenido crudo del mensaje fallido: {msg}"))
+
+    def _parse_incoming_message(self, msg: dict) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Extrae usuario y contenido limpiando la estructura anidada de Kick/Pusher.
+        Retorna (username, content) o (None, None).
+        """
+        payload = msg
+        # Desempaquetar string JSON en 'data' si existe
+        if 'data' in msg:
+            if isinstance(msg['data'], str):
+                try: payload = json.loads(msg['data'])
+                except json.JSONDecodeError: pass
+            elif isinstance(msg['data'], dict):
+                payload = msg['data']
+        # Extraer contenido
+        content = payload.get('content') or payload.get('message')
+        # Extraer usuario
+        sender = payload.get('sender', {})
+        username = None
+        
+        if isinstance(sender, dict) and 'username' in sender:
+            username = sender['username']
+        elif 'sender_username' in payload:
+            username = payload['sender_username']
+        elif 'username' in payload:
+            username = payload['username']
+
+        return username, content
 
     def send_chat_message(self, text: str):
         """Encolar envío de mensaje al hilo asyncio."""
