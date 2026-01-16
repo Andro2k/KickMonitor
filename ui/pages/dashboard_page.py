@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QTextEdit, QSizePolicy, QScrollArea
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QUrl
-from PyQt6.QtGui import QPixmap, QPainter, QPainterPath
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 
 from backend.services.dashboard_service import DashboardService
@@ -29,8 +29,7 @@ class DashboardPage(QWidget):
         super().__init__(parent)
         self.service = DashboardService(db_handler)
         self.spotify = spotify_worker 
-        
-        # Network Manager para imágenes (Se mantiene en UI porque es visual)
+
         self.nam = QNetworkAccessManager(self)
         self.nam.finished.connect(self._on_download_finished)
         self._current_art_url = None
@@ -122,9 +121,9 @@ class DashboardPage(QWidget):
         info.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         info.setSpacing(4)
         
-        self.lbl_welcome = QLabel("Cargando.", objectName="h2")
+        self.lbl_welcome = QLabel("Streamer.", objectName="h2")
         self.lbl_welcome.setStyleSheet("border:none;")
-        self.lbl_stats = QLabel(".", objectName="normal")
+        self.lbl_stats = QLabel("Informacion.", objectName="normal")
         self.lbl_stats.setStyleSheet(f"color: {THEME_DARK['Gray_N1']}; border:none;")
         
         info.addWidget(self.lbl_welcome)
@@ -141,8 +140,9 @@ class DashboardPage(QWidget):
         self.btn_connect = create_dashboard_action_btn("Kick: Offline", "kick.svg", self._handle_kick_connect_click)
         
         self.btn_auto = QPushButton()
+        self.btn_auto.setStyleSheet(STYLES["btn_toggle"])
         self.btn_auto.setCheckable(True)
-        self.btn_auto.setFixedSize(32, 32)
+        self.btn_auto.setFixedSize(28, 28)
         self.btn_auto.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_auto.setIcon(get_icon("plug.svg"))
         self.btn_auto.setToolTip("Auto-conectar al inicio")
@@ -150,7 +150,6 @@ class DashboardPage(QWidget):
         
         is_auto = self.service.get_auto_connect_state()
         self.btn_auto.setChecked(is_auto)
-        self._update_auto_btn_style(is_auto)
         
         kick_row.addWidget(self.btn_connect)
         kick_row.addWidget(self.btn_auto)
@@ -278,16 +277,10 @@ class DashboardPage(QWidget):
 
     def _toggle_auto_connect(self, checked):
         self.service.set_auto_connect_state(checked)
-        self._update_auto_btn_style(checked)
 
     # ==========================================
     # HELPERS VISUALES
     # ==========================================
-    def _update_auto_btn_style(self, checked):
-        bg = "rgba(83, 252, 24, 0.15)" if checked else THEME_DARK['Black_N3']
-        bc = THEME_DARK['NeonGreen_Main'] if checked else THEME_DARK['border']
-        self.btn_auto.setStyleSheet(f"QPushButton {{ background-color: {bg}; border: 1px solid {bc}; border-radius: 8px; }}")
-
     def _update_spotify_btn_style(self, active):
         bg = "#1DB954" if active else THEME_DARK['Black_N3']
         fg = "black" if active else THEME_DARK['White_N1']

@@ -165,12 +165,12 @@ class MediaCard(QFrame):
         icon_preview = QIcon()
         
         if is_active:
-            pix_black = get_icon_colored("play-circle.svg", THEME_DARK['Black_N1']).pixmap(24, 24)
+            pix_black = get_icon_colored("play-circle.svg", THEME_DARK['NeonGreen_Main']).pixmap(24, 24)
             icon_preview.addPixmap(pix_black, QIcon.Mode.Normal)
             icon_preview.addPixmap(pix_black, QIcon.Mode.Active)
 
             # Estilo CSS del botón
-            self.btn_play.setStyleSheet(STYLES["btn_solid_primary"])
+            self.btn_play.setStyleSheet(STYLES["btn_primary"])
             
             # Restaurar opacidad de la tarjeta completa
             self.setStyleSheet(self.styleSheet().replace("QFrame { opacity: 0.6; }", ""))

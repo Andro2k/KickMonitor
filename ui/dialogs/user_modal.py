@@ -69,7 +69,7 @@ class UsernameInputDialog(BaseModal):
         btn_save.setDefault(True)
         btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_save.setFixedHeight(45)
-        btn_save.setStyleSheet(STYLES["btn_solid_primary"])
+        btn_save.setStyleSheet(STYLES["btn_primary"])
         btn_save.clicked.connect(self._on_save)
 
         btn_layout.addWidget(btn_cancel)

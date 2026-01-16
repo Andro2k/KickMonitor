@@ -94,10 +94,40 @@ def get_sheet(is_dark: bool = True) -> str:
     }}
     
     /* --- TEXTOS --- */
-    QLabel {{ background: transparent; border: none; }}
-    QLabel#h1 {{ font-size: {f.h1}; font-weight: bold; margin-bottom: 4px; }}
-    QLabel#h2 {{ font-size: {f.h2}; font-weight: bold; margin-bottom: 2px; }}
-    QLabel#h3 {{ font-size: {f.h3}; font-weight: 600; color: {c.White_N1}; }}
+    QLabel {{ background: transparent; border: none; padding: 0px; }}
+    
+    QLabel#h1 {{ 
+        font-size: {f.h1}; font-weight: bold; 
+        margin: 0px 0px -3px 0px; padding: 0px;
+    }}
+    
+    QLabel#h2 {{ 
+        font-size: {f.h2}; font-weight: bold; 
+        margin: 0px 0px -2px 0px; padding: 0px;
+    }}
+    
+    QLabel#h3 {{ 
+        font-size: {f.h3}; font-weight: 600; 
+        color: {c.White_N1}; 
+        margin: 0px; padding: 0px;
+    }}
+
+    QLabel#h4 {{ 
+        font-size: {f.h3}; font-weight: bold; 
+        color: white; 
+        padding-bottom: 8px; 
+        border-bottom: 1px solid #333;
+        margin: 20px 0px 5px -3px;
+    }}
+
+    QLabel#h5 {{ 
+        font-size: {f.body}; 
+        font-weight: bold; 
+        color: white; 
+        padding-bottom: 2px;
+        margin: 20px 0px 5px -3px;
+    }}
+    
     QLabel#normal {{ font-size: {f.body}; font-weight: 500; color: {c.Gray_N2}; }}
     QLabel#subtitle {{ font-size: {f.body}; color: {c.Gray_N2}; }}
     
@@ -238,42 +268,45 @@ STYLES = {
     "btn_nav": f"""
         QPushButton {{
             background-color: {c.Black_N2}; color: {c.White_N1};
-            padding: 6px; border-radius: 6px; font-size: 12px; font-weight: bold;
-            border: 1px solid {c.Black_N2};
+            padding: 6px 12px; border: 1px solid {c.Black_N2}; border-radius: 6px; 
+            font-size: 12px; font-weight: bold;
+            
         }}
         QPushButton:hover {{ 
-            background-color: {c.Black_N4}; 
-            border-color: {c.NeonGreen_Main}; 
+            background-color: {c.Black_N4}; border-color: {c.NeonGreen_Main}; 
         }}
     """,
     # Botón sólido primario (Aplicar, Guardar)
-    "btn_solid_primary": f"""
+    "btn_primary": f"""
         QPushButton {{ 
-            background-color: {c.NeonGreen_Main}; color: {c.Black_N1};
-            font-weight: bold; border-radius: 6px; border: none; padding: 6px;
+            background-color: rgba(83, 252, 24, 0.15); border: 1px solid {c.NeonGreen_Main};
+            color: {c.NeonGreen_Main};
+            padding: 6px 12px; margin: 2px; border-radius: 6px;
+            font-size: 12px; font-weight: bold; 
         }}
-        QPushButton:hover {{ background-color: {c.NeonGreen_Light}; }}
+        QPushButton:hover {{ background-color: {c.Black_N3}; }}
     """,
     # Botón delineado (Configurar, Gestionar)
     "btn_outlined": f"""
         QPushButton {{ 
             background-color: {c.Black_N3}; color: {c.White_N1}; 
-            border: 1px solid {c.Gray_Border}; border-radius: 8px; padding: 6px;
+            padding: 6px 12px; margin: 2px; border: 1px solid {c.Gray_Border}; border-radius: 6px;
+            font-size: 12px; font-weight: bold; 
         }} 
         QPushButton:hover {{ border-color: {c.NeonGreen_Main}; color: {c.White_N1}; }}
     """,
     # Botón "Peligroso" delineado (Desvincular, Borrar todo)
     "btn_danger_outlined": f"""
         QPushButton {{
-            background-color: rgba(239, 83, 80, 0.1);
-            border: 1px solid {c.status_error}; color: {c.White_N1};
-            border-radius: 8px; padding: 6px; font-weight: 500;
+            background-color: rgba(239, 83, 80, 0.2); color: {c.White_N1};
+            padding: 6px 12px; border: 1px solid {c.status_error}; border-radius: 6px;
+            font-weight: 500;
         }}
         QPushButton:hover {{ background-color: {c.status_error}; color: white; }}
     """,
     # Botón pequeño de acción (Editar, Borrar en tablas)
     "btn_icon_ghost": f"""
-        QPushButton {{ background: transparent; border: none; border-radius: 4px; }} 
+        QPushButton {{ background: transparent; border: none; border-radius: 6px; }} 
         QPushButton:hover {{ background-color: {c.White_Alpha_08}; }}
     """,
     # Botón grande del Dashboard (Accesos directos)
@@ -286,6 +319,27 @@ STYLES = {
         QPushButton:hover {{ 
             background-color: {c.Black_N2}; 
             border-color: {c.NeonGreen_Main}; 
+        }}
+    """,
+    # Botón verde translucido
+    "btn_toggle": f"""
+        QPushButton {{
+            background-color: {c.Black_N3};
+            border: 1px solid {c.border};
+            border-radius: 6px;
+            color: {c.White_N1};
+            padding: 6px 12px;
+            font-weight: 500;
+        }}
+        QPushButton:hover {{
+            background-color: {c.Black_N4};
+            border-color: {c.Gray_N1};
+        }}
+        /* ESTADO ACTIVO (CHECKED) - Reemplaza tu lógica manual */
+        QPushButton:checked {{
+            background-color: rgba(83, 252, 24, 0.15); 
+            border: 1px solid {c.NeonGreen_Main};
+            color: {c.NeonGreen_Main};
         }}
     """,
 
@@ -311,15 +365,15 @@ STYLES = {
     # --- COMPLEX WIDGETS ---
     "combobox": f"""
         QComboBox {{
-            background-color: {c.Black_N3}; border: 1px solid {c.border};
-            color: {c.White_N1}; border-radius: {r['input']}; padding: 6px; min-height: 20px;
+            background-color: {c.Black_N3}; border: 1px solid {c.Black_N4};
+            color: {c.White_N1}; border-radius: 6px; padding: 6px 12px; min-height: 20px;
         }}
         QComboBox:hover, QComboBox:focus {{
-            border: 1px solid {c.Gray_N1}; background-color: {c.Black_N3}; border-radius: {r['input']};
+            border: 1px solid {c.Gray_N1}; background-color: {c.Black_N2};
         }}
-        QComboBox::drop-down {{ subcontrol-origin: padding; subcontrol-position: top right; width: 20px; border: none; border-radius: {r['input']}; }}
+        QComboBox::drop-down {{ subcontrol-origin: padding; subcontrol-position: top right; width: 0px; border: none; border-radius: {r['input']}; }}
         QComboBox QAbstractItemView {{
-            background-color: {c.NeonGreen_Dark}; color: {c.White_N1}; border-radius: {r['input']};
+            background-color: {c.NeonGreen_Dark}; color: {c.Black_N3};
             selection-background-color: {c.NeonGreen_Main}; selection-color: {c.Black_N0}; padding: 4px;
         }}
     """,

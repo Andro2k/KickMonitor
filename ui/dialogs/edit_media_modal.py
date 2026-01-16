@@ -121,7 +121,7 @@ class ModalEditMedia(BaseModal):
         btn_save = QPushButton("Guardar")
         btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_save.clicked.connect(self._save_data)
-        btn_save.setStyleSheet(STYLES["btn_solid_primary"])
+        btn_save.setStyleSheet(STYLES["btn_primary"])
         
         h_btns.addWidget(btn_cancel)
         h_btns.addWidget(btn_save)

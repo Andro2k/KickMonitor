@@ -73,7 +73,7 @@ class Sidebar(QFrame):
         self.btn_toggle.setIcon(get_icon("chevron-left.svg")) 
         self.btn_toggle.setFixedSize(32, 32)
         self.btn_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_toggle.setStyleSheet("QPushButton { border: none; background: transparent; border-radius: 4px; } QPushButton:hover { background: #333; }")
+        self.btn_toggle.setStyleSheet(STYLES["btn_icon_ghost"])
         self.btn_toggle.clicked.connect(self.toggle_sidebar)
 
         h_layout.addWidget(self.lbl_title)
@@ -92,7 +92,7 @@ class Sidebar(QFrame):
         content.setStyleSheet("background: transparent;")
         
         self.menu_layout = QVBoxLayout(content)
-        self.menu_layout.setContentsMargins(5,5,5,5)
+        self.menu_layout.setContentsMargins(10,5,10,5)
         self.menu_layout.setSpacing(0)
 
         # MAIN MENU
@@ -121,12 +121,12 @@ class Sidebar(QFrame):
 
     def _setup_footer(self):
         self.footer = QFrame()
-        self.footer.setFixedHeight(70)
+        self.footer.setFixedHeight(60)
         self.footer.setStyleSheet(f"border: none; border-top: 1px solid {THEME_DARK['Black_N2']}; background: transparent;")
         
         f_layout = QHBoxLayout(self.footer)
         f_layout.setContentsMargins(15, 10, 15, 10)
-        f_layout.setSpacing(10) # Menos espacio para que quepa todo
+        f_layout.setSpacing(5) # Menos espacio para que quepa todo
         
         # Avatar
         self.lbl_avatar = QLabel()

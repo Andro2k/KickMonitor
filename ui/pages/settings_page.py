@@ -206,7 +206,7 @@ class SettingsPage(QWidget):
         ))
 
         # Botón Actualizar
-        btn_update = create_styled_button("Buscar Actualizaciones", "btn_solid_primary", self._handle_check_updates)
+        btn_update = create_styled_button("Buscar Actualizaciones", "btn_primary", self._handle_check_updates)
         self.content_layout.addWidget(create_setting_row(
             f"Versión Actual: {self.app_version}",
             "Comprueba si hay una nueva versión disponible en GitHub.",

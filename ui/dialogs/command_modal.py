@@ -13,9 +13,7 @@ class ModalEditCommand(BaseModal):
     def __init__(self, parent=None, trigger="", response="", cooldown=5):
         super().__init__(parent, width=500, height=480)
         
-        # Guardamos el trigger original para saber si es un renombrado
         self.original_trigger = trigger
-        
         self.trigger_result = trigger
         self.response_result = response
         self.cooldown_result = cooldown
@@ -77,7 +75,7 @@ class ModalEditCommand(BaseModal):
         btn_save = QPushButton("Guardar")
         btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_save.clicked.connect(self._save)
-        btn_save.setStyleSheet(STYLES["btn_solid_primary"])
+        btn_save.setStyleSheet(STYLES["btn_primary"])
         
         h_btns.addWidget(btn_cancel)
         h_btns.addWidget(btn_save)

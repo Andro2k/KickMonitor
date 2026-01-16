@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve
 from ui.theme import LAYOUT, THEME_DARK, STYLES, get_switch_style
 from ui.alerts.toast_alert import ToastNotification
-from ui.utils import get_icon
+from ui.utils import get_icon_colored
 
 # =========================================================================
 # CLASE BASE (Acordeón Optimizado)
@@ -136,10 +136,10 @@ class AlertCard(BaseAccordionCard):
         self.chk_active.toggled.connect(self._toggle_active)
 
         # Botón Guardar
-        btn_save = QPushButton(" Guardar Cambios")
-        btn_save.setIcon(get_icon("save.svg"))
+        btn_save = QPushButton("Guardar Cambios")
+        btn_save.setIcon(get_icon_colored("save.svg", THEME_DARK['NeonGreen_Main']))
         btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_save.setStyleSheet(STYLES["btn_solid_primary"])
+        btn_save.setStyleSheet(STYLES["btn_primary"])
         btn_save.clicked.connect(self._save)
 
         # Layout Contenido
@@ -199,9 +199,9 @@ class TimerCard(BaseAccordionCard):
         self.chk_active.toggled.connect(lambda c: setattr(self, 'is_active', c) or self._update_status_color())
 
         btn_save = QPushButton(" Guardar")
-        btn_save.setIcon(get_icon("save.svg"))
+        btn_save.setIcon(get_icon_colored("save.svg", THEME_DARK['NeonGreen_Main']))
         btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_save.setStyleSheet(STYLES["btn_solid_primary"])
+        btn_save.setStyleSheet(STYLES["btn_primary"])
         btn_save.clicked.connect(self._save)
         
         footer = QHBoxLayout()

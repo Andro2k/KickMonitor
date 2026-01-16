@@ -156,15 +156,7 @@ def create_header_page(title: str, description: str) -> QFrame:
 def create_section_header(text: str) -> QLabel:
     """Crea el encabezado de sección con línea divisoria visual implícita"""
     lbl = QLabel(text)
-    lbl.setStyleSheet("""
-        font-size: 16px; 
-        font-weight: bold; 
-        color: white; 
-        padding-bottom: 8px; 
-        border-bottom: 1px solid #333;
-        margin-top: 20px;
-        margin-bottom: 5px;
-    """)
+    lbl.setObjectName("h4")
     return lbl
 
 # ==========================================
@@ -197,13 +189,7 @@ def create_setting_row(title: str, description: str, widget: QWidget) -> QWidget
     layout.setColumnStretch(0, 1)
     
     lbl_title = QLabel(title)
-    lbl_title.setStyleSheet("""
-        font-size: 14px; 
-        font-weight: bold; 
-        color: white; 
-        padding-bottom: 2px;
-        margin-top: 10px;
-    """)
+    lbl_title.setObjectName("h5")
     
     lbl_desc = QLabel(description)
     lbl_desc.setWordWrap(True)
@@ -211,7 +197,7 @@ def create_setting_row(title: str, description: str, widget: QWidget) -> QWidget
     
     layout.addWidget(lbl_title, 0, 0)
     layout.addWidget(lbl_desc, 1, 0)
-    layout.addWidget(widget, 0, 1, 2, 1, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
+    layout.addWidget(widget, 0, 1, 2, 1, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignCenter)
     
     return container
 def create_styled_button(text: str, style_key: str, func=None) -> QPushButton:

@@ -118,10 +118,10 @@ class PointsPage(QWidget):
 
         # Botón Aplicar (Estilo Sólido)
         btn_apply = QPushButton(" Aplicar")
-        btn_apply.setIcon(get_icon_colored("save.svg", THEME_DARK['Black_N1']))
+        btn_apply.setIcon(get_icon_colored("save.svg", THEME_DARK['NeonGreen_Main']))
         btn_apply.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_apply.setFixedHeight(34)
-        btn_apply.setStyleSheet(STYLES["btn_solid_primary"])
+        btn_apply.setStyleSheet(STYLES["btn_primary"])
         btn_apply.clicked.connect(self._handle_manual_update)
         l.addWidget(btn_apply)
         

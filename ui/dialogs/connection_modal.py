@@ -130,7 +130,7 @@ class ConnectionModal(BaseModal):
         
         btn_save = QPushButton("Guardar")
         btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_save.setStyleSheet(STYLES["btn_solid_primary"])
+        btn_save.setStyleSheet(STYLES["btn_primary"])
         btn_save.clicked.connect(self.save_data)
         
         h_btns.addWidget(btn_cancel)

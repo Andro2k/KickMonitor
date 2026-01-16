@@ -59,7 +59,7 @@ class UpdateModal(BaseModal):
 
         btn_update = QPushButton("ACTUALIZAR")
         btn_update.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_update.setStyleSheet(STYLES["btn_solid_primary"])
+        btn_update.setStyleSheet(STYLES["btn_primary"])
         btn_update.clicked.connect(self.accept)
 
         h_btns.addWidget(btn_later)
