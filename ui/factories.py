@@ -136,12 +136,12 @@ def create_card_header(title: str, icon_name: str = None) -> QWidget:
 
 # -- Settings Page --
 def create_header_page(title: str, description: str) -> QFrame:
-    """Crea el encabezado estilo GitLab (Fondo oscuro) usado en Settings."""
+    """Crea el encabezado usado en Settings."""
     frame = QFrame()
     frame.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']};")
     
     layout = QVBoxLayout(frame)
-    layout.setContentsMargins(15,15,15,15)
+    layout.setContentsMargins(15,10,15,10)
     
     lbl_head = QLabel(title)
     lbl_head.setObjectName("h1")
@@ -157,13 +157,13 @@ def create_section_header(text: str) -> QLabel:
     """Crea el encabezado de sección con línea divisoria visual implícita"""
     lbl = QLabel(text)
     lbl.setStyleSheet("""
-        font-size: 18px; 
+        font-size: 16px; 
         font-weight: bold; 
         color: white; 
         padding-bottom: 8px; 
         border-bottom: 1px solid #333;
         margin-top: 20px;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
     """)
     return lbl
 
@@ -197,11 +197,17 @@ def create_setting_row(title: str, description: str, widget: QWidget) -> QWidget
     layout.setColumnStretch(0, 1)
     
     lbl_title = QLabel(title)
-    lbl_title.setObjectName("h3")
+    lbl_title.setStyleSheet("""
+        font-size: 14px; 
+        font-weight: bold; 
+        color: white; 
+        padding-bottom: 2px;
+        margin-top: 10px;
+    """)
     
     lbl_desc = QLabel(description)
     lbl_desc.setWordWrap(True)
-    lbl_desc.setObjectName("subtitle")
+    lbl_desc.setObjectName("normal")
     
     layout.addWidget(lbl_title, 0, 0)
     layout.addWidget(lbl_desc, 1, 0)
@@ -212,7 +218,7 @@ def create_styled_button(text: str, style_key: str, func=None) -> QPushButton:
     """Crea un botón genérico aplicando una clave del diccionario STYLES."""
     btn = QPushButton(text)
     btn.setCursor(Qt.CursorShape.PointingHandCursor)
-    btn.setStyleSheet(STYLES.get(style_key, ""))
+    btn.setStyleSheet(STYLES.get(style_key, "sidebar_btn"))
     
     if func:
         btn.clicked.connect(func)

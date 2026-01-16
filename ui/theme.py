@@ -98,7 +98,7 @@ def get_sheet(is_dark: bool = True) -> str:
     QLabel#h1 {{ font-size: {f.h1}; font-weight: bold; margin-bottom: 4px; }}
     QLabel#h2 {{ font-size: {f.h2}; font-weight: bold; margin-bottom: 2px; }}
     QLabel#h3 {{ font-size: {f.h3}; font-weight: 600; color: {c.White_N1}; }}
-    QLabel#normal {{ font-size: {f.body}; font-weight: 500; color: {c.White_N1}; }}
+    QLabel#normal {{ font-size: {f.body}; font-weight: 500; color: {c.Gray_N2}; }}
     QLabel#subtitle {{ font-size: {f.body}; color: {c.Gray_N2}; }}
     
     /* --- CONTENEDORES --- */
