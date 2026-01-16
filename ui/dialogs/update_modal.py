@@ -27,7 +27,7 @@ class UpdateModal(BaseModal):
 
         # 1. Título e Icono (Texto simple por ahora)
         lbl_title = QLabel("¡Nueva Actualización!")
-        lbl_title.setObjectName("h2")
+        lbl_title.setStyleSheet(f"color: {THEME_DARK['NeonGreen_Main']}; font-size: 22px; font-weight: bold; border: none;")
         lbl_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(lbl_title)
 
@@ -39,7 +39,7 @@ class UpdateModal(BaseModal):
 
         # 3. Changelog (Área de texto scrolleable)
         lbl_changes = QLabel("Novedades:")
-        lbl_changes.setObjectName("h5")
+        lbl_changes.setStyleSheet("color: #AAA; font-size: 12px; border: none; margin-top: 10px;")
         layout.addWidget(lbl_changes)
 
         txt_log = QTextBrowser()

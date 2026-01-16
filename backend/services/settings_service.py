@@ -1,9 +1,11 @@
 # services/settings_service.py
 
-import datetime
+from datetime import datetime
 import os
 import shutil
 from typing import Dict, Any
+
+from backend.utils.paths import get_config_path
 
 class SettingsService:
     """
@@ -68,3 +70,44 @@ class SettingsService:
     def reset_economy(self):
         """Wrapper para el reset de economía."""
         self.db.wipe_economy_data()
+
+    # ==========================================
+    # LÓGICA DE RESPALDO Y RESTAURACIÓN
+    # ==========================================
+    
+    def create_backup(self, target_folder):
+        """Crea una copia de la DB actual en la carpeta seleccionada."""
+        source = os.path.join(get_config_path(), "kick_data.db")
+        
+        if not os.path.exists(source):
+            raise FileNotFoundError("No se encontró la base de datos original.")
+
+        # --- 2. CORRECCIÓN AQUÍ ---
+        # Usamos datetime.now() que es inequívoco, en lugar de time.strftime
+        date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        
+        filename = f"backup_kickmonitor_{date_str}.db"
+        destination = os.path.join(target_folder, filename)
+
+        shutil.copy2(source, destination)
+        return destination
+
+    def restore_backup(self, backup_file_path):
+        """Sobrescribe la DB actual con el archivo seleccionado."""
+        
+        # 1. Ruta destino (La DB activa en /config)
+        dest_path = os.path.join(get_config_path(), "kick_data.db")
+        
+        # 2. Validaciones básicas
+        if not os.path.exists(backup_file_path):
+            raise FileNotFoundError("El archivo de respaldo seleccionado no existe.")
+
+        # 3. Intentar el reemplazo
+        try:
+            
+            shutil.copy2(backup_file_path, dest_path)
+            
+        except PermissionError:
+            raise Exception("La base de datos está en uso. Cierra completamente la app y reemplaza el archivo manualmente en la carpeta /config.")
+        except Exception as e:
+            raise Exception(f"Error al restaurar: {str(e)}")

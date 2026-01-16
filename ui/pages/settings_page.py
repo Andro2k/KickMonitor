@@ -1,7 +1,7 @@
 # ui/pages/settings_page.py
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QScrollArea, QFrame, 
+    QHBoxLayout, QWidget, QVBoxLayout, QScrollArea, QFrame, 
     QCheckBox, QDialog, QFileDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QUrl
@@ -171,11 +171,32 @@ class SettingsPage(QWidget):
     def _setup_danger_section(self):
         self.content_layout.addWidget(create_section_header("Gestión de Datos"))
         
-        btn_backup = create_styled_button("Crear Backup", "btn_outlined", self._handle_backup)
+        # --- FILA DE BACKUP (MODIFICADA) ---
+        # Creamos un widget contenedor para poner los dos botones (Crear y Restaurar) juntos
+        backup_container = QWidget()
+        l_backup = QHBoxLayout(backup_container)
+        l_backup.setContentsMargins(0,0,0,0)
+        l_backup.setSpacing(10)
+        l_backup.setAlignment(Qt.AlignmentFlag.AlignRight) # Botones a la derecha
+
+        btn_create = create_styled_button("Exportar", "btn_outlined", self._handle_backup)
+        btn_restore = create_styled_button("Importar", "btn_outlined", self._handle_restore_backup)
+        
+        l_backup.addWidget(btn_create)
+        l_backup.addWidget(btn_restore)
+
         self.content_layout.addWidget(create_setting_row(
             "Copia de Seguridad",
-            "Exporta toda la base de datos a un archivo local.",
-            btn_backup
+            "Exporta tus datos o restaura un archivo .db anterior.",
+            backup_container
+        ))
+        # -----------------------------------
+
+        btn_reset = create_styled_button("Reiniciar Puntos", "btn_danger_outlined", self._handle_reset_economy)
+        self.content_layout.addWidget(create_setting_row(
+            "Reiniciar Economía",
+            "Establece los puntos de TODOS los usuarios a 0. Irreversible.",
+            btn_reset
         ))
 
         btn_reset = create_styled_button("Reiniciar Puntos", "btn_danger_outlined", self._handle_reset_economy)
@@ -400,3 +421,30 @@ class SettingsPage(QWidget):
     def _handle_time_fmt_changed(self):
         val = self.combo_time.currentText()
         self.service.set_setting("time_fmt", val)
+
+    def _handle_restore_backup(self):
+        """Permite al usuario seleccionar un archivo .db para restaurar."""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, 
+            "Seleccionar Copia de Seguridad", 
+            "", 
+            "Database Files (*.db);;All Files (*)"
+        )
+        
+        if not file_path:
+            return
+
+        # Advertencia de seguridad
+        if ModalConfirm(self, "⚠ Restaurar Datos", 
+                        "Esta acción REEMPLAZARÁ todos tus datos actuales por los del respaldo.\n"
+                        "La aplicación se cerrará al finalizar.\n¿Continuar?").exec():
+            try:
+                # Llamamos al servicio (Asumiendo que agregas este método en SettingsService)
+                self.service.restore_backup(file_path)
+                
+                ToastNotification(self, "Éxito", "Base de datos restaurada.", "status_success").show_toast()
+                
+                self.load_data() 
+                
+            except Exception as e:
+                ToastNotification(self, "Error", f"No se pudo restaurar: {str(e)}", "status_error").show_toast()
