@@ -2,70 +2,111 @@
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QGraphicsOpacityEffect, QPushButton)
-from PyQt6.QtCore import Qt, QPropertyAnimation, pyqtProperty, QRectF, QPoint, QEvent, QEasingCurve
-from PyQt6.QtGui import QColor, QPainter, QFont, QPainterPath
-from ui.theme import TOAST_THEME  # <--- Importamos tu tema
+from PyQt6.QtCore import (Qt, QPropertyAnimation, pyqtProperty, 
+                          QRectF, QPoint, QEvent, QEasingCurve)
+from PyQt6.QtGui import QColor, QPainter, QPainterPath
+from ui.theme import LAYOUT, STYLES
+from ui.utils import get_icon_colored
+
+# ==========================================
+# CONFIGURACIÓN LOCAL DEL TOAST
+# ==========================================
+TOAST_CONFIG = {
+    "global": {
+        "background": "#1E1E1E",   # Fondo de la tarjeta
+        "text_title": "#FFFFFF",   # Color título
+        "text_body":  "#9CA3AF",   # Color mensaje
+        "border_radius": 8
+    },
+    "types": {
+        "success": {
+            "color": "#32D74B",    # Verde Kick
+            "icon": "check.svg"    # Nombre del archivo en assets/icons
+        },
+        "error": {
+            "color": "#FF453A",    # Rojo
+            "icon": "error.svg" 
+        },
+        "warning": {
+            "color": "#FFD60A",    # Amarillo
+            "icon": "warning.svg"
+        },
+        "info": {
+            "color": "#0A84FF",    # Azul
+            "icon": "info.svg"
+        }
+    }
+}
 
 class ToastIcon(QWidget):
     """
-    Widget para el icono circular.
-    Obtiene el color del TOAST_THEME pero mantiene los símbolos definidos aquí.
+    Dibuja un círculo de color y superpone un SVG blanco en el centro.
     """
     def __init__(self, tipo, parent=None):
         super().__init__(parent)
         self.setFixedSize(24, 24)
-        self.tipo = tipo
         
-        # Mapeo de símbolos (Lógica visual)
-        self.symbols = {
-            "status_success": "✓",
-            "status_error":   "✕",
-            "status_warning": "!",
-            "status_info":    "i",
-        }
-        self.symbol = self.symbols.get(tipo, "i")
+        # 1. Obtener configuración
+        config = TOAST_CONFIG["types"].get(tipo, TOAST_CONFIG["types"]["info"])
+        self.bg_color = QColor(config["color"])
+        icon_name = config["icon"]
 
-        # Recuperar color desde el TEMA
-        # Si no encuentra el tipo, usa 'info' como fallback
-        color_hex = TOAST_THEME["states"].get(tipo, TOAST_THEME["states"]["status_info"])
-        self.bg_color = QColor(color_hex)
+        # 2. Generar el icono SVG en BLANCO para que contraste con el fondo de color
+        icon_obj = get_icon_colored(icon_name, "#FFFFFF", size=18)
+        self.icon_pixmap = icon_obj.pixmap(18, 18)
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        # 1. Círculo con el color del tema
+        # 1. Dibujar Círculo de Fondo (Color del estado)
         painter.setBrush(self.bg_color)
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawEllipse(0, 0, 24, 24)
+        rect_circle = self.rect()
+        painter.drawEllipse(rect_circle)
         
-        # 2. Símbolo
-        painter.setPen(QColor("white"))
-        font = QFont("Arial", 11, QFont.Weight.Bold)
-        painter.setFont(font)
-        painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self.symbol)
+        # 2. Dibujar Icono SVG (Blanco) Centrado
+        if not self.icon_pixmap.isNull():
+            x = (self.width() - self.icon_pixmap.width()) // 2
+            y = (self.height() - self.icon_pixmap.height()) // 2
+            painter.drawPixmap(x, y, self.icon_pixmap)
 
 
 class ToastNotification(QWidget):
     _active_toasts = []
     MAX_VISIBLE = 4 
 
-    def __init__(self, parent, titulo, mensaje, tipo="status_info"):
+    def __init__(self, parent, titulo, mensaje, tipo="info"):
         super().__init__(parent)
         self.parent_ref = parent
         self._progress = 0.0
-        self.tipo = tipo
+        
+        clean_type = tipo.replace("status_", "")
+        if clean_type not in TOAST_CONFIG["types"]:
+            clean_type = "info"
+        self.tipo = clean_type
         
         self.titulo_text = titulo
         self.mensaje_text = mensaje
         
+        self._setup_vars()
         self._configure_window()
-        self._setup_colors(tipo)
         self._setup_ui()
         self._setup_animations()
 
         if self.parent_ref:
             self.parent_ref.installEventFilter(self)
+
+    def _setup_vars(self):
+        # Extraer colores de la configuración local
+        glob = TOAST_CONFIG["global"]
+        type_conf = TOAST_CONFIG["types"][self.tipo]
+        
+        self.bg_color = QColor(glob["background"])
+        self.title_color = glob["text_title"]
+        self.body_color = glob["text_body"]
+        self.accent_color = QColor(type_conf["color"])
+        self.radius = glob["border_radius"]
 
     def _configure_window(self):
         self.setWindowFlags(
@@ -77,42 +118,27 @@ class ToastNotification(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setFixedWidth(340)
 
-    def _setup_colors(self, tipo):
-        # 1. Fondo: Intentamos buscarlo en el tema, si no existe, usamos el gris oscuro de la imagen
-        bg_hex = TOAST_THEME.get("background", "#1E1E1E") 
-        self.bg_color = QColor(bg_hex)
-        
-        # 2. Color de Estado (Acento): Viene estrictamente de TOAST_THEME["states"]
-        state_hex = TOAST_THEME["states"].get(tipo, TOAST_THEME["states"]["status_info"])
-        self.accent_color = QColor(state_hex)
-
     def _setup_ui(self):
         main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(15, 15, 15, 15)
-        main_layout.setSpacing(12)
+        main_layout.setContentsMargins(*LAYOUT["margins"])
+        main_layout.setSpacing(LAYOUT["spacing"])
 
-        # ICONO (Usando la clase que consulta el tema)
+        # 1. ICONO VISUAL (SVG + Círculo)
         icon_widget = ToastIcon(self.tipo, self)
         main_layout.addWidget(icon_widget, 0, Qt.AlignmentFlag.AlignTop)
 
-        # TEXTOS
+        # 2. TEXTOS
         text_container = QWidget()
         text_container.setStyleSheet("background: transparent;")
         text_layout = QVBoxLayout(text_container)
         text_layout.setContentsMargins(0, 0, 0, 0)
         text_layout.setSpacing(2)
         
-        # Título
         lbl_title = QLabel(self.titulo_text)
-        # Usamos color de texto del tema si existe, sino blanco
-        title_color = TOAST_THEME.get("text_title", "#FFFFFF")
-        lbl_title.setStyleSheet(f"color: {title_color}; font-weight: bold; font-size: 13px; background: transparent;")
+        lbl_title.setStyleSheet(f"color: {self.title_color}; font-weight: bold; font-size: 12px; background: transparent;")
         
-        # Mensaje
         lbl_msg = QLabel(self.mensaje_text)
-        # Usamos color de subtexto del tema si existe, sino gris
-        msg_color = TOAST_THEME.get("text_body", "#9CA3AF")
-        lbl_msg.setStyleSheet(f"color: {msg_color}; font-size: 12px; background: transparent;")
+        lbl_msg.setStyleSheet(f"color: {self.body_color}; font-size: 11px; background: transparent;")
         lbl_msg.setWordWrap(True)
         
         text_layout.addWidget(lbl_title)
@@ -120,36 +146,29 @@ class ToastNotification(QWidget):
         
         main_layout.addWidget(text_container, 1)
 
-        # BOTÓN CERRAR
+        # 3. BOTÓN CERRAR
         btn_close = QPushButton("✕")
-        btn_close.setFixedSize(24, 24)
+        btn_close.setFixedSize(20, 20)
         btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_close.setStyleSheet(f"""
-            QPushButton {{
-                background: transparent;
-                color: {msg_color}; 
-                border: none;
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                color: {title_color};
-            }}
-        """)
+        btn_close.setStyleSheet(STYLES["btn_icon_ghost"])
         btn_close.clicked.connect(self.close_toast)
         main_layout.addWidget(btn_close, 0, Qt.AlignmentFlag.AlignTop)
 
     def _setup_animations(self):
+        # Fade In/Out
         self.opacity_effect = QGraphicsOpacityEffect(self)
         self.setGraphicsEffect(self.opacity_effect)
         self.anim_fade = QPropertyAnimation(self.opacity_effect, b"opacity")
         self.anim_fade.setDuration(250)
         
+        # Barra de progreso (Tiempo de vida)
         self.anim_bar = QPropertyAnimation(self, b"progress")
         self.anim_bar.setDuration(4000)
         self.anim_bar.setStartValue(0.0)
         self.anim_bar.setEndValue(1.0)
         self.anim_bar.finished.connect(self.close_toast)
 
+        # Movimiento suave al reposicionar
         self.anim_pos = QPropertyAnimation(self, b"pos")
         self.anim_pos.setDuration(300)
         self.anim_pos.setEasingCurve(QEasingCurve.Type.OutCubic)
@@ -173,12 +192,12 @@ class ToastNotification(QWidget):
         
         rect = QRectF(self.rect())
         path = QPainterPath()
-        path.addRoundedRect(rect, 8, 8)
+        path.addRoundedRect(rect, self.radius, self.radius)
         
-        # Fondo
+        # 1. Fondo de la tarjeta
         painter.fillPath(path, self.bg_color)
         
-        # Barra de progreso
+        # 2. Barra de progreso inferior (recortada al borde redondeado)
         if self._progress > 0:
             painter.setClipPath(path)
             bar_height = 3
@@ -187,6 +206,7 @@ class ToastNotification(QWidget):
             painter.fillRect(rect_bar, self.accent_color)
 
     def show_toast(self):
+        # Gestionar cola de notificaciones
         if len(ToastNotification._active_toasts) >= self.MAX_VISIBLE:
             oldest = ToastNotification._active_toasts.pop(0)
             oldest.close_toast_immediate()
