@@ -1,5 +1,5 @@
 {
-    "version": "1.8.2",
-    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.8.2/KickMonitor_Setup_v1.8.2.exe",
-    "changelog": "<ul><li><b>SISTEMA DE ARCHIVOS:</b> Nueva arquitectura de carpetas que separa configuraciones críticas (<code>/config</code>) de archivos temporales (<code>/cache</code>).</li><li><b>REFACTORIZACIÓN:</b> Limpieza profunda del backend y estandarización de rutas en <code>paths.py</code>, eliminando redundancias en controladores y workers.</li><li><b>SEGURIDAD:</b> Aislamiento de <code>kick_data.db</code> y <code>session.json</code> para proteger la persistencia de datos y credenciales.</li><li><b>OPTIMIZACIÓN:</b> Gestión modular de directorios que asegura una instalación más limpia y ordenada tanto en modo DEV como en EXE.</li></ul>"
+    "version": "1.8.2.1",
+    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.8.2.1/KickMonitor_Setup_v1.8.2.1.exe",
+    "changelog": "<ul><li><b>NUEVA INTERFAZ:</b> Rediseño total del <i>Modal de Comandos</i> con estilo 'Dark Card', iconos centrados e inputs tipo bloque.</li><li><b>REFACTORIZACIÓN UI:</b> Migración de la lógica de colores (toggles) a CSS puro, eliminando código Python redundante.</li><li><b>CORRECCIONES:</b> Solucionado el error de alineación/margen en los títulos de sección (H1-H3).</li><li><b>SISTEMA:</b> Soporte validado para esquemas de versión extendida (x.x.x.x).</li></ul>"
 }

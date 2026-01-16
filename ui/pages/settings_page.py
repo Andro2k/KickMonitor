@@ -8,7 +8,8 @@ from PyQt6.QtCore import Qt, pyqtSignal, QUrl
 from PyQt6.QtGui import QDesktopServices
 
 from backend.utils.paths import get_app_data_path
-from backend.workers.update_worker import INTERNAL_VERSION
+from backend.workers.update_worker import INTERNAL_VERSION, UpdateCheckerWorker
+from ui.dialogs.update_modal import UpdateModal
 from ui.factories import (
     create_header_page,
     create_section_header,
@@ -358,11 +359,43 @@ class SettingsPage(QWidget):
         QDesktopServices.openUrl(QUrl.fromLocalFile(folder_path))
 
     def _handle_check_updates(self):
+        """Inicia el worker para consultar el JSON de GitHub."""
         ToastNotification(self, "Sistema", "Buscando actualizaciones...", "status_info").show_toast()
-        if hasattr(self.controller, 'check_for_updates'):
-            self.controller.check_for_updates()
-        else:
-            self.check_updates_signal.emit()
+        
+        # 1. Crear el worker
+        self.check_worker = UpdateCheckerWorker()
+        
+        # 2. Conectar las señales del worker a nuestros métodos
+        self.check_worker.update_available.connect(self._on_update_available)
+        self.check_worker.no_update.connect(self._on_up_to_date)
+        self.check_worker.error.connect(self._on_update_error)
+        
+        # 3. Arrancar el hilo
+        self.check_worker.start()
+
+    def _on_update_available(self, new_version, url, changelog):
+        """Se ejecuta si el worker detecta una versión mayor."""
+        # Mostrar el UpdateModal que creaste
+        modal = UpdateModal(new_version, changelog, parent=self)
+        
+        if modal.exec():
+            # Si el usuario da click en "ACTUALIZAR" (accept)
+            ToastNotification(self, "Actualizador", "Iniciando descarga...", "status_success").show_toast()
+            
+            # Opcional: Aquí llamarías a tu worker de descarga si lo tienes en el controller
+            if hasattr(self.controller, 'start_download_update'):
+                self.controller.start_download_update(url)
+            else:
+                # Si quieres probarlo rápido sin controller, podrías emitir una señal
+                print(f"URL de descarga: {url}")
+
+    def _on_up_to_date(self):
+        """Se ejecuta si la versión es igual o menor."""
+        ToastNotification(self, "Todo al día", f"Ya tienes la última versión ({self.app_version}).", "status_success").show_toast()
+
+    def _on_update_error(self, msg):
+        """Se ejecuta si falla la conexión o el JSON."""
+        ToastNotification(self, "Error de Actualización", msg, "status_error").show_toast()
 
     def _handle_time_fmt_changed(self):
         val = self.combo_time.currentText()

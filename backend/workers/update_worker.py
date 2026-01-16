@@ -11,7 +11,7 @@ from packaging import version
 # =========================================================================
 # CONFIGURACIÓN DE VERSIÓN
 # =========================================================================
-INTERNAL_VERSION = "1.8.2"
+INTERNAL_VERSION = "1.8.2.1"
 UPDATE_JSON_URL = "https://raw.githubusercontent.com/Andro2k/KickMonitor/refs/heads/main/version.json"
 
 # =========================================================================
@@ -32,7 +32,7 @@ class UpdateCheckerWorker(QThread):
                 return
 
             data = resp.json()
-            remote_ver = data.get("version", "0.0.0")
+            remote_ver = data.get("version", "0.0.0.0")
             url = data.get("url", "")
             changelog = data.get("changelog", "")
 

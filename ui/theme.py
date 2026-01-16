@@ -258,7 +258,7 @@ STYLES = {
             color: #DDD;
             border: 1px solid {c.border};
             border-radius: {r['input']};
-            padding: 10px;
+            padding: 6px;
             font-size: 12px;
         }}
     """,
