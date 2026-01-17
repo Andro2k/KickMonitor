@@ -101,6 +101,7 @@ class UpdateDownloaderWorker(QThread):
                     [self.installer_path], 
                     env=my_env,
                     shell=False,
+                    close_fds=True,
                     creationflags=subprocess.CREATE_NEW_CONSOLE
                 )
                 
