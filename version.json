@@ -1,5 +1,5 @@
 {
     "version": "1.8.3.0",
     "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.8.3.0/KickMonitor_Setup_v1.8.3.0.exe",
-    "changelog": "<ul><li><b>CRÍTICO:</b> Solucionado el error <i>'Failed to load Python DLL'</i> al finalizar la actualización.</li><li><b>INSTALADOR:</b> Ahora la actualización cierra la app antigua forzosamente para evitar conflictos de archivos en uso.</li><li><b>VISUAL:</b> Reparados los accesos directos de Windows que aparecían sin icono.</li></ul>"
+    "changelog": "<ul><li><b>VISUAL:</b> Ahora las tarjetas muestran la portada (thumbnail) real de los videos automáticamente.</li><li><b>RENDIMIENTO:</b> Implementada carga asíncrona de imágenes para evitar congelamientos en la interfaz.</li><li><b>UX:</b> Mejoras en el diseño y estilizado de bordes en las tarjetas multimedia.</li></ul>"
 }
