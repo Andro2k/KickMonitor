@@ -1,5 +1,5 @@
 {
-    "version": "1.8.2.2",
-    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.8.2.2/KickMonitor_Setup_v1.8.2.2.exe",
+    "version": "1.8.3.0",
+    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.8.3.0/KickMonitor_Setup_v1.8.3.0.exe",
     "changelog": "<ul><li><b>CRÍTICO:</b> Solucionado el error <i>'Failed to load Python DLL'</i> al finalizar la actualización.</li><li><b>INSTALADOR:</b> Ahora la actualización cierra la app antigua forzosamente para evitar conflictos de archivos en uso.</li><li><b>VISUAL:</b> Reparados los accesos directos de Windows que aparecían sin icono.</li></ul>"
 }
