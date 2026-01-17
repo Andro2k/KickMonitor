@@ -78,13 +78,11 @@ class StrictFlowLayout(QLayout):
             
             # Si el elemento se sale del ancho, bajamos a nueva línea
             if (x + w > rect.x() + width) and (line_height > 0):
-                x = rect.x()           # Reset X
-                y += line_height + spacing # Bajar Y
-                line_height = 0        # Reset altura de línea
+                x = rect.x() 
+                y += line_height + spacing
+                line_height = 0 
             
             if not test_only:
-                # AQUÍ ESTÁ EL CAMBIO: Usamos el tamaño exacto del item (w, h)
-                # No calculamos 'extra_space' ni estiramos nada.
                 item.setGeometry(QRect(QPoint(x, y), QSize(w, h)))
             
             x += w + spacing

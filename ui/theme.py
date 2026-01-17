@@ -200,6 +200,9 @@ STYLES = {
             border-radius: {r['input']}; padding: 4px;
         }}
     """,
+    "label_text": f"""
+        QLabel {{font-weight: bold; font-size: 13px; color: white; border: none; background: transparent;}}
+    """,
     # --- INPUTS ---
     "input": f"""
         QLineEdit {{ background: {c.Black_N3}; border-radius: {r['input']}; padding: 8px; color: white; }}
