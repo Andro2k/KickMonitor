@@ -98,34 +98,32 @@ def get_sheet(is_dark: bool = True) -> str:
     
     QLabel#h1 {{ 
         font-size: {f.h1}; font-weight: bold; 
-        margin: 0px 0px -3px 0px; padding: 0px;
+        padding: 0px 5px 0px -5px;
     }}
     
     QLabel#h2 {{ 
         font-size: {f.h2}; font-weight: bold; 
-        margin: 0px 0px -2px 0px; padding: 0px;
+        padding: 0px 5px 0px -5px;
     }}
     
     QLabel#h3 {{ 
-        font-size: {f.h3}; font-weight: 600; 
+        font-size: {f.h3}; font-weight: bold; 
         color: {c.White_N1}; 
-        margin: 0px; padding: 0px;
+        padding: 0px 5px 0px -5px;
     }}
 
     QLabel#h4 {{ 
         font-size: {f.h3}; font-weight: bold; 
-        color: white; 
-        padding-bottom: 8px; 
+        color: {c.White_N1};
         border-bottom: 1px solid #333;
-        margin: 20px 0px 5px -3px;
+        padding: 0px 5px 8px -3px;
     }}
 
     QLabel#h5 {{ 
         font-size: {f.body}; 
         font-weight: bold; 
-        color: white; 
-        padding-bottom: 2px;
-        margin: 20px 0px 5px -3px;
+        color: {c.Gray_N1}; 
+        padding: 0px 5px 0px -3px;
     }}
     
     QLabel#normal {{ font-size: {f.body}; font-weight: 500; color: {c.Gray_N2}; }}
@@ -371,7 +369,11 @@ STYLES = {
         QComboBox:hover, QComboBox:focus {{
             border: 1px solid {c.Gray_N1}; background-color: {c.Black_N2};
         }}
-        QComboBox::drop-down {{ subcontrol-origin: padding; subcontrol-position: top right; width: 0px; border: none; border-radius: {r['input']}; }}
+        
+        QComboBox::drop-down{{border:none;}}
+        QComboBox::down-arrow {{image: url({asset_url("chevron-down.svg")}); margin-right:20px}}
+        QComboBox::down-arrow::on {{image: url({asset_url("chevron-up.svg")}); margin-right:20px}}
+
         QComboBox QAbstractItemView {{
             background-color: {c.NeonGreen_Dark}; color: {c.Black_N3};
             selection-background-color: {c.NeonGreen_Main}; selection-color: {c.Black_N0}; padding: 4px;

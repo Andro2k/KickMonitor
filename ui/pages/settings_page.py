@@ -26,7 +26,6 @@ from backend.services.settings_service import SettingsService
 
 class SettingsPage(QWidget):
     user_changed = pyqtSignal()
-    # Señal para avisar al MainController que busque actualizaciones
     check_updates_signal = pyqtSignal() 
 
     def __init__(self, db_handler, controller, parent=None):
@@ -48,7 +47,7 @@ class SettingsPage(QWidget):
         # 1. HEADER
         header = create_header_page(
             "Preferencias", 
-            "Gestiona el comportamiento de la aplicación y tus integraciones."
+            "Gestiona el comportamiento de la aplicación y sus integraciones."
         )
         main_layout.addWidget(header)
 
@@ -68,7 +67,6 @@ class SettingsPage(QWidget):
         self._setup_integrations_section()
         self._setup_economy_section()
         self._setup_danger_section()
-        self._setup_system_section()
         self._setup_debug_section()
 
         self.content_layout.addStretch()
@@ -108,17 +106,28 @@ class SettingsPage(QWidget):
 
         # 3. Formato Hora
         self.combo_time = create_styled_combobox(
-            ["Sistema", "12-hour (02:30 PM)", "24-hour (14:30)"], 
-            width=200
-        )
-        
-        # Conectar señal de cambio
+            ["Sistema", "12-hour (02:30 PM)", "24-hour (14:30)"], width=200)
         self.combo_time.currentIndexChanged.connect(self._handle_time_fmt_changed)
-        
         self.content_layout.addWidget(create_setting_row(
             "Formato de Hora",
             "Configura cómo se muestran las fechas en el chat.",
             self.combo_time
+        ))
+
+        # Botón Abrir Logs
+        btn_logs = create_styled_button("Abrir Carpeta", "btn_outlined", self._handle_open_logs_folder)
+        self.content_layout.addWidget(create_setting_row(
+            "Registros de Errores (Logs)",
+            "Abre la carpeta donde se registran todos registros de consola.",
+            btn_logs
+        ))
+
+        # Botón Actualizar
+        btn_update = create_styled_button("Buscar Actualizaciones", "btn_primary", self._handle_check_updates)
+        self.content_layout.addWidget(create_setting_row(
+            f"Versión Actual: {self.app_version}",
+            "Comprueba si hay una nueva versión disponible en GitHub.",
+            btn_update
         ))
 
     # ==========================================
@@ -129,15 +138,15 @@ class SettingsPage(QWidget):
 
         btn_kick = create_styled_button("Conectar Kick", "btn_outlined", self._handle_kick_auth)
         self.content_layout.addWidget(create_setting_row(
-            "Cuenta de Kick",
-            "Vincula tu cuenta de streamer para leer el chat y gestionar eventos.",
+            "Credenciales de Kick",
+            "Vincula tus propias credenciales de streamer para leer el chat y gestionar eventos.",
             btn_kick
         ))
 
         btn_spot = create_styled_button("Conectar Spotify", "btn_outlined", self._handle_spotify_auth)
         self.content_layout.addWidget(create_setting_row(
-            "Cuenta de Spotify",
-            "Permite mostrar la canción actual y aceptar pedidos (!sr) mediante Spotify.",
+            "Credenciales deSpotify",
+            "Vincula tus propias credenciales de Developer Spotify para poder personalizar y controlar la musica.",
             btn_spot
         ))
 
@@ -199,13 +208,6 @@ class SettingsPage(QWidget):
             btn_reset
         ))
 
-        btn_reset = create_styled_button("Reiniciar Puntos", "btn_danger_outlined", self._handle_reset_economy)
-        self.content_layout.addWidget(create_setting_row(
-            "Reiniciar Economía",
-            "Establece los puntos de TODOS los usuarios a 0. Irreversible.",
-            btn_reset
-        ))
-
         btn_unlink = create_styled_button("Desvincular Cuenta", "btn_danger_outlined", self._handle_unlink_account)
         self.content_layout.addWidget(create_setting_row(
             "Cerrar Sesión",
@@ -214,29 +216,7 @@ class SettingsPage(QWidget):
         ))
 
     # ==========================================
-    # SECCIÓN 5: SISTEMA (NUEVO)
-    # ==========================================
-    def _setup_system_section(self):
-        self.content_layout.addWidget(create_section_header("Información del Sistema"))
-
-        # Botón Abrir Logs
-        btn_logs = create_styled_button("Abrir Carpeta", "btn_outlined", self._handle_open_logs_folder)
-        self.content_layout.addWidget(create_setting_row(
-            "Registros de Errores (Logs)",
-            "Abre la carpeta donde se guardan los archivos de texto con errores.",
-            btn_logs
-        ))
-
-        # Botón Actualizar
-        btn_update = create_styled_button("Buscar Actualizaciones", "btn_primary", self._handle_check_updates)
-        self.content_layout.addWidget(create_setting_row(
-            f"Versión Actual: {self.app_version}",
-            "Comprueba si hay una nueva versión disponible en GitHub.",
-            btn_update
-        ))
-
-    # ==========================================
-    # SECCIÓN 6: DEBUG AVANZADO (NUEVA)
+    # SECCIÓN 5: DEBUG AVANZADO (NUEVA)
     # ==========================================
     def _setup_debug_section(self):
         self.content_layout.addWidget(create_section_header("Herramientas de Depuración (Avanzado)"))
@@ -248,18 +228,11 @@ class SettingsPage(QWidget):
         self.chk_debug.setChecked(self.controller.debug_enabled)
         self.chk_debug.toggled.connect(self.controller.set_debug_mode)
 
+        # 1. Logs en Terminal
         self.content_layout.addWidget(create_setting_row(
             "Ver Logs de Depuración",
             "Muestra mensajes técnicos de Handlers y Workers en la consola del Dashboard.",
             self.chk_debug
-        ))
-
-        # 1. Test de Overlay (Simular Alerta)
-        btn_test_overlay = create_styled_button("Simular Evento WS", "btn_outlined", self._debug_test_overlay)
-        self.content_layout.addWidget(create_setting_row(
-            "Probar Servidor Overlay",
-            "Envía un mensaje de prueba al WebSocket para verificar la conexión con OBS.",
-            btn_test_overlay
         ))
 
         # 2. Reset de Base de Datos (Limpieza técnica)
@@ -270,60 +243,13 @@ class SettingsPage(QWidget):
             btn_db_check
         ))
 
-        # 3. Dump de Sesión Kick
-        btn_session = create_styled_button("Ver Sesión Actual", "btn_outlined", self._debug_show_session)
-        self.content_layout.addWidget(create_setting_row(
-            "Tokens y Sesión",
-            "Muestra los tokens almacenados en el archivo session.json (Solo para desarrollo).",
-            btn_session
-        ))
-
-        # 4. Estado de Workers (Threads)
+        # 3. Estado de Workers (Threads)
         btn_threads = create_styled_button("Refrescar Hilos", "btn_outlined", self._debug_show_threads)
         self.content_layout.addWidget(create_setting_row(
             "Monitor de Workers",
             "Verifica cuántos procesos secundarios (Spotify, Bot, TTS) están activos.",
             btn_threads
         ))
-
-    # ==========================================
-    # HANDLERS DE DEBUG
-    # ==========================================
-    def _debug_test_overlay(self):
-        """Simula un evento play_media sin necesidad de un comando en el chat."""
-        try:
-            payload = {
-                "action": "play_media",
-                "url": "http://127.0.0.1:8081/assets/test.mp4",
-                "type": "video",
-                "volume": 50
-            }
-            self.controller.overlay_server.send_event("debug_test", payload)
-            ToastNotification(self, "Debug", "Evento enviado al servidor.", "status_info").show_toast()
-        except Exception as e:
-            ToastNotification(self, "Error Debug", str(e), "status_error").show_toast()
-
-    def _debug_check_db(self):
-        """Ejecuta comandos de mantenimiento en la conexión SQLite."""
-        path = self.db.get_db_path()
-        ToastNotification(self, "DB Debug", f"Archivo: {path}", "status_info").show_toast()
-        # Aquí podrías llamar a self.db.execute_query("VACUUM") o similares
-
-    def _debug_show_session(self):
-        """Abre el archivo de sesión para inspeccionar los tokens."""
-        import os
-        from backend.utils.paths import get_app_data_path
-        session_path = os.path.join(get_app_data_path(), "session.json")
-        if os.path.exists(session_path):
-            QDesktopServices.openUrl(QUrl.fromLocalFile(session_path))
-        else:
-            ToastNotification(self, "Error", "No existe archivo de sesión.", "status_error").show_toast()
-
-    def _debug_show_threads(self):
-        """Muestra el conteo de hilos activos de la aplicación."""
-        import threading
-        count = threading.active_count()
-        ToastNotification(self, "Threads", f"Hilos activos: {count}", "status_info").show_toast()
 
     # ==========================================
     # LÓGICA DE CARGA DE DATOS
@@ -448,3 +374,15 @@ class SettingsPage(QWidget):
                 
             except Exception as e:
                 ToastNotification(self, "Error", f"No se pudo restaurar: {str(e)}", "status_error").show_toast()
+
+    def _debug_check_db(self):
+        """Ejecuta comandos de mantenimiento en la conexión SQLite."""
+        path = self.db.get_db_path()
+        ToastNotification(self, "DB Debug", f"Archivo: {path}", "status_info").show_toast()
+        # Aquí podrías llamar a self.db.execute_query("VACUUM") o similares
+
+    def _debug_show_threads(self):
+        """Muestra el conteo de hilos activos de la aplicación."""
+        import threading
+        count = threading.active_count()
+        ToastNotification(self, "Threads", f"Hilos activos: {count}", "status_info").show_toast()    
