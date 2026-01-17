@@ -1,5 +1,5 @@
 {
-    "version": "1.8.2.1",
-    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.8.2.1/KickMonitor_Setup_v1.8.2.1.exe",
+    "version": "1.8.2.2",
+    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.8.2.2/KickMonitor_Setup_v1.8.2.2.exe",
     "changelog": "<ul><li><b>NUEVA INTERFAZ:</b> Rediseño total del <i>Modal de Comandos</i> con estilo 'Dark Card', iconos centrados e inputs tipo bloque.</li><li><b>REFACTORIZACIÓN UI:</b> Migración de la lógica de colores (toggles) a CSS puro, eliminando código Python redundante.</li><li><b>CORRECCIONES:</b> Solucionado el error de alineación/margen en los títulos de sección (H1-H3).</li><li><b>SISTEMA:</b> Soporte validado para esquemas de versión extendida (x.x.x.x).</li></ul>"
 }

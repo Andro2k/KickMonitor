@@ -11,7 +11,7 @@ from packaging import version
 # =========================================================================
 # CONFIGURACIÓN DE VERSIÓN
 # =========================================================================
-INTERNAL_VERSION = "1.8.2.1"
+INTERNAL_VERSION = "1.8.2.2"
 UPDATE_JSON_URL = "https://raw.githubusercontent.com/Andro2k/KickMonitor/refs/heads/main/version.json"
 
 # =========================================================================
@@ -88,14 +88,24 @@ class UpdateDownloaderWorker(QThread):
             self.error.emit(f"Error en descarga: {str(e)}")
 
     def _launch_installer(self):
-        """Ejecuta el instalador de forma independiente y cierra la app actual."""
+        """Ejecuta el instalador limpiando el entorno y mata la app actual."""
         if os.path.exists(self.installer_path):
-            
             try:
-                # 2. FIX PARA PYINSTALLER:
-                subprocess.Popen([self.installer_path], shell=True, close_fds=True)
-                QThread.msleep(1000) 
-                sys.exit(0)
+                # 1. LIMPIEZA DE ENTORNO (Soluciona el error de "Failed to load Python DLL")
+                my_env = os.environ.copy()
+                my_env.pop('_MEIPASS2', None)
+                my_env.pop('LD_LIBRARY_PATH', None) 
+                
+                # 2. LANZAR INSTALADOR DESVINCULADO
+                subprocess.Popen(
+                    [self.installer_path], 
+                    env=my_env,
+                    shell=False,
+                    creationflags=subprocess.CREATE_NEW_CONSOLE
+                )
+                
+                # 3. MATAR LA APP ACTUAL (Soluciona que la app no se cierra)
+                os._exit(0) 
                 
             except Exception as e:
                 self.error.emit(f"No se pudo abrir el instalador: {e}")
