@@ -18,6 +18,7 @@ session.json
 exporter.txt
 installer/*.exe
 build.py
-backend/config/credentials.py
+backend/config/
 *.csv
 *.log
+test/
