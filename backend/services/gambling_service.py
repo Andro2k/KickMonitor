@@ -14,7 +14,7 @@ class GamblingService:
     # REGIÓN 1: GESTIÓN DE HISTORIAL
     # =========================================================================
     def get_history_log(self, limit: int = 50) -> List[Any]:
-        """Obtiene las últimas jugadas para la tabla de la UI."""
+        """Obtiene las últimas jugadas para la tabla de la frontend."""
         return self.db.get_gamble_history(limit)
     
     def clear_all_history(self) -> bool:

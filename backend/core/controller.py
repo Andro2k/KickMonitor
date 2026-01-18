@@ -24,7 +24,7 @@ from backend.handlers.chat_handler import ChatHandler
 from backend.handlers.music_handler import MusicHandler
 from backend.handlers.game_handler import GameHandler
 from backend.handlers.alert_handler import AlertHandler
-from ui.dialogs.update_modal import UpdateModal
+from frontend.dialogs.update_modal import UpdateModal
 
 class MainController(QObject):
     """

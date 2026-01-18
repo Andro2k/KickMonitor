@@ -44,7 +44,7 @@ class GameHandler:
         return False
 
     def _record_and_notify(self, data: dict, callback: Callable):
-        """Guarda en DB y emite la señal visual a la UI."""
+        """Guarda en DB y emite la señal visual a la frontend."""
         self.db.add_gamble_entry(
             data['user'], data['game'], 
             data['res'], data['profit'], data['win']

@@ -16,7 +16,7 @@ class CommandsService:
     # REGIÓN 1: GESTIÓN DE DATOS (CRUD)
     # =========================================================================
     def get_all_commands(self) -> List[Tuple]:
-        """Obtiene la lista completa de comandos para la UI."""
+        """Obtiene la lista completa de comandos para la frontend."""
         return self.db.get_all_commands()
 
     def add_or_update_command(self, trigger: str, response: str, cooldown: int = 5) -> bool:

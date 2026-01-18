@@ -6,8 +6,8 @@ import ctypes
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtGui import QIcon
 
-from ui.main_window import MainWindow
-from ui.utils import resource_path
+from frontend.main_window import MainWindow
+from frontend.utils import resource_path
 
 if sys.platform.startswith('win'):
     if sys.stdin is None:
