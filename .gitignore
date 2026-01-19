@@ -21,4 +21,3 @@ build.py
 backend/config/
 *.csv
 *.log
-test/
