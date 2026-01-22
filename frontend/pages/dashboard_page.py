@@ -264,10 +264,12 @@ class DashboardPage(QWidget):
         if self.spotify.is_active:
             if ModalConfirm(self, "Desconectar", "¿Detener Spotify?").exec():
                 self.service.set_spotify_enabled(False)
+                ToastNotification(self, "Spotify", "Desconectado", "info").show_toast()
                 self.spotify.sig_do_disconnect.emit()
         else:
             if self._ensure_credentials("spotify"):
                 self.service.set_spotify_enabled(True)
+                ToastNotification(self, "Spotify", "Conectado", "info").show_toast()
                 self.spotify.sig_do_auth.emit()
 
     def _ensure_credentials(self, s_type):
