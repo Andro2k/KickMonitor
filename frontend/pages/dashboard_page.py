@@ -235,7 +235,27 @@ class DashboardPage(QWidget):
         data = self.service.get_profile_data()
         self.lbl_welcome.setText(data["greeting"])
         self.lbl_stats.setText(data["stats"])
-        if data["pic_url"]: self._start_download(data["pic_url"], "avatar")
+        
+        # --- CAMBIO AQUÍ ---
+        if data["pic_url"]: 
+            # Si hay URL, descargamos la foto real
+            self._start_download(data["pic_url"], "avatar")
+        else:
+            # Si NO hay URL (desvinculado), ponemos el icono por defecto
+            # Usamos los mismos estilos (crop/round) para que se vea consistente
+            from frontend.utils import get_icon
+            
+            # Cargamos el icono user.svg en gris oscuro o blanco
+            default_pix = get_icon("user.svg").pixmap(100, 100)
+            
+            # (Opcional) Si quieres que sea redondo igual que el avatar:
+            from frontend.utils import get_rounded_pixmap, crop_to_square
+            sq_pix = crop_to_square(default_pix, 100)
+            self.lbl_avatar.setPixmap(get_rounded_pixmap(sq_pix, is_circle=True))
+            
+            # Actualizamos también el estado del botón Kick
+            self.update_connection_state(False)
+            
         self._refresh_music_ui_state()
 
     # ==========================================
@@ -269,18 +289,25 @@ class DashboardPage(QWidget):
         if provider == "spotify":
             if self.spotify.is_active:
                 self.spotify.sig_do_disconnect.emit()
+                # La alerta vendrá por _handle_music_alert cuando el worker termine
             else:
                 if self._ensure_credentials("spotify"):
+                    # Avisamos que iniciamos proceso
+                    ToastNotification(self, "Spotify", "Conectando...", "info").show_toast()
                     self.spotify.sig_do_auth.emit()
         else:
-            # Lógica YTMusic
+            # Lógica YTMusic (Es inmediata, así que lanzamos el toast aquí)
             if self.ytmusic._is_active:
                 self.ytmusic.set_active(False)
                 self.music_panel.update_state("YTMusic Detenido", "", None, 0, 0, False)
+                # ALERTA DE APAGADO
+                ToastNotification(self, "YTMusic", "Desconectado", "status_warning").show_toast()
             else:
                 self.ytmusic.set_active(True)
+                # ALERTA DE ENCENDIDO
+                ToastNotification(self, "YTMusic", "Conectado y listo", "status_success").show_toast()
                 
-        # Pequeño delay para dar tiempo a que los workers cambien estado
+        # Pequeño delay para refrescar botón visualmente
         import PyQt6.QtCore as Core
         Core.QTimer.singleShot(200, self._refresh_music_ui_state)
 
@@ -350,8 +377,17 @@ class DashboardPage(QWidget):
         """)
 
     def _handle_music_alert(self, source, msg):
+        # 1. Errores (Rojo)
         if "Error" in msg or "❌" in msg:
             ToastNotification(self, source, msg, "status_error").show_toast()
+        # 2. Éxito / Conexión (Verde) - NUEVO
+        elif any(x in msg for x in ["Conectado", "Listo", "Autorizado", "Éxito"]):
+            ToastNotification(self, source, msg, "status_success").show_toast() 
+        # 3. Desconexión (Amarillo/Warning) - NUEVO
+        elif "Desconectado" in msg or "Cerrada" in msg:
+            ToastNotification(self, source, "Desconectado correctamente", "status_warning").show_toast()
+
+        # Siempre refrescamos la UI
         self._refresh_music_ui_state()
 
     def _on_spotify_update(self, title, artist, art_url, prog, dur, is_playing):

@@ -271,7 +271,8 @@ class MainController(QObject):
             self._start_monitor(config["kick_username"])
             
         self.connection_changed.emit(True)
-
+        self.toast_signal.emit("Conectado", "Bot en línea y escuchando.", "status_success")
+        
     def stop_bot(self):
         """Detiene la conexión de forma segura."""
         if self.worker: 
@@ -343,14 +344,22 @@ class MainController(QObject):
             self.user_info_signal.emit(username, 0, "")
 
     def force_user_refresh(self):
+        # 1. Si el bot está corriendo, lo detenemos primero
         if self.worker: 
             self.stop_bot()
             self.toast_signal.emit("Reinicio", "Cambio usuario detectado", "status_warning")
+        
         username = self.db.get("kick_username")
+        
         if username: 
+            # Caso A: Hay usuario, cargamos sus datos
             data = self.db.get_kick_user(username)
             if data: 
                 self.user_info_signal.emit(data["username"], data["followers"], data["profile_pic"])
+        else:
+            # --- CAMBIO AQUÍ: Caso B: No hay usuario (Desvinculado) ---
+            # Emitimos cadenas vacías para que la UI sepa que debe resetearse
+            self.user_info_signal.emit("Streamer", 0, "")
 
     def send_msg(self, text): 
         if self.worker: self.worker.send_chat_message(text)

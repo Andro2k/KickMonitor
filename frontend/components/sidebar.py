@@ -150,12 +150,21 @@ class Sidebar(QFrame):
     # ==========================================
     def update_user_info(self, username, avatar_url):
         """Método público llamado desde MainWindow"""
-        if username:
-            self.lbl_user_text.setText(username)
         
+        # 1. Actualizar texto
+        if username and username != "Streamer":
+            self.lbl_user_text.setText(username)
+        else:
+            self.lbl_user_text.setText("Sin Conexión")
+        
+        # 2. Actualizar Avatar
         if avatar_url:
             req = QNetworkRequest(QUrl(avatar_url))
             self.nam.get(req)
+        else:
+            # --- CAMBIO AQUÍ: Resetear a icono por defecto ---
+            pix = get_icon("user.svg").pixmap(56,56)
+            self._set_circular_avatar(pix)
 
     def _on_avatar_downloaded(self, reply):
         if reply.error() == QNetworkReply.NetworkError.NoError:
