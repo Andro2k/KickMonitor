@@ -70,7 +70,7 @@ class Sidebar(QFrame):
         self.lbl_title.setStyleSheet(f"font-weight: bold; font-size: 16px; color: {THEME_DARK['White_N1']}; border:none;")
         
         self.btn_toggle = QPushButton()
-        self.btn_toggle.setIcon(get_icon("chevron-left.svg")) 
+        self.btn_toggle.setIcon(get_icon("chevron-left-pipe.svg")) 
         self.btn_toggle.setFixedSize(32, 32)
         self.btn_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_toggle.setStyleSheet(STYLES["btn_icon_ghost"])
@@ -228,7 +228,7 @@ class Sidebar(QFrame):
             self.anim.setEndValue(self.full_width)
             self.lbl_title.show()
             self.lbl_user_text.show()
-            self.btn_toggle.setIcon(get_icon("chevron-left.svg"))
+            self.btn_toggle.setIcon(get_icon("chevron-left-pipe.svg"))
             
             for btn in self.buttons:
                 btn.setText(btn.text_original)

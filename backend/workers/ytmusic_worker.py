@@ -6,6 +6,9 @@ from ytmusicapi import YTMusic
 import time
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer, QMutex, QMutexLocker
 
+# 1. IMPORTAMOS LA CLASE LOG
+from backend.utils.logger import Log 
+
 class YTMusicWorker(QObject):
     # Señales para comunicar con la UI y el Controller
     sig_log = pyqtSignal(str)              # Para logs
@@ -25,16 +28,16 @@ class YTMusicWorker(QObject):
         self.player = self.instance.media_player_new()
         self.event_manager = self.player.event_manager()
         
-        # Timer para chequear si la canción terminó (VLC events pueden ser tricky en Qt)
+        # Timer para chequear si la canción terminó
         self.check_timer = QTimer()
         self.check_timer.timeout.connect(self._check_playback_status)
         self.check_timer.setInterval(1000)
 
         # API Youtube
         try:
-            self.yt = YTMusic("headers_auth.json") # Intenta buscar auth
+            self.yt = YTMusic("headers_auth.json") 
         except:
-            self.yt = YTMusic() # Fallback a público
+            self.yt = YTMusic() 
 
     def set_active(self, active: bool):
         """Activa o desactiva este sistema"""
@@ -73,7 +76,8 @@ class YTMusicWorker(QObject):
             return f"{info['title']} - {info['artist']}"
 
         except Exception as e:
-            self.sig_error.emit(f"Error YTMusic Search: {e}")
+            # USAMOS LOG.ERROR AQUÍ
+            self.sig_log.emit(Log.error(f"YTMusic Search Error: {e}"))
             return None
 
     def _play_next_in_queue(self):
@@ -88,9 +92,11 @@ class YTMusicWorker(QObject):
             
         self.sig_queue_changed.emit(self.queue)
         self.sig_now_playing.emit(f"Cargando: {next_song['title']}...")
-        self.sig_log.emit(f"🎵 YTMusic Cargando: {next_song['title']}")
+        
+        # 2. CAMBIO PRINCIPAL: Usamos Log.info() para que salga con formato y color
+        self.sig_log.emit(Log.info(f"🎵 YTMusic Cargando: {next_song['title']}"))
 
-        # Extraer URL real (Bloqueante, pero rápido en general)
+        # Extraer URL real
         url = self._extract_audio_url(next_song['videoId'])
         if url:
             media = self.instance.media_new(url)
@@ -98,8 +104,8 @@ class YTMusicWorker(QObject):
             self.player.play()
             self.sig_now_playing.emit(f"▶️ {next_song['title']} - {next_song['artist']}")
         else:
-            self.sig_error.emit("No se pudo extraer audio.")
-            self._play_next_in_queue() # Intentar siguiente
+            self.sig_log.emit(Log.error("No se pudo extraer audio de YTMusic."))
+            self._play_next_in_queue() 
 
     def _extract_audio_url(self, video_id):
         ydl_opts = {
@@ -114,16 +120,14 @@ class YTMusicWorker(QObject):
                 info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
                 return info.get('url')
         except Exception as e:
-            self.sig_log.emit(f"Error yt-dlp: {e}")
+            self.sig_log.emit(Log.error(f"Error yt-dlp: {e}"))
             return None
 
     def _check_playback_status(self):
-        """Revisa cada segundo si la canción terminó para poner la siguiente."""
+        """Revisa cada segundo si la canción terminó."""
         if not self._is_active: return
         
-        # Estados VLC: 6=Ended, 0=NothingSpecial, 3=Playing, 4=Paused
         state = self.player.get_state()
-        
         if state == vlc.State.Ended:
             self._play_next_in_queue()
 
@@ -131,14 +135,14 @@ class YTMusicWorker(QObject):
     def play_pause(self):
         if self.player.is_playing():
             self.player.set_pause(1)
-            self.sig_log.emit("YTMusic: Pausado")
+            self.sig_log.emit(Log.info("YTMusic: Pausado"))
         else:
             self.player.set_pause(0)
-            self.sig_log.emit("YTMusic: Reanudado")
+            self.sig_log.emit(Log.info("YTMusic: Reanudado"))
 
     def skip(self):
         self.player.stop()
-        # El timer detectará 'Stopped/Ended' o forzamos llamada
+        self.sig_log.emit(Log.info("YTMusic: Saltando canción..."))
         self._play_next_in_queue()
 
     def set_volume(self, volume: int):
