@@ -287,6 +287,15 @@ STYLES = {
         }}
         QPushButton:hover {{ background-color: {c.Black_N3}; }}
     """,
+    
+    "btn_primary_disabled": f"""
+        QPushButton {{ 
+            background-color: {c.Black_N4}; border: 1px solid {c.Black_N4};
+            color: {c.Gray_N2};
+            padding: 6px 12px; margin: 2px; border-radius: 6px;
+            font-size: 12px; font-weight: bold; 
+        }}
+    """,
     # Botón delineado (Configurar, Gestionar)
     "btn_outlined": f"""
         QPushButton {{ 
