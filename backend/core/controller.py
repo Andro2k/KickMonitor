@@ -24,7 +24,6 @@ from backend.handlers.chat_handler import ChatHandler
 from backend.handlers.music_handler import MusicHandler
 from backend.handlers.game_handler import GameHandler
 from backend.handlers.alert_handler import AlertHandler
-from backend.workers.ytmusic_worker import YTMusicWorker
 from frontend.dialogs.update_modal import UpdateModal
 
 class MainController(QObject):
@@ -40,7 +39,6 @@ class MainController(QObject):
     toast_signal = pyqtSignal(str, str, str)
     gamble_result_signal = pyqtSignal(str, str, str, bool)
     username_needed = pyqtSignal()
-    music_queue_signal = pyqtSignal(list)
 
     def __init__(self):
         super().__init__()       
@@ -51,13 +49,12 @@ class MainController(QObject):
         
         # 2. Inicialización de Workers
         self._init_spotify()
-        self._init_ytmusic()
         self._init_tts()
         self._init_overlay()        
         
         # 3. Handlers de Lógica
         self.chat_handler = ChatHandler(self.db)
-        self.music_handler = MusicHandler(self.db, self.spotify, self.ytmusic)
+        self.music_handler = MusicHandler(self.db, self.spotify) 
         self.game_handler = GameHandler(self.db, self.casino_system)
         self.alert_handler = AlertHandler(self.db, self.overlay_server)
         self.antibot = AntibotHandler(self.db)
@@ -209,28 +206,6 @@ class MainController(QObject):
         self.spotify_thread.finished.connect(self.spotify_thread.deleteLater)
         self.spotify_thread.start()
 
-    def _init_ytmusic(self):
-        """Inicializa el worker de YTMusic en su propio hilo."""
-        self.ytmusic_thread = QThread()
-        self.ytmusic = YTMusicWorker()
-        self.ytmusic.moveToThread(self.ytmusic_thread)
-        
-        # Conectar señales
-        self.ytmusic.sig_log.connect(self.emit_log)
-        self.ytmusic.sig_error.connect(lambda e: self.toast_signal.emit("YTMusic Error", e, "status_error"))
-        self.ytmusic.sig_queue_changed.connect(self.music_queue_signal.emit) # Útil para el frontend futuro
-        
-        # Iniciar thread
-        self.ytmusic_thread.start()
-        
-        # Verificar si debe activarse al inicio
-        provider = self.db.get("music_provider")
-        if provider == "ytmusic":
-            self.ytmusic.set_active(True)
-            # Setear volumen inicial
-            vol = self.db.get_int("ytmusic_volume", 70)
-            self.ytmusic.set_volume(vol)
-
     def _init_tts(self):
         self.tts = TTSWorker()
         self.tts.start()
@@ -271,8 +246,7 @@ class MainController(QObject):
             self._start_monitor(config["kick_username"])
             
         self.connection_changed.emit(True)
-        self.toast_signal.emit("Conectado", "Bot en línea y escuchando.", "status_success")
-        
+
     def stop_bot(self):
         """Detiene la conexión de forma segura."""
         if self.worker: 
@@ -298,10 +272,6 @@ class MainController(QObject):
             self.spotify.sig_do_disconnect.emit()
             self.spotify_thread.quit()
             self.spotify_thread.wait()
-        if self.ytmusic_thread.isRunning():
-            self.ytmusic.stop()
-            self.ytmusic_thread.quit()
-            self.ytmusic_thread.wait()
 
     def on_disconnected(self): 
         if self.worker: 
@@ -344,22 +314,14 @@ class MainController(QObject):
             self.user_info_signal.emit(username, 0, "")
 
     def force_user_refresh(self):
-        # 1. Si el bot está corriendo, lo detenemos primero
         if self.worker: 
             self.stop_bot()
             self.toast_signal.emit("Reinicio", "Cambio usuario detectado", "status_warning")
-        
         username = self.db.get("kick_username")
-        
         if username: 
-            # Caso A: Hay usuario, cargamos sus datos
             data = self.db.get_kick_user(username)
             if data: 
                 self.user_info_signal.emit(data["username"], data["followers"], data["profile_pic"])
-        else:
-            # --- CAMBIO AQUÍ: Caso B: No hay usuario (Desvinculado) ---
-            # Emitimos cadenas vacías para que la UI sepa que debe resetearse
-            self.user_info_signal.emit("Streamer", 0, "")
 
     def send_msg(self, text): 
         if self.worker: self.worker.send_chat_message(text)

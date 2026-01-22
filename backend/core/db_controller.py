@@ -63,11 +63,9 @@ class DBHandler:
         "points_name": "Créditos", "points_per_msg": "10", "points_per_min": "20", "points_command": "!puntos",
         "spotify_enabled": "0", "spotify_client_id": "", "spotify_secret": "", "spotify_redirect_uri": "http://127.0.0.1:8888",
         "music_cmd_song": "!song", "music_cmd_skip": "!skip", "music_cmd_pause": "!pause", "music_cmd_request": "!sr",
-        "gamble_enabled": "1", "gamble_win_rate": "45", "gamble_multiplier": "2.0",
-        "gamble_min": "10", "gamble_max": "1000", "slots_jackpot_x": "10",
+        "gamble_enabled": "1", "gamble_win_rate": "45", "gamble_multiplier": "2.0", "gamble_min": "10", "gamble_max": "1000", "slots_jackpot_x": "10",
         "roulette_multi_num": "35.0", "roulette_multi_col": "2.0", "highcard_multiplier": "2.0", 
         "auto_connect": "0", "minimize_to_tray": "0","app_language": "es", "date_format": "24h", "debug_mode": "0",
-        "music_provider": "spotify","ytmusic_volume": "70",
     }
 
     # =========================================================================

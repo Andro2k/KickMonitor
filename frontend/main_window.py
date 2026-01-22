@@ -63,7 +63,7 @@ class MainWindow(QMainWindow):
     def _init_pages(self):
         db = self.controller.db
         # Instanciamos todas las páginas
-        self.ui_home = DashboardPage(db, self.controller.spotify, self.controller.ytmusic)
+        self.ui_home = DashboardPage(db, self.controller.spotify)
         self.ui_chat = ChatPage(db, self.controller.tts) 
         self.ui_cmds = CommandsPage(db)
         self.ui_alerts = AlertsPage(db)
