@@ -1,7 +1,7 @@
 # frontend/pages/settings_page.py
 
 from PyQt6.QtWidgets import (
-    QHBoxLayout, QWidget, QVBoxLayout, QScrollArea, QFrame, 
+    QHBoxLayout, QSpinBox, QWidget, QVBoxLayout, QScrollArea, QFrame, 
     QCheckBox, QDialog, QFileDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QUrl
@@ -18,7 +18,7 @@ from frontend.factories import (
     create_styled_button,  
     create_styled_combobox 
 )
-from frontend.theme import get_switch_style
+from frontend.theme import STYLES, get_switch_style
 from frontend.alerts.toast_alert import ToastNotification
 from frontend.alerts.modal_alert import ModalConfirm
 from frontend.dialogs.connection_modal import ConnectionModal
@@ -156,6 +156,7 @@ class SettingsPage(QWidget):
     def _setup_economy_section(self):
         self.content_layout.addWidget(create_section_header("Economía"))
 
+        # Comando Puntos (Se queda igual)
         self.inp_p_cmd = create_styled_input("!puntos", is_cmd=True, callback=lambda: self.service.set_setting("points_command", self.inp_p_cmd.text()))
         self.inp_p_cmd.setFixedWidth(150)
         
@@ -165,13 +166,22 @@ class SettingsPage(QWidget):
             self.inp_p_cmd
         ))
 
-        self.inp_p_msg = create_styled_input("10", is_cmd=False, callback=lambda v: self.service.set_setting("points_per_msg", v))
-        self.inp_p_msg.setFixedWidth(100)
+        # --- CAMBIO AQUÍ: Usamos QSpinBox en lugar de create_styled_input ---
+        self.spin_points = QSpinBox()
+        self.spin_points.setFixedWidth(100)
+        self.spin_points.setRange(0, 10000) # Rango de 0 a 10,000 puntos
+        self.spin_points.setSingleStep(5)   # Sube de 5 en 5 (opcional)
+        self.spin_points.setStyleSheet(STYLES["spinbox_modern"]) # Estilo definido en theme.py
+        
+        # Conectamos la señal para guardar automáticamente al cambiar el valor
+        self.spin_points.valueChanged.connect(
+            lambda v: self.service.set_setting("points_per_msg", str(v))
+        )
 
         self.content_layout.addWidget(create_setting_row(
             "Recompensa por Chat",
             "Cantidad de puntos otorgados por cada mensaje enviado.",
-            self.inp_p_msg
+            self.spin_points
         ))
 
     # ==========================================
@@ -256,11 +266,15 @@ class SettingsPage(QWidget):
     # ==========================================
     def load_data(self):
         self.chk_auto.setChecked(self.db.get_bool("auto_connect"))
-        self.chk_tray.setChecked(self.db.get_bool("minimize_to_tray")) # Cargar estado del tray
-        
+        self.chk_tray.setChecked(self.db.get_bool("minimize_to_tray"))
+
         pts = self.service.get_points_config()
         self.inp_p_cmd.setText(pts["command"])
-        self.inp_p_msg.setText(str(pts["per_msg"]))
+        try:
+            val = int(pts["per_msg"])
+        except:
+            val = 10
+        self.spin_points.setValue(val)
 
         current_fmt = self.db.get("time_fmt", "Sistema")
         index = self.combo_time.findText(current_fmt)
