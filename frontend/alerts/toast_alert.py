@@ -38,38 +38,35 @@ TOAST_CONFIG = {
     }
 }
 
-class ToastIcon(QWidget):
+# ==========================================
+# NUEVA VERSIÓN SIMPLIFICADA DE TOASTICON
+# ==========================================
+class ToastIcon(QLabel): 
     """
-    Dibuja un círculo de color y superpone un SVG blanco en el centro.
+    Muestra el icono SVG teñido del color correspondiente al tipo de notificación.
+    Sin círculo de fondo.
     """
     def __init__(self, tipo, parent=None):
         super().__init__(parent)
-        self.setFixedSize(24, 24)
         
-        # 1. Obtener configuración
+        icon_size = 24
+        self.setFixedSize(icon_size, icon_size)
+        
+        # 1. Obtener configuración del tipo
         config = TOAST_CONFIG["types"].get(tipo, TOAST_CONFIG["types"]["info"])
-        self.bg_color = QColor(config["color"])
+        
+        color_hex = config["color"] 
         icon_name = config["icon"]
 
-        # 2. Generar el icono SVG en BLANCO para que contraste con el fondo de color
-        icon_obj = get_icon_colored(icon_name, "#FFFFFF", size=18)
-        self.icon_pixmap = icon_obj.pixmap(18, 18)
+        # 2. Obtenemos el QIcon desde utils
+        # Nota: Cambié el nombre de la variable de 'colored_pixmap' a 'colored_icon' para ser precisos
+        colored_icon = get_icon_colored(icon_name, color_hex, size=icon_size)
 
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
-        # 1. Dibujar Círculo de Fondo (Color del estado)
-        painter.setBrush(self.bg_color)
-        painter.setPen(Qt.PenStyle.NoPen)
-        rect_circle = self.rect()
-        painter.drawEllipse(rect_circle)
-        
-        # 2. Dibujar Icono SVG (Blanco) Centrado
-        if not self.icon_pixmap.isNull():
-            x = (self.width() - self.icon_pixmap.width()) // 2
-            y = (self.height() - self.icon_pixmap.height()) // 2
-            painter.drawPixmap(x, y, self.icon_pixmap)
+        # 3. Extraer el QPixmap del QIcon y mostrarlo
+        # Usamos .pixmap(ancho, alto) para convertir el icono en una imagen mostrable
+        if not colored_icon.isNull():
+            self.setPixmap(colored_icon.pixmap(icon_size, icon_size)) # <--- AQUÍ ESTÁ EL CAMBIO
+            self.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
 
 class ToastNotification(QWidget):

@@ -3,7 +3,7 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QPushButton, QFrame, QGridLayout, QDialog,
-    QTextEdit, QSizePolicy, QScrollArea
+    QTextEdit, QSizePolicy, QScrollArea, QComboBox # <--- ASEGURATE DE IMPORTAR QComboBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QUrl
 from PyQt6.QtGui import QPixmap
@@ -16,7 +16,7 @@ from frontend.dialogs.connection_modal import ConnectionModal
 from frontend.theme import LAYOUT, STYLES, THEME_DARK
 from frontend.utils import crop_to_square, get_icon_colored, get_icon, get_rounded_pixmap
 
-# --- IMPORTS NUEVOS ---
+# --- IMPORTS DE COMPONENTES ---
 from frontend.components.flow_layout import FlowLayout
 from frontend.components.music_card import MusicPlayerPanel
 from frontend.factories import create_card_header, create_dashboard_action_btn, create_shortcut_btn 
@@ -25,28 +25,38 @@ class DashboardPage(QWidget):
     navigate_signal = pyqtSignal(int) 
     connect_signal = pyqtSignal()
 
-    def __init__(self, db_handler, spotify_worker, parent=None):
+    def __init__(self, db_handler, spotify_worker, ytmusic_worker, parent=None):
         super().__init__(parent)
         self.service = DashboardService(db_handler)
         self.spotify = spotify_worker 
+        self.ytmusic = ytmusic_worker 
 
         self.nam = QNetworkAccessManager(self)
         self.nam.finished.connect(self._on_download_finished)
         self._current_art_url = None
         
+        # 1. Crear UI (Aquí se crean cmb_music y btn_music)
         self.init_ui()
+        
+        # 2. Conectar Señales
         self._connect_signals()
 
+        # 3. Cargar estado inicial (Ahora sí existen los elementos)
+        self._refresh_music_ui_state()
+
     def _connect_signals(self):
-        self.spotify.track_changed.connect(self.update_music_ui)
-        self.spotify.status_msg.connect(lambda: self.refresh_data())
-        self.spotify.status_msg.connect(self._handle_spotify_status_alert)
+        # --- SPOTIFY SIGNALS ---
+        self.spotify.track_changed.connect(self._on_spotify_update)
+        self.spotify.status_msg.connect(lambda m: self._handle_music_alert("Spotify", m))
+        
+        # --- YTMUSIC SIGNALS ---
+        self.ytmusic.sig_now_playing.connect(self._on_ytmusic_update)
+        self.ytmusic.sig_error.connect(lambda m: self._handle_music_alert("YTMusic", m))
 
     # ==========================================
     # 1. UI SETUP
     # ==========================================
     def init_ui(self):
-        # 1. Scroll Area Principal
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0,0,0,0)
         
@@ -70,10 +80,9 @@ class DashboardPage(QWidget):
 
     def _setup_top_grid_section(self):
         grid_container = QWidget()
-        # FlowLayout para respuesta responsiva
-        grid_layout = FlowLayout(grid_container, margin=0, spacing=(LAYOUT["spacing"]))
+        grid_layout = FlowLayout(grid_container, margin=0, spacing=LAYOUT["spacing"])
 
-        # A. COLUMNA IZQUIERDA (Perfil + Música)
+        # COLUMNA IZQUIERDA
         left_col = QWidget()
         left_col.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         left_col.setMinimumWidth(380)
@@ -90,17 +99,16 @@ class DashboardPage(QWidget):
         
         grid_layout.addWidget(left_col)
 
-        # B. COLUMNA DERECHA (Accesos Directos)
+        # COLUMNA DERECHA
         self.shortcuts_card = self._create_shortcuts_card()
         self.shortcuts_card.setMinimumWidth(300)
-        self.shortcuts_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding) # Expanding vertical
-        
+        self.shortcuts_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         grid_layout.addWidget(self.shortcuts_card)
 
         self.main_layout.addWidget(grid_container)
 
     # ==========================================
-    # CREADORES DE TARJETAS (Actualizado)
+    # CREADORES DE TARJETAS (CORREGIDO)
     # ==========================================
     def _create_profile_card(self):
         card = QFrame()
@@ -134,9 +142,8 @@ class DashboardPage(QWidget):
         actions.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         actions.setSpacing(8)
         
+        # --- FILA 1: KICK ---
         kick_row = QHBoxLayout()
-        
-        # --- USO DE FACTORY ---
         self.btn_connect = create_dashboard_action_btn("Kick: Offline", "kick.svg", self._handle_kick_connect_click)
         
         self.btn_auto = QPushButton()
@@ -145,21 +152,35 @@ class DashboardPage(QWidget):
         self.btn_auto.setFixedSize(28, 28)
         self.btn_auto.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_auto.setIcon(get_icon("plug.svg"))
-        self.btn_auto.setToolTip("Auto-conectar al inicio")
         self.btn_auto.toggled.connect(self._toggle_auto_connect)
-        
-        is_auto = self.service.get_auto_connect_state()
-        self.btn_auto.setChecked(is_auto)
+        self.btn_auto.setChecked(self.service.get_auto_connect_state())
         
         kick_row.addWidget(self.btn_connect)
         kick_row.addWidget(self.btn_auto)
         
-        # --- USO DE FACTORY ---
-        self.btn_spotify = create_dashboard_action_btn("Spotify", "spotify.svg", self._toggle_spotify_connection)
-        self._update_spotify_btn_style(False)
+        # --- FILA 2: MÚSICA (NUEVO) ---
+        music_row = QHBoxLayout()
+        music_row.setSpacing(5)
+
+        # Selector de Proveedor
+        self.cmb_music = QComboBox()
+        self.cmb_music.addItems(["Spotify", "YT Music"])
+        self.cmb_music.setFixedSize(100, 30)
+        self.cmb_music.setStyleSheet(STYLES["combobox"])
+        self.cmb_music.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.cmb_music.currentIndexChanged.connect(self._on_music_provider_changed)
+        
+        # Botón Conectar Música
+        self.btn_music = QPushButton("Conectar")
+        self.btn_music.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_music.setFixedHeight(30)
+        self.btn_music.clicked.connect(self._toggle_music_connection)
+        
+        music_row.addWidget(self.cmb_music)
+        music_row.addWidget(self.btn_music)
 
         actions.addLayout(kick_row)
-        actions.addWidget(self.btn_spotify)
+        actions.addLayout(music_row)
 
         layout.addWidget(self.lbl_avatar)
         layout.addLayout(info)
@@ -186,9 +207,7 @@ class DashboardPage(QWidget):
         cols = 3 
         
         for i, (icon, txt, idx) in enumerate(shortcuts):
-            # --- USO DE FACTORY ---
             btn = create_shortcut_btn(txt, icon, lambda _, x=idx: self.navigate_signal.emit(x))
-            
             r, c = divmod(i, cols)
             grid.addWidget(btn, r, c)
             
@@ -198,7 +217,6 @@ class DashboardPage(QWidget):
         return card
 
     def _setup_log_section(self):
-        # Header Factory
         self.main_layout.addWidget(create_card_header("Registros del Sistema"))
         
         self.log_console = QTextEdit()
@@ -206,7 +224,7 @@ class DashboardPage(QWidget):
         self.log_console.setPlaceholderText("Esperando conexión.")
         self.log_console.setMinimumHeight(150)
         self.log_console.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding)    
-        self.log_console.setStyleSheet(STYLES["text_edit_console"]) # Estilo del theme
+        self.log_console.setStyleSheet(STYLES["text_edit_console"])
 
         self.main_layout.addWidget(self.log_console)
 
@@ -218,28 +236,81 @@ class DashboardPage(QWidget):
         self.lbl_welcome.setText(data["greeting"])
         self.lbl_stats.setText(data["stats"])
         if data["pic_url"]: self._start_download(data["pic_url"], "avatar")
-        self._update_spotify_btn_style(self.spotify.is_active)
-
-    def update_music_ui(self, title, artist, art_url, prog, dur, is_playing):
-        if art_url and art_url != self._current_art_url:
-            self._current_art_url = art_url
-            self._start_download(art_url, "music_art")
-        self.music_panel.update_state(title, artist, None, prog, dur, is_playing)
+        self._refresh_music_ui_state()
 
     # ==========================================
-    # HANDLERS (Simplificados)
+    # LOGICA DE MÚSICA Y UI STATE
+    # ==========================================
+    def _refresh_music_ui_state(self):
+        """Sincroniza el combo y el botón con la DB y el estado real."""
+        provider = self.service.db.get("music_provider", "spotify")
+        idx = 1 if provider == "ytmusic" else 0
+        
+        # Bloqueamos señal para evitar bucle infinito al setear index
+        self.cmb_music.blockSignals(True)
+        self.cmb_music.setCurrentIndex(idx)
+        self.cmb_music.blockSignals(False)
+        
+        active = self.ytmusic._is_active if provider == "ytmusic" else self.spotify.is_active
+        self._update_music_btn_style(active, provider)
+        
+        # Actualizamos el worker del panel
+        worker = self.ytmusic if provider == "ytmusic" else self.spotify
+        self.music_panel.set_worker(worker)
+
+    def _on_music_provider_changed(self, index):
+        provider = "ytmusic" if index == 1 else "spotify"
+        self.service.db.set("music_provider", provider)
+        self._refresh_music_ui_state()
+
+    def _toggle_music_connection(self):
+        provider = self.service.db.get("music_provider", "spotify")
+        
+        if provider == "spotify":
+            if self.spotify.is_active:
+                self.spotify.sig_do_disconnect.emit()
+            else:
+                if self._ensure_credentials("spotify"):
+                    self.spotify.sig_do_auth.emit()
+        else:
+            # Lógica YTMusic
+            if self.ytmusic._is_active:
+                self.ytmusic.set_active(False)
+                self.music_panel.update_state("YTMusic Detenido", "", None, 0, 0, False)
+            else:
+                self.ytmusic.set_active(True)
+                
+        # Pequeño delay para dar tiempo a que los workers cambien estado
+        import PyQt6.QtCore as Core
+        Core.QTimer.singleShot(200, self._refresh_music_ui_state)
+
+    def _update_music_btn_style(self, active, provider):
+        color = "#FF0000" if provider == "ytmusic" else "#1DB954"
+        icon = "play.svg" if provider == "ytmusic" else "spotify.svg"
+        
+        bg = color if active else THEME_DARK['Black_N3']
+        fg = "white" if active else THEME_DARK['White_N1']
+        txt = "On" if active else "Conectar"
+        
+        self.btn_music.setText(txt)
+        self.btn_music.setIcon(get_icon_colored(icon, fg))
+        self.btn_music.setStyleSheet(f"""
+            QPushButton {{ 
+                background-color: {bg}; color: {fg}; border-radius: 6px; 
+                font-weight: bold; padding: 0 10px;
+            }}
+        """)
+
+    # ==========================================
+    # HANDLERS
     # ==========================================
     def _handle_kick_connect_click(self):
-        # 1. Si ya está conectado (botón presionado), no hacer nada (la desconexión la maneja el controlador global normalmente o un botón stop)
-        if self.btn_connect.isChecked():
-            pass 
+        if self.btn_connect.isChecked(): pass 
 
-        # 2. Verificar Credenciales (Delegado al servicio + Modal si falla)
         if not self._ensure_credentials("kick"):
             self.btn_connect.setChecked(False)
             return
 
-        # 3. Verificar Usuario
         current_user = self.service.get_kick_username()
         if not current_user:
             from frontend.dialogs.user_modal import UsernameInputDialog
@@ -252,48 +323,17 @@ class DashboardPage(QWidget):
         else:
             self.connect_signal.emit()
 
-    def _toggle_spotify_connection(self):
-        if self.spotify.is_active:
-            if ModalConfirm(self, "Desconectar", "¿Detener Spotify?").exec():
-                self.service.set_spotify_enabled(False)
-                self.spotify.sig_do_disconnect.emit()
-        else:
-            if self._ensure_credentials("spotify"):
-                self.service.set_spotify_enabled(True)
-                self.spotify.sig_do_auth.emit()
-
     def _ensure_credentials(self, s_type):
-        """Lógica de UI para pedir credenciales si faltan."""
-        if self.service.has_credentials(s_type):
-            return True
-            
+        if self.service.has_credentials(s_type): return True
         defaults = self.service.get_default_creds(s_type)
         if defaults and ModalConfirm(self, "Configuración", f"¿Usar credenciales default?").exec():
             self.service.apply_creds(defaults)
             return True
-            
         worker = self.spotify if s_type == "spotify" else None
         return ConnectionModal(self.service.db, service_type=s_type, worker=worker, parent=self).exec() == QDialog.DialogCode.Accepted
 
     def _toggle_auto_connect(self, checked):
         self.service.set_auto_connect_state(checked)
-
-    # ==========================================
-    # HELPERS VISUALES
-    # ==========================================
-    def _update_spotify_btn_style(self, active):
-        bg = "#1DB954" if active else THEME_DARK['Black_N3']
-        fg = "black" if active else THEME_DARK['White_N1']
-        txt = "Spotify: On" if active else "Conectar Spotify"
-        
-        self.btn_spotify.setIcon(get_icon_colored("spotify.svg", fg))
-        self.btn_spotify.setText(txt)
-        self.btn_spotify.setStyleSheet(f"""
-            QPushButton {{ 
-                background-color: {bg}; color: {fg}; border-radius: 8px; 
-                font-weight: bold; font-size: 13px; text-align: left; padding-left: 15px; 
-            }}
-        """)
 
     def update_connection_state(self, connected):
         self.btn_connect.setChecked(connected)
@@ -309,16 +349,30 @@ class DashboardPage(QWidget):
             }}
         """)
 
-    def _handle_spotify_status_alert(self, msg):
-        if any(x in msg for x in ["❌", "Error", "Cancelado"]):
-            ToastNotification(self, "Spotify", msg, "status_error").show_toast()
-            self._update_spotify_btn_style(False)
+    def _handle_music_alert(self, source, msg):
+        if "Error" in msg or "❌" in msg:
+            ToastNotification(self, source, msg, "status_error").show_toast()
+        self._refresh_music_ui_state()
+
+    def _on_spotify_update(self, title, artist, art_url, prog, dur, is_playing):
+        if self.service.db.get("music_provider") == "spotify":
+            if art_url and art_url != self._current_art_url:
+                self._current_art_url = art_url
+                self._start_download(art_url, "music_art")
+            self.music_panel.update_state(title, artist, None, prog, dur, is_playing)
+
+    def _on_ytmusic_update(self, text_status):
+        if self.service.db.get("music_provider") == "ytmusic":
+            parts = text_status.split(" - ", 1)
+            title = parts[0]
+            artist = parts[1] if len(parts) > 1 else ""
+            self.music_panel.update_state(title, artist, None, 0, 0, True)
 
     def append_log(self, text):
         self.log_console.append(text)
         self.log_console.verticalScrollBar().setValue(self.log_console.verticalScrollBar().maximum())
 
-    # --- NETWORK HELPERS (Se mantienen en UI porque manejan Pixmaps) ---
+    # --- NETWORK HELPERS ---
     def _start_download(self, url, tag):
         req = QNetworkRequest(QUrl(url)); req.setAttribute(QNetworkRequest.Attribute.User, tag)
         self.nam.get(req)
@@ -331,13 +385,10 @@ class DashboardPage(QWidget):
             
             if not pix.isNull():
                 if tag == "avatar": 
-                    # Cuadrado 100x100 -> Círculo
                     sq_pix = crop_to_square(pix, 100)
                     self.lbl_avatar.setPixmap(get_rounded_pixmap(sq_pix, is_circle=True))
                 elif tag == "music_art":
-                    # Redondeado radio 10
+                    # Actualizamos el music_panel directamente
                     self.music_panel.lbl_art.setPixmap(get_rounded_pixmap(pix, radius=10))
                     
         reply.deleteLater()
-
-    

@@ -205,13 +205,13 @@ STYLES = {
     """,
     # --- INPUTS ---
     "input": f"""
-        QLineEdit {{ background: {c.Black_N3}; border-radius: {r['input']}; padding: 8px; color: white; }}
+        QLineEdit {{ background: {c.Black_N3}; border-radius: {r['input']}; padding: 6px; color: white; }}
         QLineEdit:focus {{ border: 1px solid {c.Gray_N1}; }}
     """,
     "input_cmd": f"""
         QLineEdit {{ 
             background: {c.Black_N3}; color: {c.Gray_N1}; font-weight: bold; font-family: Consolas;
-            border-radius: 4px; padding: 6px 10px; border: 1px solid {c.border};
+            border-radius: 4px; padding: 6px; border: 1px solid {c.border};
         }}
         QLineEdit:focus {{ border-color: {c.Gray_N1}; }}
     """,
@@ -367,7 +367,7 @@ STYLES = {
     "combobox": f"""
         QComboBox {{
             background-color: {c.Black_N3}; border: 1px solid {c.Black_N4};
-            color: {c.White_N1}; border-radius: 6px; padding: 6px 12px; min-height: 20px;
+            color: {c.White_N1}; border-radius: 6px; padding: 6px 12px; min-height: 16px;
         }}
         QComboBox:hover, QComboBox:focus {{
             border: 1px solid {c.Gray_N1}; background-color: {c.Black_N2};

@@ -24,6 +24,7 @@ from backend.handlers.chat_handler import ChatHandler
 from backend.handlers.music_handler import MusicHandler
 from backend.handlers.game_handler import GameHandler
 from backend.handlers.alert_handler import AlertHandler
+from backend.workers.ytmusic_worker import YTMusicWorker
 from frontend.dialogs.update_modal import UpdateModal
 
 class MainController(QObject):
@@ -39,6 +40,7 @@ class MainController(QObject):
     toast_signal = pyqtSignal(str, str, str)
     gamble_result_signal = pyqtSignal(str, str, str, bool)
     username_needed = pyqtSignal()
+    music_queue_signal = pyqtSignal(list)
 
     def __init__(self):
         super().__init__()       
@@ -49,12 +51,13 @@ class MainController(QObject):
         
         # 2. Inicialización de Workers
         self._init_spotify()
+        self._init_ytmusic()
         self._init_tts()
         self._init_overlay()        
         
         # 3. Handlers de Lógica
         self.chat_handler = ChatHandler(self.db)
-        self.music_handler = MusicHandler(self.db, self.spotify) 
+        self.music_handler = MusicHandler(self.db, self.spotify, self.ytmusic)
         self.game_handler = GameHandler(self.db, self.casino_system)
         self.alert_handler = AlertHandler(self.db, self.overlay_server)
         self.antibot = AntibotHandler(self.db)
@@ -206,6 +209,28 @@ class MainController(QObject):
         self.spotify_thread.finished.connect(self.spotify_thread.deleteLater)
         self.spotify_thread.start()
 
+    def _init_ytmusic(self):
+        """Inicializa el worker de YTMusic en su propio hilo."""
+        self.ytmusic_thread = QThread()
+        self.ytmusic = YTMusicWorker()
+        self.ytmusic.moveToThread(self.ytmusic_thread)
+        
+        # Conectar señales
+        self.ytmusic.sig_log.connect(self.emit_log)
+        self.ytmusic.sig_error.connect(lambda e: self.toast_signal.emit("YTMusic Error", e, "status_error"))
+        self.ytmusic.sig_queue_changed.connect(self.music_queue_signal.emit) # Útil para el frontend futuro
+        
+        # Iniciar thread
+        self.ytmusic_thread.start()
+        
+        # Verificar si debe activarse al inicio
+        provider = self.db.get("music_provider")
+        if provider == "ytmusic":
+            self.ytmusic.set_active(True)
+            # Setear volumen inicial
+            vol = self.db.get_int("ytmusic_volume", 70)
+            self.ytmusic.set_volume(vol)
+
     def _init_tts(self):
         self.tts = TTSWorker()
         self.tts.start()
@@ -272,6 +297,10 @@ class MainController(QObject):
             self.spotify.sig_do_disconnect.emit()
             self.spotify_thread.quit()
             self.spotify_thread.wait()
+        if self.ytmusic_thread.isRunning():
+            self.ytmusic.stop()
+            self.ytmusic_thread.quit()
+            self.ytmusic_thread.wait()
 
     def on_disconnected(self): 
         if self.worker: 
