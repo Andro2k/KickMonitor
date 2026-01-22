@@ -3,7 +3,6 @@
 import os
 import sys
 import ctypes
-import vlc
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtGui import QIcon
 

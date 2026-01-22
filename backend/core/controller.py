@@ -246,6 +246,7 @@ class MainController(QObject):
             self._start_monitor(config["kick_username"])
             
         self.connection_changed.emit(True)
+        self.toast_signal.emit("Conectado", "Bot en línea y escuchando.", "status_success")
 
     def stop_bot(self):
         """Detiene la conexión de forma segura."""
@@ -322,6 +323,8 @@ class MainController(QObject):
             data = self.db.get_kick_user(username)
             if data: 
                 self.user_info_signal.emit(data["username"], data["followers"], data["profile_pic"])
+        else:
+            self.user_info_signal.emit("Streamer", 0, "")
 
     def send_msg(self, text): 
         if self.worker: self.worker.send_chat_message(text)

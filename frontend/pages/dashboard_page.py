@@ -217,7 +217,15 @@ class DashboardPage(QWidget):
         data = self.service.get_profile_data()
         self.lbl_welcome.setText(data["greeting"])
         self.lbl_stats.setText(data["stats"])
-        if data["pic_url"]: self._start_download(data["pic_url"], "avatar")
+        if data["pic_url"]: 
+            self._start_download(data["pic_url"], "avatar")
+        else:
+            from frontend.utils import get_icon
+            default_pix = get_icon("user.svg").pixmap(100, 100)
+            from frontend.utils import get_rounded_pixmap, crop_to_square
+            sq_pix = crop_to_square(default_pix, 100)
+            self.lbl_avatar.setPixmap(get_rounded_pixmap(sq_pix, is_circle=True))
+
         self._update_spotify_btn_style(self.spotify.is_active)
 
     def update_music_ui(self, title, artist, art_url, prog, dur, is_playing):
