@@ -1,5 +1,5 @@
 {
-    "version": "1.8.4.0",
-    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.8.4.0/KickMonitor_Setup_v1.8.4.0.exe",
+    "version": "1.8.3.0",
+    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.8.3.0/KickMonitor_Setup_v1.8.3.0.exe",
     "changelog": "<ul><li><b>YOUTUBE MUSIC:</b> Integración completa como proveedor alternativo a Spotify, con cola inteligente y selector dinámico.</li><li><b>LOGIN 2.0:</b> Nuevo modal de vinculación con búsqueda en tiempo real, ilustraciones y previsualización de perfil (Avatar/Seguidores).</li><li><b>UX MEJORADA:</b> Alertas visuales (Toasts) para el estado de conexión y controles numéricos (SpinBox) en Ajustes.</li><li><b>CORRECCIONES:</b> Solucionado el error de 'avatar fantasma' al desvincular la cuenta y optimización de hilos en segundo plano.</li></ul>"
 }

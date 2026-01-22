@@ -3,6 +3,7 @@
 import os
 import sys
 import ctypes
+import vlc
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtGui import QIcon
 
@@ -20,7 +21,7 @@ if sys.platform.startswith('win'):
 if not hasattr(sys, '_MEIPASS'):
     pass
 
-myappid = 'kickmonitor.v1.8.4.0' 
+myappid = 'kickmonitor.v1.8.3.0' 
 try:
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except ImportError:
