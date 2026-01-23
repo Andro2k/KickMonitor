@@ -20,7 +20,7 @@ if sys.platform.startswith('win'):
 if not hasattr(sys, '_MEIPASS'):
     pass
 
-myappid = 'kickmonitor.v1.8.3.0' 
+myappid = 'kickmonitor.v1.8.3.1' 
 try:
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except ImportError:

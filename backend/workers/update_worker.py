@@ -1,7 +1,6 @@
 # backend/updater.py
 
 import subprocess
-import sys
 import os
 import requests
 import tempfile
@@ -11,7 +10,7 @@ from packaging import version
 # =========================================================================
 # CONFIGURACIÓN DE VERSIÓN
 # =========================================================================
-INTERNAL_VERSION = "1.8.3.0"
+INTERNAL_VERSION = "1.8.3.1"
 UPDATE_JSON_URL = "https://raw.githubusercontent.com/Andro2k/KickMonitor/refs/heads/main/version.json"
 
 # =========================================================================
@@ -91,24 +90,13 @@ class UpdateDownloaderWorker(QThread):
         """Ejecuta el instalador limpiando el entorno y mata la app actual."""
         if os.path.exists(self.installer_path):
             try:
-                # 1. LIMPIEZA DE ENTORNO (Soluciona el error de "Failed to load Python DLL")
-                my_env = os.environ.copy()
-                my_env.pop('_MEIPASS2', None)
-                my_env.pop('LD_LIBRARY_PATH', None) 
+                # --- SOLUCIÓN: Usar os.startfile ---
+                # Funciona nativamente en Windows y no hereda el entorno corrupto de PyInstaller.
+                os.startfile(self.installer_path)
                 
-                # 2. LANZAR INSTALADOR DESVINCULADO
-                subprocess.Popen(
-                    [self.installer_path], 
-                    env=my_env,
-                    shell=False,
-                    close_fds=True,
-                    creationflags=subprocess.CREATE_NEW_CONSOLE
-                )
-                
-                # 3. MATAR LA APP ACTUAL (Soluciona que la app no se cierra)
+                # Matar la app actual inmediatamente para liberar recursos
                 os._exit(0) 
                 
             except Exception as e:
+                # Fallback por si acaso (aunque startfile raramente falla en Windows)
                 self.error.emit(f"No se pudo abrir el instalador: {e}")
-        else:
-            self.error.emit("El archivo descargado no existe.")
