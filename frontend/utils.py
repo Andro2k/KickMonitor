@@ -11,9 +11,22 @@ def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
     except Exception:
+        # Asume que utils.py está en frontend/, sube dos niveles a la raíz
         base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     return os.path.join(base_path, relative_path)
+
+def get_assets_path(subfolder: str = "") -> str:
+    """
+    Devuelve la ruta absoluta a la carpeta 'assets' (o subcarpeta).
+    Normaliza las barras a '/' para que el motor HTML de Qt no falle en Windows.
+    """
+    path = resource_path("assets")
+    
+    if subfolder:
+        path = os.path.join(path, subfolder)
+    
+    return os.path.normpath(path).replace("\\", "/")
 
 def get_icon(name):
     full_path = resource_path(os.path.join("assets", "icons", name))
@@ -92,19 +105,11 @@ def get_video_thumbnail(file_path, width=300):
         cap.release()
 
         if ret:
-            # 1. Convertir color de BGR (OpenCV) a RGB (Qt)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            
-            # 2. Calcular dimensiones para mantener aspecto
             h, w, ch = frame.shape
-            
-            # 3. Convertir a QImage
             bytes_per_line = ch * w
             qimg = QImage(frame.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
-            
-            # 4. Escalar y devolver QPixmap
             pixmap = QPixmap.fromImage(qimg)
-            # Escalamos manteniendo ratio, basado en el ancho deseado
             return pixmap.scaledToWidth(width, Qt.TransformationMode.SmoothTransformation)
             
     except Exception as e:

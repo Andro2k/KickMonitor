@@ -8,12 +8,14 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QTimer
 
+from frontend.alerts.info_modal import InfoModal
 from frontend.components.cards import Card
 from frontend.alerts.modal_alert import ModalConfirm
 from frontend.alerts.toast_alert import ToastNotification
 from frontend.components.flow_layout import FlowLayout 
 from frontend.components.media_card import MediaCard
-from frontend.factories import create_nav_btn, create_page_header, create_styled_input, create_icon_btn
+from frontend.factories import create_help_btn, create_nav_btn, create_page_header, create_styled_input, create_icon_btn
+from frontend.help_content import load_help_content
 from frontend.utils import get_icon
 from frontend.theme import LAYOUT, STYLES, THEME_DARK, get_switch_style
 from backend.services.overlay_service import OverlayService
@@ -66,10 +68,17 @@ class OverlayPage(QWidget):
         """Encabezado con título y botones de importación/exportación."""
         h_layout = QHBoxLayout()
         h_layout.addWidget(create_page_header("Control de Triggers", "Configura tus alertas visuales y sonoras."))
+        h_layout.addSpacing(10)
+        h_layout.addWidget(create_help_btn(self._show_help_modal))
         h_layout.addStretch()
         h_layout.addWidget(create_nav_btn("Importar", "upload.svg", self._handle_import))
         h_layout.addWidget(create_nav_btn("Exportar", "download.svg", self._handle_export))
         self.content_layout.addLayout(h_layout)
+
+    def _show_help_modal(self):
+        # Llamamos al modal pasando el texto desde el diccionario
+        content = load_help_content("overlay_page")
+        InfoModal(self, "Guía de Overlays", content).exec()
 
     def _setup_config_section(self):
         """

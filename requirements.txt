@@ -19,5 +19,8 @@ spotipy
 opencv-python
 pywin32
 
+
+# --- Ayuda ---
+markdown
 # --- Empaquetado ---
 pyinstaller

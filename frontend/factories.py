@@ -278,3 +278,28 @@ def create_shortcut_btn(text: str, icon_name: str, func=None) -> QPushButton:
         btn.clicked.connect(func)
         
     return btn
+
+def create_help_btn(func) -> QPushButton:
+    """Crea un botón circular con signo de interrogación para abrir modales de ayuda."""
+    btn = QPushButton()
+    btn.setIcon(get_icon("help-circle.svg")) # Asegúrate de tener este icono
+    btn.setFixedSize(32, 32)
+    btn.setCursor(Qt.CursorShape.PointingHandCursor)
+    btn.setToolTip("Ver guía de uso")
+    
+    # Estilo circular sutil
+    btn.setStyleSheet(f"""
+        QPushButton {{
+            background-color: transparent;
+            border: 1px solid {STYLES.get('border', '#333')}; 
+            border-radius: 16px;
+        }}
+        QPushButton:hover {{
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: white;
+        }}
+    """)
+    
+    if func:
+        btn.clicked.connect(func)
+    return btn
