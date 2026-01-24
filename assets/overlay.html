@@ -7,15 +7,15 @@
         body { margin: 0; overflow: hidden; background: transparent; }
         #media-container {
             position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
-            pointer-events: none; /* Click-through para OBS */
-            /* Quitamos flex para permitir superposición libre */
+            pointer-events: none;
             display: block; 
         }
-        video, img { 
+        video, img, audio { 
             max-width: 100%; 
             max-height: 100%; 
-            will-change: transform, left, top;
-            position: absolute; /* CLAVE: Para que se encimen uno sobre otro */
+            will-change: transform, opacity;
+            position: absolute;
+            transition: opacity 0.2s ease-out; /* Suaviza la desaparición */
         }
     </style>
 </head>
@@ -29,76 +29,72 @@
 
         function connect() {
             socket = new WebSocket("ws://127.0.0.1:8081/ws");
-
             socket.onopen = () => console.log("🟢 Conectado al Overlay");
-            
             socket.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
                     if (data.action === "play_media") playMedia(data);
                 } catch (e) { console.error(e); }
             };
-
             socket.onclose = () => setTimeout(connect, retryInterval);
             socket.onerror = () => socket.close();
         }
 
         function playMedia(data) {
             let element;
-            
-            // Cálculo de volumen (0-100 a 0.0-1.0)
-            let vol = 1.0; 
-            if (data.volume !== undefined && data.volume !== null) {
-                vol = data.volume / 100;
-            }
+            // Aseguramos que volumen y duración sean números
+            const vol = (data.volume !== undefined) ? data.volume / 100 : 1.0;
+            const duration = data.duration ? parseFloat(data.duration) : 0;
+
+            // --- Función Helper para eliminar el elemento ---
+            const removeElement = () => {
+                if (!element) return;
+                element.style.opacity = '0'; // Desvanecer primero
+                setTimeout(() => {
+                    if (element && element.parentNode) {
+                        element.parentNode.removeChild(element);
+                    }
+                    element = null; // Liberar memoria
+                }, 200); // Esperar la transición CSS
+            };
 
             if (data.type === 'video') {
                 element = document.createElement('video');
                 element.src = data.url;
                 element.autoplay = true;
                 element.volume = vol; 
-                
-                // Configuración inicial (oculto)
-                element.style.opacity = "0";
+                element.style.opacity = "0"; // Iniciar invisible
 
-                // Auto-eliminación
-                if (data.duration > 0) {
-                    setTimeout(() => { if(element) element.remove(); }, data.duration * 1000);
-                } else {
-                    element.onended = () => element.remove();
+                // 1. SIEMPRE escuchar el final natural del video
+                element.addEventListener('ended', removeElement);
+
+                // 2. ADICIONALMENTE, si hay duración forzada, configurar timeout
+                if (duration > 0) {
+                    setTimeout(removeElement, duration * 1000);
                 }
 
-                // Posicionamiento cuando carguen los metadatos
                 element.onloadedmetadata = () => {
                     const scale = data.scale || 1.0;
-                    
-                    // Tamaño de la ventana y del video escalado
                     const contW = container.clientWidth;
                     const contH = container.clientHeight;
                     const vidW = element.videoWidth * scale;
                     const vidH = element.videoHeight * scale;
 
                     if (data.random) {
-                        // MODO RANDOM
                         element.style.transformOrigin = 'top left'; 
                         element.style.transform = `scale(${scale})`;
-
                         const maxLeft = Math.max(0, contW - vidW);
                         const maxTop = Math.max(0, contH - vidH);
-
                         element.style.left = Math.floor(Math.random() * maxLeft) + 'px';
                         element.style.top = Math.floor(Math.random() * maxTop) + 'px';
-
                     } else {
-                        // MODO CENTRADO
-                        // Usamos top/left 50% y transform para centrar matemáticamente
                         element.style.transformOrigin = 'center center';
                         element.style.left = '50%';
                         element.style.top = '50%';
                         element.style.transform = `translate(-50%, -50%) scale(${scale})`;
                     }
                     
-                    element.style.opacity = "1";
+                    element.style.opacity = "1"; // Mostrar
                     element.play().catch(e => console.log("Error play:", e));
                 };
 
@@ -108,8 +104,11 @@
                 element.autoplay = true;
                 element.volume = vol;
                 
-                // Auto-eliminación audio
-                element.onended = () => element.remove();
+                element.addEventListener('ended', removeElement);
+                
+                if (duration > 0) {
+                    setTimeout(removeElement, duration * 1000);
+                }
             }
 
             if (element) container.appendChild(element);

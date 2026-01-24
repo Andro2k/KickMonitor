@@ -202,12 +202,29 @@ class OverlayService:
         """
         file_url = f"http://127.0.0.1:8081/media/{quote(filename)}"
         
+        # --- CORRECCIÓN: Forzar conversión segura a tipos numéricos ---
+        try:
+            duration_val = int(float(config.get("dur", 0) or 0))
+        except ValueError:
+            duration_val = 0
+            
+        try:
+            scale_val = float(config.get("scale", 1.0) or 1.0)
+        except ValueError:
+            scale_val = 1.0
+
+        try:
+            vol_val = int(float(config.get("volume", 100) or 100))
+        except ValueError:
+            vol_val = 100
+        # -------------------------------------------------------------
+
         payload = {
             "url": file_url,
             "type": ftype,
-            "duration": config.get("dur", 0),
-            "scale": config.get("scale", 1.0),
-            "volume": config.get("volume", 100),
+            "duration": duration_val, # Ahora seguro es un int
+            "scale": scale_val,       # Ahora seguro es un float
+            "volume": vol_val,        # Ahora seguro es un int
             "random": self.db.get_bool("random_pos")
         }
         
