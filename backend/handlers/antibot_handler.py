@@ -2,7 +2,7 @@
 
 import re
 from typing import Callable
-from backend.utils.logger import Log
+from backend.utils.logger_text import Log
 
 class AntibotHandler:
     """

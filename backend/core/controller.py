@@ -8,7 +8,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, QTimer, QThread
 # --- INFRAESTRUCTURA Y WORKERS ---
 from backend.core.db_controller import DBHandler
 from backend.handlers.antibot_handler import AntibotHandler
-from backend.utils.logger import Log
+from backend.utils.logger_text import Log
 from backend.utils.paths import get_cache_path
 from backend.workers.overlay_worker import OverlayServerWorker
 from backend.core.kick_bot import KickBotWorker   
@@ -23,7 +23,7 @@ from backend.services.commands_service import CommandsService
 from backend.handlers.chat_handler import ChatHandler
 from backend.handlers.music_handler import MusicHandler
 from backend.handlers.game_handler import GameHandler
-from backend.handlers.alert_handler import AlertHandler
+from backend.handlers.overlay_handler import AlertHandler
 from frontend.dialogs.update_modal import UpdateModal
 
 class MainController(QObject):

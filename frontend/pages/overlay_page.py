@@ -13,7 +13,7 @@ from frontend.components.cards import Card
 from frontend.alerts.modal_alert import ModalConfirm
 from frontend.alerts.toast_alert import ToastNotification
 from frontend.components.flow_layout import FlowLayout 
-from frontend.components.media_card import MediaCard
+from frontend.components.overlay_card import MediaCard
 from frontend.factories import create_help_btn, create_nav_btn, create_page_header, create_styled_input, create_icon_btn
 from frontend.help_content import load_help_content
 from frontend.utils import get_icon

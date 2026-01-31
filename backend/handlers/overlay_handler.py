@@ -4,7 +4,7 @@ import time
 from urllib.parse import quote
 from typing import Callable, Dict, List, Optional, Any
 
-from backend.utils.logger import Log
+from backend.utils.logger_text import Log
 
 # ==========================================
 # CONFIGURACIÓN

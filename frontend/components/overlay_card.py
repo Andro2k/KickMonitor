@@ -10,7 +10,7 @@ from frontend.utils import ThumbnailWorker, get_icon_colored, get_icon, get_roun
 from frontend.factories import create_icon_btn
 from frontend.alerts.modal_alert import ModalConfirm
 from frontend.alerts.toast_alert import ToastNotification
-from frontend.dialogs.edit_media_modal import ModalEditMedia
+from frontend.dialogs.overlay_modal import ModalEditMedia
 
 class MediaCard(QFrame):
     def __init__(self, filename, ftype, config, parent_page):

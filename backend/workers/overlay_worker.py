@@ -10,7 +10,7 @@ from aiohttp import web, WSMsgType
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from backend.core.db_controller import DBHandler
-from backend.utils.logger import Log 
+from backend.utils.logger_text import Log 
 
 # ==========================================
 # 1. CONSTANTES & CONFIGURACIÓN

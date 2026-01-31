@@ -3,7 +3,7 @@
 from typing import List, Dict, Any
 import pyttsx3
 
-from backend.utils.logger import Log
+from backend.utils.logger_text import Log
 
 class ChatService:
     """

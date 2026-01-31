@@ -5,7 +5,7 @@ import re
 import pyttsx3
 from PyQt6.QtCore import QThread, pyqtSignal
 
-from backend.utils.logger import Log
+from backend.utils.logger_text import Log
 
 class TTSWorker(QThread):
     error_signal = pyqtSignal(str)
