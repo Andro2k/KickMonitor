@@ -73,10 +73,10 @@ class DashboardService:
             ("chat.svg", "Chat", 1), 
             ("terminal.svg", "Comandos", 2),
             ("bell.svg", "Alertas", 3), 
-            ("layers.svg", "Overlay", 4), 
+            ("layers.svg", "Triggers", 4), 
             ("users.svg", "Usuarios", 5), 
             ("casino.svg", "Casino", 6), 
-            ("settings.svg", "Ajustes", 7)
+            ("settings.svg", "Configuración", 7)
         ]
 
     # --- COMANDOS DE MÚSICA ---

@@ -106,8 +106,8 @@ class Sidebar(QFrame):
         # TOOLS
         self._add_section_label("TOOLS")
         self._add_btn("Alertas", "bell.svg", 3)
-        self._add_btn("Overlay", "layers.svg", 4)
-        self._add_btn("Puntos", "users.svg", 5)
+        self._add_btn("Triggers", "layers.svg", 4)
+        self._add_btn("Usuarios", "users.svg", 5)
         self._add_btn("Casino", "casino.svg", 6)
         
         self.menu_layout.addStretch()
