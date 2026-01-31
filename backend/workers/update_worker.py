@@ -87,16 +87,29 @@ class UpdateDownloaderWorker(QThread):
             self.error.emit(f"Error en descarga: {str(e)}")
 
     def _launch_installer(self):
-        """Ejecuta el instalador limpiando el entorno y mata la app actual."""
+        """
+        Ejecuta el instalador en un proceso totalmente independiente
+        y sin heredar el entorno de PyInstaller para evitar el error de DLL.
+        """
         if os.path.exists(self.installer_path):
             try:
-                # --- SOLUCIÓN: Usar os.startfile ---
-                # Funciona nativamente en Windows y no hereda el entorno corrupto de PyInstaller.
-                os.startfile(self.installer_path)
+                # 1. Copiamos el entorno actual del sistema
+                env = os.environ.copy()
+
+                # 2. ELIMINAMOS las variables que PyInstaller inyecta.
+                # Esto es crucial: evita que el instalador busque en la carpeta _MEI incorrecta.
+                keys_to_remove = ['_MEIPASS', 'PYTHONHOME', 'PYTHONPATH']
+                for key in keys_to_remove:
+                    if key in env:
+                        del env[key]
+
+                # 3. Lanzamos el instalador usando subprocess con el entorno limpio
+                # close_fds=True ayuda a desconectar los procesos en algunos sistemas
+                subprocess.Popen([self.installer_path], env=env, shell=False, close_fds=True)
                 
-                # Matar la app actual inmediatamente para liberar recursos
+                # 4. Matar la app actual inmediatamente para liberar el archivo .exe
+                # y permitir que el instalador lo sobrescriba.
                 os._exit(0) 
                 
             except Exception as e:
-                # Fallback por si acaso (aunque startfile raramente falla en Windows)
                 self.error.emit(f"No se pudo abrir el instalador: {e}")
