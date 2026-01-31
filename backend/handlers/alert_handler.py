@@ -82,21 +82,28 @@ class AlertHandler:
                                send_msg: Callable[[str], None], 
                                log_msg: Callable[[str], None]) -> bool:
         
-        # A) Desempaquetar datos (Manejo robusto de 6 o 7 columnas)
-        if len(data) == 7:
+        # A) Desempaquetar datos ACTUALIZADO
+        pos_x = 0
+        pos_y = 0
+        # Verificamos longitud para evitar errores si la DB no se actualizó bien aún
+        if len(data) >= 9:
+            # Desempaquetamos
+            fn, ftype, cd, scale, active, cost, vol, raw_x, raw_y = data[:9]
+            pos_x = int(raw_x) if raw_x is not None else 0
+            pos_y = int(raw_y) if raw_y is not None else 0
+        elif len(data) == 7:
             fn, ftype, cd, scale, active, cost, vol = data
         else:
-            # Soporte legacy por si acaso
-            fn, ftype, cd, scale, active, cost = data
+            fn, ftype, cd, scale, active, cost = data[:6]
             vol = 100
-
+            pos_x = 0 
+            pos_y = 0
         if not active: 
             return False
 
         # B) Verificar Cooldown (Tiempo de espera)
         now = time.time()
-        last_used = self.cooldowns.get(command, 0)
-        
+        last_used = self.cooldowns.get(command, 0)       
         if cd > 0:
             time_passed = now - last_used
             if time_passed < cd:
@@ -114,16 +121,20 @@ class AlertHandler:
         # D) Ejecutar Alerta en Overlay
         try:
             full_url = OVERLAY_URL_TEMPLATE.format(quote(fn))
+            
             payload = {
                 "url": full_url, 
                 "type": ftype, 
                 "duration": 0,
                 "scale": scale, 
                 "volume": vol, 
-                "random": self.db.get_bool("random_pos")
+                "random": self.db.get_bool("random_pos"),
+                "pos_x": pos_x,
+                "pos_y": pos_y
             }           
-            self.overlay.send_event("play_media", payload)
-            self.cooldowns[command] = now           
+            
+            self.overlay.send_event("play_media", payload)          
+            self.cooldowns[command] = time.time()
             log_msg(Log.info(f"🎬 {user} canjeó {command} (-{cost} pts)"))
             return True
 

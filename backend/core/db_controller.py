@@ -35,7 +35,8 @@ class DBHandler:
         "triggers": """
             command TEXT PRIMARY KEY, filename TEXT, type TEXT, 
             duration INTEGER DEFAULT 0, scale REAL DEFAULT 1.0, 
-            is_active INTEGER DEFAULT 1, cost INTEGER DEFAULT 0, volume INTEGER DEFAULT 100
+            is_active INTEGER DEFAULT 1, cost INTEGER DEFAULT 0, volume INTEGER DEFAULT 100,
+            pos_x INTEGER DEFAULT 0, pos_y INTEGER DEFAULT 0
         """,
         "data_users": """
             username TEXT PRIMARY KEY, points INTEGER DEFAULT 0, 
@@ -113,7 +114,9 @@ class DBHandler:
             "triggers": [
                 ("duration", "INTEGER DEFAULT 0"), ("scale", "REAL DEFAULT 1.0"),
                 ("is_active", "INTEGER DEFAULT 1"), ("cost", "INTEGER DEFAULT 0"),
-                ("volume", "INTEGER DEFAULT 100")
+                ("volume", "INTEGER DEFAULT 100"),
+                ("pos_x", "INTEGER DEFAULT 0"), 
+                ("pos_y", "INTEGER DEFAULT 0")
             ],
             "data_users": [
                 ("is_paused", "INTEGER DEFAULT 0"), ("is_muted", "INTEGER DEFAULT 0"),
@@ -187,8 +190,8 @@ class DBHandler:
     # REGIÓN 6: FACHADA - CARACTERÍSTICAS (COMMANDS, OVERLAY, ALERTS)
     # =========================================================================
     # --- Triggers Multimedia ---
-    def set_trigger(self, cmd, file, ftype, dur=0, sc=1.0, act=1, cost=0, vol=100):
-        return self.triggers.save_trigger(cmd, file, ftype, dur, sc, act, cost, vol)
+    def set_trigger(self, cmd, file, ftype, dur=0, sc=1.0, act=1, cost=0, vol=100, pos_x=0, pos_y=0):
+        return self.triggers.save_trigger(cmd, file, ftype, dur, sc, act, cost, vol, pos_x, pos_y)
         
     def get_trigger_file(self, cmd: str): return self.triggers.get_trigger(cmd)
     def delete_triggers_by_filename(self, fname: str): return self.triggers.delete_by_filename(fname)

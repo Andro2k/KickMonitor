@@ -22,6 +22,8 @@ class ModalEditMedia(BaseModal):
         self.dur = int(data.get("dur", 0))
         self.vol = int(data.get("volume", 100))
         self.scale = float(data.get("scale", 1.0))
+        self.pos_x = int(data.get("pos_x", 0))
+        self.pos_y = int(data.get("pos_y", 0))
         
         self._setup_ui()
 
@@ -64,6 +66,34 @@ class ModalEditMedia(BaseModal):
         h_nums.addSpacing(15)
         h_nums.addLayout(v_dur)
         l.addLayout(h_nums)
+
+        # 2.1 Posición X e Y (En fila)
+        h_coords = QHBoxLayout()
+
+        # Input X
+        v_x = QVBoxLayout()
+        v_x.addWidget(QLabel("Posición X:", styleSheet="border:none;", objectName="subtitle"))
+        self.spin_x = QSpinBox()
+        self.spin_x.setRange(-5000, 5000) # Rango amplio por si tienes monitores múltiples
+        self.spin_x.setValue(self.pos_x)
+        self.spin_x.setStyleSheet(STYLES["spinbox_modern"])
+        v_x.addWidget(self.spin_x)
+        
+        # Input Y
+        v_y = QVBoxLayout()
+        v_y.addWidget(QLabel("Posición Y:", styleSheet="border:none;", objectName="subtitle"))
+        self.spin_y = QSpinBox()
+        self.spin_y.setRange(-5000, 5000)
+        self.spin_y.setValue(self.pos_y)
+        self.spin_y.setStyleSheet(STYLES["spinbox_modern"])
+        v_y.addWidget(self.spin_y)
+        
+        h_coords.addLayout(v_x)
+        h_coords.addSpacing(15)
+        h_coords.addLayout(v_y)
+        
+        # Te sugiero ponerlo después del input de Comando
+        l.addLayout(h_coords)
 
         # 3. Volumen
         h_lbl_vol = QHBoxLayout()
@@ -143,5 +173,7 @@ class ModalEditMedia(BaseModal):
         self.dur = self.spin_dur.value()
         self.vol = self.slider_vol.value()
         self.scale = self.slider_zoom.value() / 100.0 if self.ftype == "video" else 1.0
+        self.pos_x = self.spin_x.value()
+        self.pos_y = self.spin_y.value()
         
         self.accept()

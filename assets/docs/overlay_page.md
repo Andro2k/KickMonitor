@@ -1,9 +1,3 @@
-### Bienvenido al Control de Triggers
-
-Esta página es el corazón de tus alertas. Aquí conectas tus archivos multimedia con comandos de chat para que se reproduzcan en tu stream.
-
----
-
 ### Paso 1: Vincular tu Carpeta de Medios
 
 Lo primero es decirle a la aplicación dónde están guardados tus videos (MP4, WEBM...) y audios (MP3, WAV...).
@@ -13,9 +7,7 @@ Lo primero es decirle a la aplicación dónde están guardados tus videos (MP4, 
 
 Una vez hecho esto, la aplicación escaneará la carpeta y mostrará todos los archivos compatibles en una lista desplegable, como se ve en la imagen:
 
-<img src="overlay_help01.png" width="600" alt="Selección de carpeta exitosa">
-
-*Fig 1. La interfaz después de seleccionar la carpeta de medios.*
+<img src="overlay_help01.png" width="620" alt="Selección de carpeta exitosa">
 
 ---
 
@@ -23,13 +15,11 @@ Una vez hecho esto, la aplicación escaneará la carpeta y mostrará todos los a
 
 Para que las alertas sean visibles para tu audiencia, debes conectar la aplicación con OBS.
 
-* En la barra superior de esta app, haz clic en el icono de **Ojo** para revelar la URL del servidor local (ej. `http://127.0.0.1:XXX/overlay/`) y cópiala.
+* En la barra superior de esta app, haz clic en el icono de **ojo** para revelar la URL del servidor local (ej. `http://127.0.0.1:XXX`) y cópiala.
 * En OBS Studio, agrega una nueva fuente de tipo **"Navegador" (Browser)** a tu escena.
-* Pega la URL que copiaste en el campo "URL" de las propiedades de la fuente en OBS. Se recomienda configurar la resolución a 1920x1080.
+* Pega la URL que copiaste en el campo "URL" de las propiedades de la fuente en OBS. Se recomienda configurar la resolución a **1920x1080**.
 
-<img src="overlay_help02.png" width="600" alt="Propiedades de Fuente de Navegador en OBS">
-
-*Fig 2. Pegando la URL local en una fuente de navegador de OBS.*
+<img src="overlay_help02.png" width="625" alt="Propiedades de Fuente de Navegador en OBS">
 
 ---
 
@@ -44,8 +34,6 @@ Ahora, asignemos comandos a tus archivos. Haz clic en el nombre de cualquier arc
 *Nota: Si intentas usar un comando que ya está asignado a otro archivo, la aplicación lo moverá automáticamente al archivo que estás editando actualmente.*
 
 <img src="overlay_help03.png" width="400" alt="Configuración de un archivo individual">
-
-*Fig 3. Asignando el comando "!ejemplo" y ajustando el volumen.*
 
 ---
 

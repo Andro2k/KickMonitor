@@ -110,7 +110,9 @@ class MediaCard(QFrame):
         if dlg.exec() == QDialog.DialogCode.Accepted:
             self.config.update({
                 "cmd": dlg.cmd, "cost": dlg.cost, "dur": dlg.dur,
-                "volume": dlg.vol, "scale": dlg.scale
+                "volume": dlg.vol, "scale": dlg.scale,
+                # Guardamos los nuevos valores en el config local
+                "pos_x": dlg.pos_x, "pos_y": dlg.pos_y
             })
             self.txt_cmd.setText(dlg.cmd)
             self.page.save_item(self.filename, self.ftype, self.config, silent=True)

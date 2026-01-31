@@ -140,34 +140,48 @@ class TriggersRepository:
     def __init__(self, conn):
         self.conn = conn
 
-    def save_trigger(self, command, filename, ftype, duration=0, scale=1.0, is_active=1, cost=0, volume=100):
+    def save_trigger(self, command, filename, ftype, duration=0, scale=1.0, is_active=1, cost=0, volume=100, pos_x=0, pos_y=0):
         cmd = command.lower().strip()
         if not cmd.startswith("!"): cmd = "!" + cmd
         
+        # Actualizar Query
         query = """
             INSERT OR REPLACE INTO triggers 
-            (command, filename, type, duration, scale, is_active, cost, volume) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (command, filename, type, duration, scale, is_active, cost, volume, pos_x, pos_y) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
-        return self.conn.execute_query(query, (cmd, filename, ftype, duration, scale, 1 if is_active else 0, cost, volume))
+        return self.conn.execute_query(query, (cmd, filename, ftype, duration, scale, 1 if is_active else 0, cost, volume, pos_x, pos_y))
 
     def get_trigger(self, command: str) -> Optional[Tuple]:
-        query = "SELECT filename, type, duration, scale, is_active, cost, volume FROM triggers WHERE command=?"
+        query = "SELECT filename, type, duration, scale, is_active, cost, volume, pos_x, pos_y FROM triggers WHERE command=?"
         return self.conn.fetch_one(query, (command.lower(),))
 
     def get_all(self) -> Dict:
-        rows = self.conn.fetch_all("SELECT filename, command, duration, scale, is_active, cost, volume, type FROM triggers")
+        # 1. AGREGAMOS pos_x y pos_y AL SELECT
+        query = "SELECT filename, command, duration, scale, is_active, cost, volume, type, pos_x, pos_y FROM triggers"
+        rows = self.conn.fetch_all(query)
         data = {}
+        
         for r in rows:
-            # Manejo robusto por si columnas viejas son NULL
+            # Manejo de nulos por seguridad
             vol = r['volume'] if r['volume'] is not None else 100
             ftype = r['type'] if 'type' in r.keys() and r['type'] else "audio"
             
+            # Recuperamos coordenadas (o 0 si es nulo)
+            px = r['pos_x'] if 'pos_x' in r.keys() and r['pos_x'] is not None else 0
+            py = r['pos_y'] if 'pos_y' in r.keys() and r['pos_y'] is not None else 0
+
             data[r['filename']] = {
-                "cmd": r['command'], "dur": r['duration'] or 0, 
-                "scale": r['scale'] or 1.0, "active": r['is_active'] or 1, 
-                "cost": r['cost'] or 0, "volume": vol,
-                "type": ftype
+                "cmd": r['command'], 
+                "dur": r['duration'] or 0, 
+                "scale": r['scale'] or 1.0, 
+                "active": r['is_active'] or 1, 
+                "cost": r['cost'] or 0, 
+                "volume": vol,
+                "type": ftype,
+                # 2. MAPEAMOS LOS VALORES AQUÍ
+                "pos_x": px,
+                "pos_y": py
             }
         return data
 

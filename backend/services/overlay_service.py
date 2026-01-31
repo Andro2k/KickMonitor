@@ -110,7 +110,9 @@ class OverlayService:
             sc=data.get("scale", 1.0),
             act=data.get("active", 1),
             cost=data.get("cost", 0),
-            vol=data.get("volume", 100)
+            vol=data.get("volume", 100),
+            pos_x=data.get("pos_x", 0),
+            pos_y=data.get("pos_y", 0)
         )
 
         if isinstance(result, tuple):
@@ -222,10 +224,12 @@ class OverlayService:
         payload = {
             "url": file_url,
             "type": ftype,
-            "duration": duration_val, # Ahora seguro es un int
-            "scale": scale_val,       # Ahora seguro es un float
-            "volume": vol_val,        # Ahora seguro es un int
-            "random": self.db.get_bool("random_pos")
+            "duration": duration_val,
+            "scale": scale_val,
+            "volume": vol_val,
+            "random": self.db.get_bool("random_pos"),
+            "pos_x": int(config.get("pos_x", 0)),
+            "pos_y": int(config.get("pos_y", 0))
         }
         
         self.server.send_event("play_media", payload)

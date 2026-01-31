@@ -185,8 +185,15 @@ class OverlayServerWorker(QThread):
         """
         if hasattr(sys, '_MEIPASS'): 
             base_dir = os.path.join(sys._MEIPASS, "assets")
-        else:
-            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        else:         
+            # 1. Obtenemos ruta del archivo actual (.../backend/workers/overlay_worker.py)
+            current_file = os.path.abspath(__file__)           
+            # 2. Subimos a 'workers'
+            workers_dir = os.path.dirname(current_file)           
+            # 3. Subimos a 'backend'
+            backend_dir = os.path.dirname(workers_dir)           
+            # 4. Subimos a 'Raíz del Proyecto'
+            root_dir = os.path.dirname(backend_dir)
             base_dir = os.path.join(root_dir, "assets")
 
         return os.path.join(base_dir, filename) if filename else base_dir
