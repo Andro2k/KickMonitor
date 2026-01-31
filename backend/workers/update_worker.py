@@ -10,7 +10,7 @@ from packaging import version
 # =========================================================================
 # CONFIGURACIÓN DE VERSIÓN
 # =========================================================================
-INTERNAL_VERSION = "1.8.3.1"
+INTERNAL_VERSION = "1.8.4.0"
 UPDATE_JSON_URL = "https://raw.githubusercontent.com/Andro2k/KickMonitor/refs/heads/main/version.json"
 
 # =========================================================================

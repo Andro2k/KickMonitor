@@ -1,5 +1,5 @@
 {
-    "version": "1.8.3.1",
-    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.8.3.1/KickMonitor_Setup_v1.8.3.1.exe",
-    "changelog": "<ul><li><b>HOTFIX:</b> Solucionado el error crítico que impedía abrir la aplicación en algunos equipos (Error DLL/VLC).</li><li><b>ESTABILIDAD:</b> Se ha retirado el módulo experimental de YouTube Music para garantizar un funcionamiento fluido.</li><li><b>OPTIMIZACIÓN:</b> Reducción del tamaño del instalador y limpieza de código interno.</li></ul>"
+    "version": "1.8.4.0",
+    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.8.4.0/KickMonitor_Setup_v1.8.4.0.exe",
+    "changelog": "<ul><li><b>NUEVO (Posicionamiento):</b> Ahora puedes definir coordenadas exactas (X, Y) para tus alertas multimedia desde el menú de edición.</li><li><b>MEJORA (Lógica Overlay):</b> Nuevo sistema de prioridades: Las coordenadas fijas tienen prioridad sobre el modo aleatorio.</li><li><b>CORRECCIÓN CRÍTICA:</b> Solucionado el error 404 de rutas (Assets) al ejecutar la app compilada y bugs de persistencia en base de datos.</li><li><b>TÉCNICO:</b> Migración automática de tablas y validación de tipos numéricos para mayor estabilidad.</li></ul>"
 }
