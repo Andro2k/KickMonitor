@@ -1,4 +1,4 @@
-# backend/spotify_worker.py
+# backend/workers/spotify_worker.py
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import os
@@ -10,7 +10,7 @@ from PyQt6.QtGui import QDesktopServices
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 
-from backend.utils.logger_text import Log
+from backend.utils.logger_text import LoggerText
 from backend.utils.paths import get_cache_path
 
 # ==========================================
@@ -111,7 +111,7 @@ class SpotifyWorker(QObject):
         uri = self.db.get("spotify_redirect_uri")
 
         if not cid or not secret:
-            self.status_msg.emit(Log.error("Faltan credenciales de Spotify en Ajustes."))
+            self.status_msg.emit(LoggerText.error("Faltan credenciales de Spotify en Ajustes."))
             return
 
         # DEFINIR RUTA DEL CACHE EN APPDATA
@@ -131,7 +131,7 @@ class SpotifyWorker(QObject):
             # 1. Intentar sesión guardada
             token_info = self.auth_manager.get_cached_token()
             if token_info:
-                self.status_msg.emit(Log.info("Recuperando sesión guardada."))
+                self.status_msg.emit(LoggerText.info("Recuperando sesión guardada."))
                 self._init_client()
             else:
                 # 2. Iniciar flujo OAuth nuevo
@@ -139,7 +139,7 @@ class SpotifyWorker(QObject):
                 
         except Exception as e:
             self.is_active = False
-            self.status_msg.emit(Log.error(f"Error Configuración: {e}"))
+            self.status_msg.emit(LoggerText.error(f"Error Configuración: {e}"))
 
     def _start_browser_flow(self, uri: str):
         try:
@@ -153,21 +153,21 @@ class SpotifyWorker(QObject):
             # Abrir navegador del usuario
             auth_url = self.auth_manager.get_authorize_url()
             QDesktopServices.openUrl(QUrl(auth_url))
-            self.status_msg.emit(Log.warning("Esperando autorización en el navegador."))
+            self.status_msg.emit(LoggerText.warning("Esperando autorización en el navegador."))
             
         except Exception as e:
-            self.status_msg.emit(Log.error(f"Fallo al iniciar flujo web: {e}"))
+            self.status_msg.emit(LoggerText.error(f"Fallo al iniciar flujo web: {e}"))
 
     def _finish_browser_flow(self, code: str):
         try:
             self.auth_manager.get_access_token(code)
             self._init_client()
         except Exception as e:
-            self.status_msg.emit(Log.error(f"Error obteniendo token: {e}"))
+            self.status_msg.emit(LoggerText.error(f"Error obteniendo token: {e}"))
 
     def _on_auth_error(self, error_msg):
         self.is_active = False
-        self.status_msg.emit(Log.error(f"Login cancelado o fallido: {error_msg}"))
+        self.status_msg.emit(LoggerText.error(f"Login cancelado o fallido: {error_msg}"))
 
     def _init_client(self):
         try:
@@ -175,21 +175,21 @@ class SpotifyWorker(QObject):
             user = self.sp.current_user()
             
             self.is_active = True
-            self.status_msg.emit(Log.success(f"Spotify Vinculado: {user['display_name']}"))
+            self.status_msg.emit(LoggerText.success(f"Spotify Vinculado: {user['display_name']}"))
             
             # Arrancar ciclo de polling
             self.timer.start()
             self._poll_current_song()
             
         except Exception as e:
-            self.status_msg.emit(Log.error(f"Error inicializando cliente: {e}"))
+            self.status_msg.emit(LoggerText.error(f"Error inicializando cliente: {e}"))
 
     def disconnect(self):
         self.timer.stop()
         self.is_active = False
         self.sp = None
         self.track_changed.emit("Spotify Desconectado", "", "", 0, 100, False)
-        self.status_msg.emit(Log.info("Spotify: Sesión cerrada."))
+        self.status_msg.emit(LoggerText.info("Spotify: Sesión cerrada."))
 
     # =========================================================================
     # REGIÓN 4: MONITOREO (POLLING)
@@ -258,7 +258,7 @@ class SpotifyWorker(QObject):
                 self.sp.add_to_queue(track['uri'])
                 return f"{track['name']} - {track['artists'][0]['name']}"
         except Exception as e:
-            self.status_msg.emit(Log.warning(f"Error añadiendo a cola: {e}"))
+            self.status_msg.emit(LoggerText.warning(f"Error añadiendo a cola: {e}"))
         return None
     
     def next_track(self):
@@ -280,7 +280,7 @@ class SpotifyWorker(QObject):
             else: 
                 self.sp.start_playback()
         except Exception:
-            self.status_msg.emit(Log.warning("No se puede controlar reproducción (¿Dispositivo activo?)."))
+            self.status_msg.emit(LoggerText.warning("No se puede controlar reproducción (¿Dispositivo activo?)."))
 
 # =========================================================================
 # REGIÓN 6: RECURSOS ESTÁTICOS (HTML TEMPLATES)

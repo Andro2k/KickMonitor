@@ -1,4 +1,4 @@
-# frontend/components/alert_cards.py
+# frontend/components/accordion_cards.py
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
@@ -16,7 +16,6 @@ from frontend.utils import get_icon_colored
 class BaseAccordionCard(QFrame):
     """
     Clase padre con animación fluida y corrección de estilos.
-    Adaptada para funcionar en Grid/Flow Layout.
     """
     def __init__(self, title, subtitle, is_active):
         super().__init__()

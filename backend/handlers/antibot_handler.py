@@ -2,7 +2,7 @@
 
 import re
 from typing import Callable
-from backend.utils.logger_text import Log
+from backend.utils.logger_text import LoggerText
 
 class AntibotHandler:
     """
@@ -37,9 +37,9 @@ class AntibotHandler:
                     # 1. Ejecutar el Ban (Usando la función que pasa el Controller)
                     ban_callback(username)              
                     # 2. Registrar el evento
-                    log_callback(Log.warning(f"🛡️ Antibot: {username} detectado y BANEADO."))
+                    log_callback(LoggerText.warning(f"🛡️ Antibot: {username} detectado y BANEADO."))
                     return True
                 except Exception as e:
-                    log_callback(Log.error(f"🛡️ Error al banear bot {username}: {e}"))
+                    log_callback(LoggerText.error(f"🛡️ Error al banear bot {username}: {e}"))
                     
         return False

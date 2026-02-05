@@ -1,7 +1,7 @@
 # backend/utils/logger.py
 from datetime import datetime
 
-class Log:
+class LoggerText:
     # --- NUEVA VARIABLE GLOBAL DE CONTROL ---
     enabled_debug = False 
 
@@ -18,7 +18,7 @@ class Log:
     @staticmethod
     def _format(level, message):
         """Genera el string HTML con el formato [LEVEL] Mensaje"""
-        color = Log.COLORS.get(level, "#ffffff")
+        color = LoggerText.COLORS.get(level, "#ffffff")
         timestamp = datetime.now().strftime("%H:%M:%S")
         
         return (
@@ -29,23 +29,23 @@ class Log:
 
     # --- MÉTODOS ESTÁNDAR ---
     @staticmethod
-    def info(msg): return Log._format("INFO", msg)
+    def info(msg): return LoggerText._format("INFO", msg)
 
     @staticmethod
-    def success(msg): return Log._format("SUCCESS", msg)
+    def success(msg): return LoggerText._format("SUCCESS", msg)
 
     @staticmethod
-    def warning(msg): return Log._format("WARNING", msg)
+    def warning(msg): return LoggerText._format("WARNING", msg)
 
     @staticmethod
-    def error(msg): return Log._format("ERROR", msg)
+    def error(msg): return LoggerText._format("ERROR", msg)
 
     @staticmethod
-    def system(msg): return Log._format("SYSTEM", msg)
+    def system(msg): return LoggerText._format("SYSTEM", msg)
 
     # --- MÉTODO DEBUG FILTRADO ---
     @staticmethod
     def debug(msg):
-        if Log.enabled_debug:
-            return Log._format("DEBUG", msg)
+        if LoggerText.enabled_debug:
+            return LoggerText._format("DEBUG", msg)
         return None

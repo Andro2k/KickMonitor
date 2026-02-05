@@ -23,7 +23,7 @@ class ChatPage(QWidget):
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0) # Margen 0 para manejar scroll si fuera necesario
+        main_layout.setContentsMargins(0, 0, 0, 0)
         
         # CONTENEDOR PRINCIPAL CON MARGENES
         content = QWidget()
@@ -161,7 +161,6 @@ class ChatPage(QWidget):
         # Checkbox
         self.chk_command_only = QCheckBox("Solo leer si inicia con comando")
         self.chk_command_only.setCursor(Qt.CursorShape.PointingHandCursor)
-        # Usamos el estilo del switch importado o el default si no está disponible, aquí uno simple:
         self.chk_command_only.setStyleSheet(f"QCheckBox {{ color: {THEME_DARK['Gray_N1']}; spacing: 8px; }}")
         self.chk_command_only.stateChanged.connect(self._handle_filter_changed)
         l.addWidget(self.chk_command_only)
@@ -185,7 +184,6 @@ class ChatPage(QWidget):
         
         # Conexión interna para actualizar etiqueta
         slider.valueChanged.connect(lambda v: lbl_val.setText(str(v)))
-        # Conexión externa
         slider.valueChanged.connect(self._handle_settings_changed)
         
         l.addLayout(header)

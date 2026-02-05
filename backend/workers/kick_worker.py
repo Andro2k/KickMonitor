@@ -1,4 +1,4 @@
-# backend/workers.py
+# backend/workers/kick_worker.py
 
 import time
 import cloudscraper

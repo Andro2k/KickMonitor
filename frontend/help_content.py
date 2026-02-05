@@ -1,6 +1,7 @@
-# frontend/help_loader.py
+# frontend/help_content.py
+
 import os
-import markdown # requiere: pip install markdown
+import markdown
 from frontend.utils import resource_path
 
 def load_help_content(topic: str) -> str:

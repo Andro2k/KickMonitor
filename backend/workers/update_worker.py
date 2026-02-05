@@ -1,4 +1,4 @@
-# backend/updater.py
+# backend/workers/update_worker.py
 
 import subprocess
 import os

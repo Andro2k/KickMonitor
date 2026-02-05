@@ -1,12 +1,12 @@
 # frontend/dialogs/command_modal.py
 
 from PyQt6.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QLabel, 
+    QHBoxLayout, QLabel, 
     QLineEdit, QPushButton, QSpinBox, 
     QPlainTextEdit
 )
 from PyQt6.QtCore import Qt
-from frontend.theme import LAYOUT, THEME_DARK, STYLES
+from frontend.theme import THEME_DARK, STYLES
 from frontend.components.base_modal import BaseModal
 
 class ModalEditCommand(BaseModal):

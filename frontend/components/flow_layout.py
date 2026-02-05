@@ -1,12 +1,11 @@
 # frontend/components/flow_layout.py
-from PyQt6.QtWidgets import QLayout, QSizePolicy
+
+from PyQt6.QtWidgets import QLayout
 from PyQt6.QtCore import Qt, QRect, QSize, QPoint
 
 class FlowLayout(QLayout):
     """
     Layout personalizado tipo CSS Flexbox.
-    Modo: 'Flex-Wrap' con 'Justify-Content: Stretch'.
-    Los elementos llenarán todo el ancho disponible.
     """
     def __init__(self, parent=None, margin=0, spacing=-1):
         super().__init__(parent)
@@ -115,9 +114,6 @@ class FlowLayout(QLayout):
                     w = remaining_width
                 
                 if not test_only:
-                    # --- CAMBIO AQUÍ ---
-                    # ANTES: current_h = item.sizeHint().height() 
-                    # AHORA: Usamos row_height para forzar que todos tengan la altura de la fila
                     item.setGeometry(QRect(QPoint(x, y), QSize(w, row_height)))
                 
                 x += w + spacing

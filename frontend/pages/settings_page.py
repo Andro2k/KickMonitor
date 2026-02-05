@@ -375,7 +375,7 @@ class SettingsPage(QWidget):
             return
 
         # Advertencia de seguridad
-        if ModalConfirm(self, "⚠ Restaurar Datos", 
+        if ModalConfirm(self, "Restaurar Datos", 
                         "Esta acción REEMPLAZARÁ todos tus datos actuales por los del respaldo.\n"
                         "La aplicación se cerrará al finalizar.\n¿Continuar?").exec():
             try:

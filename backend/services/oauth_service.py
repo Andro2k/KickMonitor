@@ -1,4 +1,4 @@
-# services/oauth_service.py
+# backend/services/oauth_service.py
 
 import asyncio
 from typing import Optional
@@ -8,7 +8,6 @@ class OAuthService:
     """
     Servicio de autenticación OAuth2 local (usando aiohttp).
     """
-    
     def __init__(self, port: int = 8080):
         self.port = port
         self.server: Optional[web.TCPSite] = None

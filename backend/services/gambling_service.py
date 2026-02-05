@@ -1,4 +1,4 @@
-# services/gambling_service.py
+# backend/services/gambling_service.py
 
 from typing import List, Any
 
@@ -6,7 +6,6 @@ class GamblingService:
     """
     Servicio de Lógica para el Casino.
     """
-    
     def __init__(self, db_handler):
         self.db = db_handler
 

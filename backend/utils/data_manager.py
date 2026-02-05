@@ -7,9 +7,7 @@ from typing import List, Dict, Any, Tuple, Optional
 class DataManager:
     """
     Clase centralizada para Importar y Exportar CSVs de forma segura.
-    Valida cabeceras para evitar mezclar archivos de diferentes secciones.
     """
-
     @staticmethod
     def export_csv(filepath: str, headers: List[str], data: List[List[Any]]) -> bool:
         """

@@ -1,4 +1,4 @@
-# backend/overlay_server.py
+# backend/workers/overlay_worker.py
 
 import asyncio
 import os
@@ -10,7 +10,7 @@ from aiohttp import web, WSMsgType
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from backend.core.db_controller import DBHandler
-from backend.utils.logger_text import Log 
+from backend.utils.logger_text import LoggerText 
 
 # ==========================================
 # 1. CONSTANTES & CONFIGURACIÓN
@@ -50,7 +50,7 @@ class OverlayServerWorker(QThread):
         """Habilita o deshabilita el envío de eventos (Broadcast)."""
         self.is_active = state
         status = "ACTIVO" if state else "INACTIVO"
-        self.log_signal.emit(Log.system(f"Servidor Overlay: {status}"))
+        self.log_signal.emit(LoggerText.system(f"Servidor Overlay: {status}"))
 
     def send_event(self, action: str, payload: dict = None):
         """Encola un mensaje para ser enviado a todos los clientes WebSocket."""
@@ -78,7 +78,7 @@ class OverlayServerWorker(QThread):
             self.loop.run_until_complete(self._async_start(app))
             self.loop.run_forever() # Bloqueo principal
         except Exception as e:
-            self.log_signal.emit(Log.error(f"Excepción Crítica en Servidor: {e}"))
+            self.log_signal.emit(LoggerText.error(f"Excepción Crítica en Servidor: {e}"))
         finally:
             self.loop.run_until_complete(self._async_cleanup())
             self.loop.close()
@@ -88,7 +88,7 @@ class OverlayServerWorker(QThread):
         await self.runner.setup()
         self.site = web.TCPSite(self.runner, '127.0.0.1', SERVER_PORT)
         await self.site.start()
-        self.log_signal.emit(Log.success(f"Overlay Online: http://127.0.0.1:{SERVER_PORT}"))
+        self.log_signal.emit(LoggerText.success(f"Overlay Online: http://127.0.0.1:{SERVER_PORT}"))
 
     async def _async_cleanup(self):
         """Cierra conexiones pendientes al apagar."""
@@ -157,7 +157,7 @@ class OverlayServerWorker(QThread):
         try:
             async for msg in ws:
                 if msg.type == WSMsgType.ERROR:
-                    self.log_signal.emit(Log.error(f'WS Error: {ws.exception()}'))
+                    self.log_signal.emit(LoggerText.error(f'WS Error: {ws.exception()}'))
         finally:
             self.websockets.discard(ws)
         return ws

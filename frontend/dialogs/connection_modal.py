@@ -6,15 +6,12 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIcon
 from frontend.components.base_modal import BaseModal
 from frontend.theme import THEME_DARK, STYLES
-
-# Necesitamos get_icon para el botón de copiar
 from frontend.utils import get_icon
 
 class ConnectionModal(BaseModal):
     """
     Diálogo para configurar credenciales de API (Kick, Spotify, etc).
-    """
-    
+    """    
     SERVICE_CONFIG = {
         "kick": {
             "title": "Configuración Kick API",
@@ -125,7 +122,6 @@ class ConnectionModal(BaseModal):
         btn_cancel = QPushButton("Cancelar")
         btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_cancel.setStyleSheet(STYLES["btn_outlined"])
-        # Usamos self.reject() que ahora tiene animación gracias a BaseModal
         btn_cancel.clicked.connect(self.reject)
         
         btn_save = QPushButton("Guardar")
@@ -172,6 +168,5 @@ class ConnectionModal(BaseModal):
         
         if self.service == "spotify" and self.worker:
             self.worker.authenticate()
-        
-        # Usamos self.accept() que ahora tiene animación
+
         self.accept()

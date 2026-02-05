@@ -1,9 +1,9 @@
-# services/chat_service.py
+# backend/services/chat_service.py
 
 from typing import List, Dict, Any
 import pyttsx3
 
-from backend.utils.logger_text import Log
+from backend.utils.logger_text import LoggerText
 
 class ChatService:
     """

@@ -1,4 +1,4 @@
-# services/settings_service.py
+# backend/services/settings_service.py
 
 from datetime import datetime
 import os

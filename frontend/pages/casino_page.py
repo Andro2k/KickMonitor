@@ -11,7 +11,7 @@ from PyQt6.QtCore import Qt
 from frontend.alerts.modal_alert import ModalConfirm
 from frontend.alerts.toast_alert import ToastNotification
 from frontend.factories import create_page_header
-from frontend.utils import get_icon, get_icon_colored
+from frontend.utils import get_icon
 from frontend.theme import LAYOUT, THEME_DARK, STYLES, get_switch_style
 from backend.services.gambling_service import GamblingService
 from frontend.components.flow_layout import FlowLayout 

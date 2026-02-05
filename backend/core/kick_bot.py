@@ -14,7 +14,7 @@ from PyQt6.QtGui import QDesktopServices
 
 # --- MÓDULOS INTERNOS ---
 from backend.core.db_controller import DBHandler 
-from backend.utils.logger_text import Log
+from backend.utils.logger_text import LoggerText
 from backend.utils.paths import get_config_path
 from backend.services.oauth_service import OAuthService
 
@@ -57,9 +57,9 @@ class KickBotWorker(QThread):
         try:
             self.loop.run_until_complete(self._main_orchestrator())
         except asyncio.CancelledError:
-            self.log_received.emit(Log.system("Bot detenido manualmente."))
+            self.log_received.emit(LoggerText.system("Bot detenido manualmente."))
         except Exception as e:
-            self.log_received.emit(Log.error(f"Error Crítico en Bot: {e}"))
+            self.log_received.emit(LoggerText.error(f"Error Crítico en Bot: {e}"))
         finally:
             self._cleanup_loop()
             self.disconnected_signal.emit()
@@ -77,11 +77,11 @@ class KickBotWorker(QThread):
             self.loop.run_until_complete(self._shutdown_sequence())
             self.loop.close()
         except Exception as e:
-            self.log_received.emit(Log.debug(f"Error cerrando loop asíncrono: {e}"))
+            self.log_received.emit(LoggerText.debug(f"Error cerrando loop asíncrono: {e}"))
 
     async def _shutdown_sequence(self):
         """Cierra conexiones WebSocket y HTTP pendientes."""
-        self.log_received.emit(Log.system("Cerrando conexiones."))
+        self.log_received.emit(LoggerText.system("Cerrando conexiones."))
         
         # 1. Cerrar WebSocket de Kick
         if self.api and hasattr(self.api, 'ws') and self.api.ws:
@@ -112,7 +112,7 @@ class KickBotWorker(QThread):
     # =========================================================================
     async def _main_orchestrator(self):
         """Controla el flujo lógico de inicio del bot."""
-        self.log_received.emit(Log.info("Iniciando motor Kick."))
+        self.log_received.emit(LoggerText.info("Iniciando motor Kick."))
 
         # Inicializar Wrapper de API
         self.api = KickAPI(
@@ -123,18 +123,18 @@ class KickBotWorker(QThread):
         )
         # PASO 1: Autenticación OAuth
         if not await self._ensure_authentication():
-            self.log_received.emit(Log.error("Autenticación fallida o cancelada."))
+            self.log_received.emit(LoggerText.error("Autenticación fallida o cancelada."))
             return 
         # PASO 2: Identificar Usuario y Canal
         if not await self._detect_user_and_channel():
-            self.log_received.emit(Log.warning("No se pudo detectar usuario automáticamente."))
+            self.log_received.emit(LoggerText.warning("No se pudo detectar usuario automáticamente."))
             self.username_required.emit()
             return
         # PASO 3: Conexión al Chat
         if not await self._connect_chat():
             return
         # PASO 4: Loop de Mantenimiento (Keep-Alive)
-        self.log_received.emit(Log.success("Sistema operativo y escuchando."))
+        self.log_received.emit(LoggerText.success("Sistema operativo y escuchando."))
         while self._is_running:
             try: 
                 await asyncio.sleep(1)
@@ -153,16 +153,16 @@ class KickBotWorker(QThread):
                     token = data.get("access_token")
                 if token:
                     self.api.access_token = token
-                    self.log_received.emit(Log.success("Token de acceso restaurado."))
+                    self.log_received.emit(LoggerText.success("Token de acceso restaurado."))
                     return True
             except Exception as e:
-                self.log_received.emit(Log.warning(f"Sesión corrupta: {e}"))
+                self.log_received.emit(LoggerText.warning(f"Sesión corrupta: {e}"))
         
         return await self._perform_oauth_login()
 
     async def _perform_oauth_login(self) -> bool:
         """Realiza el flujo completo de Login con Navegador."""
-        self.log_received.emit(Log.system("Iniciando Login OAuth (Abre tu navegador)."))
+        self.log_received.emit(LoggerText.system("Iniciando Login OAuth (Abre tu navegador)."))
         scopes = ["user:read", "channel:read", "channel:write", "chat:write", "events:subscribe", "channel:rewards:read"]
         
         try:
@@ -176,7 +176,7 @@ class KickBotWorker(QThread):
             code = await oauth_service.wait_for_code(timeout=60)
             
             if not code: 
-                self.log_received.emit(Log.error("Login cancelado: Tiempo de espera agotado."))
+                self.log_received.emit(LoggerText.error("Login cancelado: Tiempo de espera agotado."))
                 return False
             
             token_data = await self.api.exchange_code(code, verifier)
@@ -188,7 +188,7 @@ class KickBotWorker(QThread):
             return True
             
         except Exception as e:
-            self.log_received.emit(Log.error(f"Excepción durante Login: {e}"))
+            self.log_received.emit(LoggerText.error(f"Excepción durante Login: {e}"))
             return False
 
     async def _refresh_token_silently(self) -> bool:
@@ -221,12 +221,12 @@ class KickBotWorker(QThread):
                         
                         self._save_session(new_data)
                         self.api.access_token = new_data.get("access_token")
-                        self.log_received.emit(Log.debug("Token renovado automáticamente."))
+                        self.log_received.emit(LoggerText.debug("Token renovado automáticamente."))
                         return True
                     else:
-                        self.log_received.emit(Log.warning(f"Fallo al renovar token: {resp.status}"))
+                        self.log_received.emit(LoggerText.warning(f"Fallo al renovar token: {resp.status}"))
         except Exception as e:
-            self.log_received.emit(Log.debug(f"Error renovando token: {e}"))
+            self.log_received.emit(LoggerText.debug(f"Error renovando token: {e}"))
             
         return False
 
@@ -245,13 +245,13 @@ class KickBotWorker(QThread):
         target_user = self.config.get('kick_username') 
         
         if not target_user:
-            self.log_received.emit(Log.error("Falta configurar el nombre de usuario del canal."))
+            self.log_received.emit(LoggerText.error("Falta configurar el nombre de usuario del canal."))
             return False
 
-        self.log_received.emit(Log.info(f"Cargando datos para el canal: {target_user}"))
+        self.log_received.emit(LoggerText.info(f"Cargando datos para el canal: {target_user}"))
 
         if self._load_from_cache(target_user):
-            self.log_received.emit(Log.success("Datos de canal cargados desde caché."))
+            self.log_received.emit(LoggerText.success("Datos de canal cargados desde caché."))
             return True
 
         if await self._fetch_channel_data(target_user): 
@@ -276,7 +276,7 @@ class KickBotWorker(QThread):
                 return True
                 
         except Exception as e: 
-            self.log_received.emit(Log.error(f"Error obteniendo datos del canal: {e}"))
+            self.log_received.emit(LoggerText.error(f"Error obteniendo datos del canal: {e}"))
         return False
 
     def _process_channel_response(self, data: dict, target_user: str):
@@ -298,7 +298,7 @@ class KickBotWorker(QThread):
 
         self.db.save_kick_user(slug, username, followers, pic, self.chatroom_id, self.broadcaster_user_id)
         self.user_info_signal.emit(username, followers, pic)
-        self.log_received.emit(Log.success(f"Datos actualizados para: {username}"))
+        self.log_received.emit(LoggerText.success(f"Datos actualizados para: {username}"))
 
     def _load_from_cache(self, target_user: str) -> bool:
         cached = self.db.get_kick_user(target_user)
@@ -315,18 +315,18 @@ class KickBotWorker(QThread):
     # =========================================================================
     async def _connect_chat(self) -> bool:
         if not self.chatroom_id: 
-            self.log_received.emit(Log.error("Error Fatal: Chatroom ID no encontrado."))
+            self.log_received.emit(LoggerText.error("Error Fatal: Chatroom ID no encontrado."))
             return False
             
-        self.log_received.emit(Log.debug(f"Conectando a sala de chat: {self.chatroom_id}"))
+        self.log_received.emit(LoggerText.debug(f"Conectando a sala de chat: {self.chatroom_id}"))
 
         self.api.add_message_handler(self._on_message_received)
         try:
             await self.api.connect_to_chatroom(self.chatroom_id)
-            self.log_received.emit(Log.success(f"CHAT CONECTADO: {self.config.get('kick_username')}"))
+            self.log_received.emit(LoggerText.success(f"CHAT CONECTADO: {self.config.get('kick_username')}"))
             return True
         except Exception as e:
-            self.log_received.emit(Log.error(f"Fallo conexión WebSocket: {e}"))
+            self.log_received.emit(LoggerText.error(f"Fallo conexión WebSocket: {e}"))
             return False
 
     async def _on_message_received(self, msg):
@@ -360,8 +360,8 @@ class KickBotWorker(QThread):
             self.chat_received.emit(sender, content, badges, timestamp)
 
         except Exception as e:
-            self.log_received.emit(Log.error(f"Error procesando mensaje: {e}"))
-            self.log_received.emit(Log.debug(f"Contenido crudo del mensaje fallido: {msg}"))
+            self.log_received.emit(LoggerText.error(f"Error procesando mensaje: {e}"))
+            self.log_received.emit(LoggerText.debug(f"Contenido crudo del mensaje fallido: {msg}"))
 
     def _parse_incoming_message(self, msg: dict) -> Tuple[Optional[str], Optional[str]]:
         """
@@ -400,7 +400,7 @@ class KickBotWorker(QThread):
         try:
             token = getattr(self.api, 'access_token', None)
             if not token: 
-                self.log_received.emit(Log.warning("No se pudo enviar mensaje: Falta Token."))
+                self.log_received.emit(LoggerText.warning("No se pudo enviar mensaje: Falta Token."))
                 return
 
             headers = { 
@@ -418,11 +418,11 @@ class KickBotWorker(QThread):
                 async with session.post(KICK_CHAT_API, json=payload, headers=headers) as resp:
                     # Si falla por autorización (401), intentar refrescar token y reintentar una vez
                     if resp.status == 401 and retry_attempt:
-                        self.log_received.emit(Log.warning("Token expirado al enviar. Renovando."))
+                        self.log_received.emit(LoggerText.warning("Token expirado al enviar. Renovando."))
                         if await self._refresh_token_silently():
                             await self._send_safe(text, retry_attempt=False)
                     elif resp.status != 200:
-                        self.log_received.emit(Log.error(f"Error enviando mensaje: Status {resp.status}"))
+                        self.log_received.emit(LoggerText.error(f"Error enviando mensaje: Status {resp.status}"))
                         
         except Exception as e:
-            self.log_received.emit(Log.error(f"Excepción al enviar mensaje: {e}"))
+            self.log_received.emit(LoggerText.error(f"Excepción al enviar mensaje: {e}"))

@@ -1,7 +1,7 @@
 # backend/handlers/music_handler.py
 
 from typing import Callable
-from backend.utils.logger_text import Log
+from backend.utils.logger_text import LoggerText
 
 class MusicHandler:
     """
@@ -63,7 +63,7 @@ class MusicHandler:
                 added_song_name = self.spotify.add_to_queue(query)
                 if added_song_name:
                     send_msg(f"✅ Agregada: {added_song_name}")
-                    log_msg(Log.success(f"🎵 Pedido {user}: {added_song_name}"))
+                    log_msg(LoggerText.success(f"🎵 Pedido {user}: {added_song_name}"))
                 else:
                     send_msg(f"❌ No encontré: {query}")
             else:
@@ -74,7 +74,7 @@ class MusicHandler:
             if is_active("skip") and msg_lower == cmd_skip:
                 self.spotify.next_track()
                 send_msg("⏭️ Saltando canción.")
-                log_msg(Log.info("Música: Skip por streamer"))
+                log_msg(LoggerText.info("Música: Skip por streamer"))
                 return True
             
             elif is_active("pause") and msg_lower == cmd_pause:

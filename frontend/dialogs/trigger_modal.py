@@ -1,4 +1,4 @@
-# frontend/dialogs/edit_media_modal.py
+# frontend/dialogs/trigger_modal.py
 
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, 

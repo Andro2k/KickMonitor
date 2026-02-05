@@ -1,3 +1,5 @@
+# frontend/alerts/modal_alert.py
+
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                              QPushButton, QFrame)
 from PyQt6.QtCore import Qt, QPropertyAnimation

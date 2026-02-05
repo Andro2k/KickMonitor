@@ -26,7 +26,7 @@ class InfoModal(BaseModal):
         icon.setStyleSheet("opacity: 0.8;")
         
         lbl_title = QLabel(title)
-        lbl_title.setObjectName("h2") # Usa el estilo h2 de tu theme
+        lbl_title.setObjectName("h2")
         
         header_layout.addWidget(icon)
         header_layout.addWidget(lbl_title)

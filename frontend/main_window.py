@@ -24,7 +24,7 @@ from frontend.pages.alerts_page import AlertsPage
 from frontend.pages.dashboard_page import DashboardPage 
 from frontend.pages.chat_page import ChatPage
 from frontend.pages.settings_page import SettingsPage
-from frontend.pages.overlay_page import OverlayPage
+from frontend.pages.trigger_page import TriggerPage
 from frontend.pages.points_page import PointsPage
 from frontend.pages.commands_page import CommandsPage
 from frontend.pages.casino_page import GamblingPage
@@ -67,7 +67,7 @@ class MainWindow(QMainWindow):
         self.ui_chat = ChatPage(db, self.controller.tts) 
         self.ui_cmds = CommandsPage(db)
         self.ui_alerts = AlertsPage(db)
-        self.ui_overlay = OverlayPage(self.controller.overlay_server, db)
+        self.ui_overlay = TriggerPage(self.controller.overlay_server, db)
         self.ui_points = PointsPage(db)
         self.ui_gamble = GamblingPage(db, self.controller)
         self.ui_conf = SettingsPage(db, self.controller)

@@ -8,7 +8,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, QTimer, QThread
 # --- INFRAESTRUCTURA Y WORKERS ---
 from backend.core.db_controller import DBHandler
 from backend.handlers.antibot_handler import AntibotHandler
-from backend.utils.logger_text import Log
+from backend.utils.logger_text import LoggerText
 from backend.utils.paths import get_cache_path
 from backend.workers.overlay_worker import OverlayServerWorker
 from backend.core.kick_bot import KickBotWorker   
@@ -18,12 +18,12 @@ from backend.workers.update_worker import UpdateCheckerWorker, UpdateDownloaderW
 from backend.workers.kick_worker import FollowMonitorWorker
 
 # --- LÓGICA DE NEGOCIO (SERVICIOS Y HANDLERS) ---
-from backend.domain.casino import CasinoSystem
+from backend.game.casino import CasinoSystem
 from backend.services.commands_service import CommandsService
 from backend.handlers.chat_handler import ChatHandler
 from backend.handlers.music_handler import MusicHandler
 from backend.handlers.game_handler import GameHandler
-from backend.handlers.overlay_handler import AlertHandler
+from backend.handlers.triggers_handler import TriggerHandler
 from frontend.dialogs.update_modal import UpdateModal
 
 class MainController(QObject):
@@ -56,7 +56,7 @@ class MainController(QObject):
         self.chat_handler = ChatHandler(self.db)
         self.music_handler = MusicHandler(self.db, self.spotify) 
         self.game_handler = GameHandler(self.db, self.casino_system)
-        self.alert_handler = AlertHandler(self.db, self.overlay_server)
+        self.alert_handler = TriggerHandler(self.db, self.overlay_server)
         self.antibot = AntibotHandler(self.db)
         
         # 4. Estado Interno
@@ -68,7 +68,7 @@ class MainController(QObject):
         # 5. Configuración
         self._setup_timers()
         self.debug_enabled = self.db.get_bool("debug_mode")
-        Log.enabled_debug = self.debug_enabled # Sincronizar clase Log
+        LoggerText.enabled_debug = self.debug_enabled # Sincronizar clase Log
         
         # 6. Registro de Logs (Solo la señal principal)
         self.log_signal.connect(self._write_log_to_file)
@@ -171,7 +171,7 @@ class MainController(QObject):
             extra_context = {"song": self.music_handler.get_current_song_info()}
             final_msg = self.chat_handler.format_custom_message(message, user, args, extra_context)
             self.send_msg(final_msg)
-            self.emit_log(Log.info(f"Comando ejecutado: {trigger}"))
+            self.emit_log(LoggerText.info(f"Comando ejecutado: {trigger}"))
             return True
         return False
 
@@ -254,7 +254,7 @@ class MainController(QObject):
             self.safe_disconnect(self.worker.chat_received)
             self.worker.stop()
             if not self.worker.wait(500): 
-                self.emit_log(Log.warning("Timeout: Forzando cierre de hilos."))
+                self.emit_log(LoggerText.warning("Timeout: Forzando cierre de hilos."))
             self.worker = None             
         if self.monitor_worker: 
             self.monitor_worker.stop()
@@ -298,7 +298,7 @@ class MainController(QObject):
     def on_new_follower(self, count, name):
         # 1. Notificación Visual
         self.toast_signal.emit("¡NUEVO!", f"{name} (+{count})", "status_success")
-        self.emit_log(Log.success(f"NUEVO SEGUIDOR: {name}"))
+        self.emit_log(LoggerText.success(f"NUEVO SEGUIDOR: {name}"))
         # 2. Voz
         if self.tts_enabled: 
             self.tts.add_message(f"Gracias {name} por seguirme.")
@@ -339,7 +339,7 @@ class MainController(QObject):
         self.tts_enabled = enabled
         if not enabled and self.tts: 
             self.tts.immediate_stop()
-            self.emit_log(Log.info("Sistema TTS: Desactivado"))
+            self.emit_log(LoggerText.info("Sistema TTS: Desactivado"))
     
     def set_command_only(self, enabled): self.command_only = enabled
 
@@ -353,7 +353,7 @@ class MainController(QObject):
         for name, msg in due_list:
             if msg:
                 self.send_msg(msg)
-                self.emit_log(Log.system(f"Timer automático ejecutado: '{name}'"))
+                self.emit_log(LoggerText.system(f"Timer automático ejecutado: '{name}'"))
                 self.db.update_timer_run(name, now)
     # =========================================================================
     # REGIÓN 5: ACTUALIZACIONES
@@ -383,7 +383,7 @@ class MainController(QObject):
             self.toast_signal.emit("Sistema", "Descargando actualización.", "status_success")
             self.start_download(url)
         else:
-            self.emit_log(Log.system("El usuario pospuso la actualización."))
+            self.emit_log(LoggerText.system("El usuario pospuso la actualización."))
 
     def _on_check_finished(self):
         """Se ejecuta siempre que el worker termina de buscar."""
@@ -404,7 +404,7 @@ class MainController(QObject):
 
     def _on_update_progress(self, percent):
         if percent % 10 == 0:
-            self.emit_log(Log.system(f"Descargando actualización: {percent}%"))
+            self.emit_log(LoggerText.system(f"Descargando actualización: {percent}%"))
 
     # =========================================================================
     # REGIÓN 6: LOGS & DEBUG
@@ -427,16 +427,16 @@ class MainController(QObject):
                 f.write(f"{clean_msg}\n")
                 
         except Exception as e:
-            self.emit_log(Log.debug(f"Error crítico de disco: {e}"))
+            self.emit_log(LoggerText.debug(f"Error crítico de disco: {e}"))
 
     def set_debug_mode(self, enabled: bool):
         """Sincroniza el estado global de la clase Log."""
         self.debug_enabled = enabled
         self.db.set("debug_mode", enabled)
-        Log.enabled_debug = enabled 
+        LoggerText.enabled_debug = enabled 
         
         status = "ACTIVADO" if enabled else "DESACTIVADO"
-        self.emit_log(Log.system(f"Modo Depuración: {status}"))
+        self.emit_log(LoggerText.system(f"Modo Depuración: {status}"))
 
     def emit_log(self, text):
         """Emite logs a la UI, ignorando los None (Debug desactivado)."""

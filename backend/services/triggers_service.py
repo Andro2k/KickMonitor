@@ -1,11 +1,11 @@
-# services/overlay_service.py
+# backend/services/triggers_service.py
 
 import os
 from urllib.parse import quote
 from typing import List, Dict, Any, Tuple
 from backend.utils.data_manager import DataManager
 
-class OverlayService:
+class TriggerService:
     """
     Servicio de Lógica para el Overlay Multimedia.
     """

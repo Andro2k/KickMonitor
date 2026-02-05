@@ -1,4 +1,4 @@
-# frontend/components/toast.py
+# frontend/alerts/toast_alert.py
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QGraphicsOpacityEffect, QPushButton)

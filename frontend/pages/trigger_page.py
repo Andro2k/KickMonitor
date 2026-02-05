@@ -13,19 +13,19 @@ from frontend.components.cards import Card
 from frontend.alerts.modal_alert import ModalConfirm
 from frontend.alerts.toast_alert import ToastNotification
 from frontend.components.flow_layout import FlowLayout 
-from frontend.components.overlay_card import MediaCard
+from frontend.components.trigger_card import MediaCard
 from frontend.factories import create_help_btn, create_nav_btn, create_page_header, create_styled_input, create_icon_btn
 from frontend.help_content import load_help_content
 from frontend.utils import get_icon
 from frontend.theme import LAYOUT, STYLES, THEME_DARK, get_switch_style
-from backend.services.overlay_service import OverlayService
+from backend.services.triggers_service import TriggerService
 
-class OverlayPage(QWidget):
+class TriggerPage(QWidget):
     def __init__(self, server_worker, db_handler, parent=None):
         super().__init__(parent)
         
         # --- Dependencias y Estado ---
-        self.service = OverlayService(db_handler, server_worker)
+        self.service = TriggerService(db_handler, server_worker)
         self.full_media_list: List[Dict] = [] 
         self.search_text: str = ""
         self.filter_mode: str = "Todos"

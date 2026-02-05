@@ -3,7 +3,7 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QPushButton, QFrame, QProgressBar, QCheckBox, 
-    QLineEdit, QSizePolicy
+    QLineEdit
 )
 from PyQt6.QtCore import Qt, QSize
 from frontend.theme import LAYOUT, STYLES, THEME_DARK, get_switch_style
@@ -29,7 +29,6 @@ class MusicPlayerPanel(QFrame):
         """)
 
     def _setup_ui(self):
-        # --- LAYOUT PRINCIPAL (Divide Reproductor | Comandos) ---
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(*LAYOUT["margins"])
         main_layout.setSpacing(LAYOUT["spacing"])

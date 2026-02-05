@@ -186,7 +186,6 @@ class DashboardPage(QWidget):
         cols = 3 
         
         for i, (icon, txt, idx) in enumerate(shortcuts):
-            # --- USO DE FACTORY ---
             btn = create_shortcut_btn(txt, icon, lambda _, x=idx: self.navigate_signal.emit(x))
             
             r, c = divmod(i, cols)

@@ -1,4 +1,4 @@
-# services/alerts_service.py
+# backend/services/alerts_service.py
 
 from typing import Tuple
 

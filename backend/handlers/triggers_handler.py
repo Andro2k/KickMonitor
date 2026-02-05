@@ -1,10 +1,10 @@
-# backend/handlers/alert_handler.py
+# backend/handlers/triggers_handler.py
 
 import time
 from urllib.parse import quote
-from typing import Callable, Dict, List, Optional, Any
+from typing import Callable, Dict
 
-from backend.utils.logger_text import Log
+from backend.utils.logger_text import LoggerText
 
 # ==========================================
 # CONFIGURACIÓN
@@ -12,7 +12,7 @@ from backend.utils.logger_text import Log
 OVERLAY_URL_TEMPLATE = "http://127.0.0.1:8081/media/{}"
 CHAT_MAX_CHARS = 400  # Límite seguro para mensajes de Kick
 
-class AlertHandler:
+class TriggerHandler:
     """
     Gestiona las alertas multimedia (Overlay) y la Tienda del Chat.
     """
@@ -135,9 +135,9 @@ class AlertHandler:
             
             self.overlay.send_event("play_media", payload)          
             self.cooldowns[command] = time.time()
-            log_msg(Log.info(f"🎬 {user} canjeó {command} (-{cost} pts)"))
+            log_msg(LoggerText.info(f"🎬 {user} canjeó {command} (-{cost} pts)"))
             return True
 
         except Exception as e:
-            log_msg(Log.error(f"Error lanzando alerta '{command}': {e}"))
+            log_msg(LoggerText.error(f"Error lanzando alerta '{command}': {e}"))
             return False

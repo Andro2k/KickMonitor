@@ -1,11 +1,11 @@
-# backend/tts.py
+# backend/workers/tts_worker.py
 
 import queue
 import re
 import pyttsx3
 from PyQt6.QtCore import QThread, pyqtSignal
 
-from backend.utils.logger_text import Log
+from backend.utils.logger_text import LoggerText
 
 class TTSWorker(QThread):
     error_signal = pyqtSignal(str)
@@ -54,7 +54,7 @@ class TTSWorker(QThread):
             try:
                 self.current_engine.stop()
             except Exception as e:
-                self.error_signal.emit(Log.error(f"TTS Stop Error: {e}"))
+                self.error_signal.emit(LoggerText.error(f"TTS Stop Error: {e}"))
 
     # ==========================================
     # LOOP PRINCIPAL
@@ -68,7 +68,7 @@ class TTSWorker(QThread):
             except queue.Empty:
                 continue
             except Exception as e:
-                self.error_signal.emit(Log.error(f"TTS Error General: {e}"))
+                self.error_signal.emit(LoggerText.error(f"TTS Error General: {e}"))
 
     # ==========================================
     # PROCESAMIENTO INTERNO

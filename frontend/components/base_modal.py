@@ -7,7 +7,6 @@ from frontend.theme import THEME_DARK, LAYOUT
 class BaseModal(QDialog):
     """
     Clase base para todos los diálogos modales.
-    Maneja: Estilos, Bordes redondeados, Transparencia y Animaciones.
     """
     def __init__(self, parent=None, width=400, height=450):
         super().__init__(parent)

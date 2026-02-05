@@ -1,4 +1,5 @@
 # frontend/theme.py
+
 import sys
 import os
 
@@ -26,7 +27,6 @@ class Palette:
     Black_N2       = "#191919" # Tarjetas / Paneles (Surface)
     Black_N3       = "#262626" # Inputs / Hover States
     Black_N4       = "#333333" # Bordes fuertes / Elementos activos
-    Black_Pure     = "#000000"
     
     # --- 2. Grises ---
     Gray_N1        = "#8B8B8B" # Texto Secundario / Iconos inactivos
