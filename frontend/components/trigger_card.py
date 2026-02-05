@@ -5,8 +5,7 @@ from PyQt6.QtWidgets import (
     QFrame, QVBoxLayout, QHBoxLayout, QLabel, 
     QLineEdit, QPushButton, QSizePolicy, QDialog
 )
-from PyQt6.QtCore import QThreadPool, Qt
-from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import QThreadPool, QTimer, Qt
 from frontend.theme import LAYOUT, THEME_DARK, STYLES
 from frontend.utils import ThumbnailWorker, get_icon_colored, get_icon, get_rounded_pixmap
 from frontend.factories import create_icon_btn
@@ -81,23 +80,25 @@ class MediaCard(QFrame):
         self.txt_cmd.editingFinished.connect(self._save_quick_cmd) 
         layout.addWidget(self.txt_cmd)
 
-        # Botones
+        # --- SECCIÓN DE BOTONES MODIFICADA ---
         row_btns = QHBoxLayout()
         row_btns.setSpacing(5)
 
-        self.btn_play = QPushButton("Preview")
-        self.btn_play.setIcon(get_icon("play-circle.svg"))
-        self.btn_play.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_play.setFixedHeight(32)
-        self.btn_play.clicked.connect(self._preview)
-        
+        # 1. Botón Principal: Activar/Desactivar (Ahora es el grande)
+        self.btn_toggle = QPushButton("Activar")
+        self.btn_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_toggle.setFixedHeight(32)
+        self.btn_toggle.clicked.connect(self._toggle_active)
+
+        # 2. Botones Pequeños: Ajustes, Preview, Borrar
         self.btn_conf = create_icon_btn("sliders.svg", self._open_advanced_settings, tooltip="Ajustes Avanzados")
-        self.btn_toggle = create_icon_btn("eye.svg", self._toggle_active, tooltip="Activar/Desactivar")
+        self.btn_play = create_icon_btn("play-circle.svg", self._preview, tooltip="Previsualizar")
         self.btn_del = create_icon_btn("trash.svg", self._delete_config, color_hover=THEME_DARK['status_error'])
 
-        row_btns.addWidget(self.btn_play, stretch=1)
+        # 3. Orden: Toggle (Grande) -> Ajustes -> Preview -> Borrar
+        row_btns.addWidget(self.btn_toggle, stretch=1)
         row_btns.addWidget(self.btn_conf)
-        row_btns.addWidget(self.btn_toggle)
+        row_btns.addWidget(self.btn_play)
         row_btns.addWidget(self.btn_del)
 
         layout.addLayout(row_btns)
@@ -145,22 +146,28 @@ class MediaCard(QFrame):
     # En media_card.py
 
     def _toggle_active(self):
-        # 1. Cambiar estado lógico
+        """
+        Maneja el click del botón Activar/Desactivar con respuesta inmediata.
+        """
+        # 1. Calcular y cambiar el estado en memoria
         curr = bool(self.config.get("active", 0))
         new_state = 0 if curr else 1
         self.config["active"] = new_state
         
-        # 2. Guardar en base de datos (silencioso)
+        # 2. FEEDBACK VISUAL INMEDIATO (Optimistic UI)
+        self._update_active_style(bool(new_state))
+
+        # 3. Guardar en segundo plano
+        QTimer.singleShot(10, self._deferred_save)
+
+    def _deferred_save(self):
+        """Ejecuta las tareas pesadas después de que la UI se haya actualizado."""
+        # 1. Guardar en DB (Esto es lo que causaba el retardo)
         self.page.save_item(self.filename, self.ftype, self.config, silent=True)
 
-        # 3. LÓGICA NUEVA:
+        # 2. Refrescar filtros si es necesario
         if hasattr(self.page, 'check_filter_refresh'):
             self.page.check_filter_refresh()
-            
-            self._update_active_style(bool(new_state))
-        else:
-            # Fallback por si no has actualizado OverlayPage
-            self._update_active_style(bool(new_state))
 
     def _delete_config(self):
         if ModalConfirm(self, "Eliminar", "¿Borrar configuración?").exec():
@@ -172,25 +179,26 @@ class MediaCard(QFrame):
         self.page.preview_item(self.filename, self.ftype, self.config)
 
     def _update_active_style(self, is_active):
-        icon_preview = QIcon()
+        """Actualiza el estilo visual basado en si está activo o no."""
         
         if is_active:
-            pix_black = get_icon_colored("play-circle.svg", THEME_DARK['NeonGreen_Main']).pixmap(24, 24)
-            icon_preview.addPixmap(pix_black, QIcon.Mode.Normal)
-            icon_preview.addPixmap(pix_black, QIcon.Mode.Active)
-            self.btn_play.setStyleSheet(STYLES["btn_primary"])            
+            # ESTADO ACTIVO: Botón verde, Texto "Activo", Opacidad full
+            self.btn_toggle.setText("Activo")
+            self.btn_toggle.setIcon(get_icon_colored("eye.svg", THEME_DARK['NeonGreen_Main'])) # Icono oscuro para contraste
+            self.btn_toggle.setStyleSheet(STYLES["btn_primary"]) # Estilo verde/primario
+            
+            # Quitamos la opacidad del frame si estaba puesta
             self.setStyleSheet(self.styleSheet().replace("QFrame { opacity: 0.6; }", ""))
 
         else:
-            pix_gray = get_icon_colored("play-circle.svg", THEME_DARK['White_N1']).pixmap(24, 24)
-            icon_preview.addPixmap(pix_gray, QIcon.Mode.Normal)
-            self.btn_play.setStyleSheet(STYLES["btn_outlined"])
+            # ESTADO INACTIVO: Botón gris/outline, Texto "Activar", Opacidad reducida
+            self.btn_toggle.setText("Activar")
+            self.btn_toggle.setIcon(get_icon("eye-off.svg"))
+            self.btn_toggle.setStyleSheet(STYLES["btn_outlined"]) # Estilo borde gris
+            
+            # Agregamos opacidad visual al card entero para indicar inactividad
             if "opacity" not in self.styleSheet():
                 self.setStyleSheet(self.styleSheet() + "QFrame { opacity: 0.6; }")
-
-        # 2. Asignar los iconos finales
-        self.btn_play.setIcon(icon_preview)
-        self.btn_toggle.setIcon(get_icon("eye.svg" if is_active else "eye-off.svg"))
 
     def _load_async_thumbnail(self):
         """Inicia el worker en un hilo separado para no congelar la frontend."""
