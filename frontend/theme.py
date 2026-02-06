@@ -382,9 +382,9 @@ STYLES = {
             border: 1px solid {c.Gray_N1}; background-color: {c.Black_N2};
         }}
         
-        QComboBox::drop-down{{border:none;}}
-        QComboBox::down-arrow {{image: url({asset_url("chevron-down.svg")}); margin-right:20px}}
-        QComboBox::down-arrow::on {{image: url({asset_url("chevron-up.svg")}); margin-right:20px}}
+        QComboBox::drop-down{{border: none;}}
+        QComboBox::down-arrow {{image: url({asset_url("chevron-down.svg")});}}
+        QComboBox::down-arrow::on {{image: url({asset_url("chevron-up.svg")});}}
 
         QComboBox QAbstractItemView {{
             background-color: {c.NeonGreen_Dark}; color: {c.Black_N3};

@@ -163,7 +163,7 @@ class KickBotWorker(QThread):
     async def _perform_oauth_login(self) -> bool:
         """Realiza el flujo completo de Login con Navegador."""
         self.log_received.emit(LoggerText.system("Iniciando Login OAuth (Abre tu navegador)."))
-        scopes = ["user:read", "channel:read", "channel:write", "chat:write", "events:subscribe", "channel:rewards:read"]
+        scopes = ["user:read", "channel:read", "channel:write", "chat:write", "events:subscribe", "channel:rewards:read", "channel:rewards:write"]
         
         try:
             auth_data = self.api.get_auth_url(scopes)

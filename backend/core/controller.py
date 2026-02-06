@@ -12,6 +12,7 @@ from backend.utils.logger_text import LoggerText
 from backend.utils.paths import get_cache_path
 from backend.workers.overlay_worker import OverlayServerWorker
 from backend.core.kick_bot import KickBotWorker   
+from backend.workers.redemption_worker import RedemptionWorker
 from backend.workers.spotify_worker import SpotifyWorker
 from backend.workers.tts_worker import TTSWorker   
 from backend.workers.update_worker import UpdateCheckerWorker, UpdateDownloaderWorker
@@ -57,11 +58,13 @@ class MainController(QObject):
         self.music_handler = MusicHandler(self.db, self.spotify) 
         self.game_handler = GameHandler(self.db, self.casino_system)
         self.alert_handler = TriggerHandler(self.db, self.overlay_server)
+        self.trigger_handler = TriggerHandler(self.db, self.overlay_server)
         self.antibot = AntibotHandler(self.db)
         
         # 4. Estado Interno
         self.worker: Optional[KickBotWorker] = None          
-        self.monitor_worker: Optional[FollowMonitorWorker] = None  
+        self.monitor_worker: Optional[FollowMonitorWorker] = None
+        self.redemption_worker: Optional[RedemptionWorker] = None
         self.tts_enabled = False
         self.command_only = False       
         
@@ -121,10 +124,10 @@ class MainController(QObject):
         if self._handle_custom_responses(user, msg_lower):
             self._finalize_message(timestamp, user, content)
             return
-        # Alertas / Overlay
-        if self.alert_handler.handle_trigger(user, msg_lower, self.send_msg, self.emit_log):
-            self._finalize_message(timestamp, user, content)
-            return
+        # # Alertas / Overlay
+        # if self.alert_handler.handle_trigger(user, msg_lower, self.send_msg, self.emit_log):
+        #     self._finalize_message(timestamp, user, content)
+        #     return
         # Consulta Puntos
         if self._handle_points_query(user, msg_lower):
             self._finalize_message(timestamp, user, content)
@@ -161,7 +164,6 @@ class MainController(QObject):
         parts = msg_lower.split(" ", 1) 
         trigger = parts[0]
         can_exec, message = self.cmd_service.can_execute(trigger)  
-        # Caso: Cooldown activo
         if not can_exec and message:
             self.send_msg(f"@{user} {message}")
             return True           
@@ -241,7 +243,13 @@ class MainController(QObject):
         self.worker.username_required.connect(self.username_needed.emit)
         
         self.worker.start()
-        
+        if not self.redemption_worker:
+            self.redemption_worker = RedemptionWorker(self.db)
+            self.redemption_worker.log_signal.connect(self.emit_log)
+            # CONEXIÓN CLAVE: Del worker al nuevo método on_redemption
+            self.redemption_worker.redemption_detected.connect(self.on_redemption_received)
+            self.redemption_worker.start()
+
         if config["kick_username"]: 
             self._start_monitor(config["kick_username"])
             
@@ -259,7 +267,11 @@ class MainController(QObject):
         if self.monitor_worker: 
             self.monitor_worker.stop()
             self.monitor_worker.wait(500)
-            self.monitor_worker = None            
+            self.monitor_worker = None           
+        if self.redemption_worker:
+            self.redemption_worker.stop()
+            self.redemption_worker.wait()
+            self.redemption_worker = None 
         self.status_signal.emit("Desconectado")
         self.connection_changed.emit(False)
         self.toast_signal.emit("Sistema", "Desconectado", "status_warning")
@@ -442,3 +454,24 @@ class MainController(QObject):
         """Emite logs a la UI, ignorando los None (Debug desactivado)."""
         if text:
             self.log_signal.emit(text)
+
+    # =========================================================================
+    # NUEVO MÉTODO: MANEJADOR DE CANJES
+    # =========================================================================
+    def on_redemption_received(self, user, reward_title, user_input):
+        """
+        Recibe el canje limpio del Worker y lo pasa al Handler.
+        """
+        # Pasamos directamente el Título (ej: "Susto")
+        found = self.trigger_handler.handle_redemption(
+            user, 
+            reward_title, 
+            user_input, 
+            self.emit_log
+        )
+        
+        if found:
+            self.emit_log(LoggerText.success(f"Trigger disparado: {reward_title}"))
+        else:
+            self.emit_log(LoggerText.info(f"Canje sin acción: {reward_title}"))
+            pass

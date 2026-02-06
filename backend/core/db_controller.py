@@ -1,4 +1,4 @@
-# backend/db_controller.py
+# backend/core/db_controller.py
 
 import os
 from typing import List, Optional, Any, Dict
@@ -32,11 +32,13 @@ class DBHandler:
             vod_enabled INTEGER DEFAULT 0, subscription_enabled INTEGER DEFAULT 0, 
             verified INTEGER DEFAULT 0, can_host INTEGER DEFAULT 0, bio TEXT DEFAULT ''
         """,
+        # --- TABLA TRIGGERS ACTUALIZADA CON COLOR Y DESCRIPCION ---
         "triggers": """
             command TEXT PRIMARY KEY, filename TEXT, type TEXT, 
             duration INTEGER DEFAULT 0, scale REAL DEFAULT 1.0, 
             is_active INTEGER DEFAULT 1, cost INTEGER DEFAULT 0, volume INTEGER DEFAULT 100,
-            pos_x INTEGER DEFAULT 0, pos_y INTEGER DEFAULT 0
+            pos_x INTEGER DEFAULT 0, pos_y INTEGER DEFAULT 0,
+            color TEXT DEFAULT '#53fc18', description TEXT DEFAULT 'Trigger KickMonitor'
         """,
         "data_users": """
             username TEXT PRIMARY KEY, points INTEGER DEFAULT 0, 
@@ -73,27 +75,25 @@ class DBHandler:
     # REGIÓN 2: CICLO DE VIDA E INICIALIZACIÓN
     # =========================================================================
     def __init__(self, db_name: str = "kick_data.db"):
-        # 1. Conexión Persistente (Thread-Safe)
         self.conn_handler = DatabaseConnection(db_name)     
-        # 2. Inicialización de Repositorios
+        # Inicialización de Repositorios
         self.settings = SettingsRepository(self.conn_handler)
         self.users = UsersRepository(self.conn_handler)
         self.economy = EconomyRepository(self.conn_handler)
         self.triggers = TriggersRepository(self.conn_handler)
         self.commands = ChatCommandsRepository(self.conn_handler)
         self.automations = AutomationsRepository(self.conn_handler)       
-        # 3. Bootstrap (Creación y Migración)
+        
+        # Bootstrap
         self._init_db()
         self._run_migrations()
 
     def _init_db(self):
-        """Crea las tablas y valores por defecto si no existen."""
+        """Crea tablas y configuración por defecto."""
         with QMutexLocker(self.conn_handler.mutex):
             try:
-                # Crear tablas
                 for table, schema in self.TABLE_SCHEMAS.items():
                     self.conn_handler.conn.execute(f"CREATE TABLE IF NOT EXISTS {table} ({schema})")                
-                # Insertar configuración default
                 for k, v in self.DEFAULT_SETTINGS.items():
                     self.conn_handler.conn.execute(
                         "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (k, v)
@@ -103,7 +103,7 @@ class DBHandler:
                 print(f"[DB_DEBUG] Error Init: {e}")
 
     def _run_migrations(self):
-        """Verifica y crea columnas faltantes (Migración básica)."""
+        """Verifica y crea columnas faltantes en DB existente."""
         migrations = {
             "kick_streamer": [
                 ("bio", "TEXT DEFAULT ''"), ("can_host", "INTEGER DEFAULT 0"),
@@ -116,7 +116,9 @@ class DBHandler:
                 ("is_active", "INTEGER DEFAULT 1"), ("cost", "INTEGER DEFAULT 0"),
                 ("volume", "INTEGER DEFAULT 100"),
                 ("pos_x", "INTEGER DEFAULT 0"), 
-                ("pos_y", "INTEGER DEFAULT 0")
+                ("pos_y", "INTEGER DEFAULT 0"),
+                ("color", "TEXT DEFAULT '#53fc18'"),
+                ("description", "TEXT DEFAULT 'Trigger KickMonitor'")
             ],
             "data_users": [
                 ("is_paused", "INTEGER DEFAULT 0"), ("is_muted", "INTEGER DEFAULT 0"),
@@ -130,22 +132,18 @@ class DBHandler:
             cursor = self.conn_handler.conn.cursor()
             for table, cols in migrations.items():
                 try:
-                    # Obtener columnas existentes
                     cursor.execute(f"PRAGMA table_info({table})")
                     existing_cols = {row['name'] for row in cursor.fetchall()}                  
-                    # Agregar las que falten
                     for col_name, col_def in cols:
                         if col_name not in existing_cols:
                             cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_def}")
                 except Exception as e:
-                    # Usar el formato de debug que definimos
                     print(f"[DB_DEBUG] Error migrando {table}: {e}")
             self.conn_handler.conn.commit()
 
     # =========================================================================
     # REGIÓN 3: FACHADA - CONFIGURACIÓN (SETTINGS)
     # =========================================================================
-    # CAMBIO AQUÍ: Agregamos el parámetro 'default'
     def get(self, key: str, default: str = "") -> str: 
         return self.settings.get(key, default)
     def set(self, key: str, val: Any): self.settings.set(key, val)       
@@ -174,11 +172,13 @@ class DBHandler:
     
     def add_points_to_active_users(self, amount: int, minutes: int = 10):
         return self.economy.add_points_periodic(amount, minutes)
+    
     # --- Gestión de Estado de Usuario ---
     def set_user_paused(self, user: str, paused: bool): return self.economy.set_paused(user, paused)
     def set_user_muted(self, user: str, muted: bool): return self.economy.set_muted(user, muted)
     def is_muted(self, user: str) -> bool: return self.economy.is_muted(user)
     def update_user_role(self, user: str, role: str): return self.economy.update_role(user, role)
+    
     # --- Historial de Juegos ---
     def add_gamble_entry(self, user, game, res, profit, win):
         return self.economy.add_gamble_entry(user, game, res, profit, win)
@@ -189,12 +189,12 @@ class DBHandler:
     # =========================================================================
     # REGIÓN 6: FACHADA - CARACTERÍSTICAS (COMMANDS, OVERLAY, ALERTS)
     # =========================================================================
-    # --- Triggers Multimedia ---
-    def set_trigger(self, cmd, file, ftype, dur=0, sc=1.0, act=1, cost=0, vol=100, pos_x=0, pos_y=0):
-        return self.triggers.save_trigger(cmd, file, ftype, dur, sc, act, cost, vol, pos_x, pos_y)
+    # --- Triggers Multimedia (ACTUALIZADO CON COLOR Y DESCRIPCION) ---
+    def set_trigger(self, cmd, file, ftype, dur=0, sc=1.0, act=1, cost=0, vol=100, pos_x=0, pos_y=0, color="#53fc18", description="Trigger KickMonitor"):
+        return self.triggers.save_trigger(cmd, file, ftype, dur, sc, act, cost, vol, pos_x, pos_y, color, description)
         
     def get_trigger_file(self, cmd: str): return self.triggers.get_trigger(cmd)
-    def delete_triggers_by_filename(self, fname: str): return self.triggers.delete_by_filename(fname)
+    def delete_triggers_by_filename(self, fname: str): return self.triggers.delete_triggers_by_filename(fname)
     def get_all_triggers(self) -> Dict: return self.triggers.get_all()
     def clear_all_triggers(self): return self.triggers.clear_all()
     def get_active_shop_items(self) -> List: return self.triggers.get_shop_items()
@@ -217,34 +217,23 @@ class DBHandler:
     def update_timer_run(self, name, ts): return self.automations.update_timer_run(name, ts)
 
     # =========================================================================
-    # REGIÓN 7: GESTIÓN DE DATOS Y MANTENIMIENTO (NUEVO)
+    # REGIÓN 7: GESTIÓN DE DATOS Y MANTENIMIENTO
     # =========================================================================
     def get_db_path(self) -> str:
-        """Retorna la ruta absoluta del archivo de base de datos."""
         return os.path.abspath(self.conn_handler.db_path)
 
     def factory_reset_user(self):
-        """
-        Borra credenciales de Kick y Spotify, y elimina al usuario actual.
-        """
         keys_to_wipe = [
             "kick_username", "chatroom_id", "client_id", "client_secret", 
             "spotify_client_id", "spotify_secret", "spotify_enabled"
         ]
-        
         with QMutexLocker(self.conn_handler.mutex):
-            # 1. Limpiar Settings
             for key in keys_to_wipe:
                 self.conn_handler.conn.execute("UPDATE settings SET value='' WHERE key=?", (key,))
-            
-            # 2. Borrar tabla de streamers (Opcional, si quieres olvidar los datos del perfil)
             self.conn_handler.conn.execute("DELETE FROM kick_streamer")
             self.conn_handler.conn.commit()
 
     def wipe_economy_data(self):
-        """
-        Reinicia la economía: Pone puntos a 0 para todos y borra historial de apuestas.
-        """
         with QMutexLocker(self.conn_handler.mutex):
             self.conn_handler.conn.execute("UPDATE data_users SET points = 0")
             self.conn_handler.conn.execute("DELETE FROM gamble_history")

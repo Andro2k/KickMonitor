@@ -1,28 +1,121 @@
 # backend/services/triggers_service.py
 
 import os
+import json
+import cloudscraper
 from urllib.parse import quote
 from typing import List, Dict, Any, Tuple
 from backend.utils.data_manager import DataManager
+from backend.utils.paths import get_config_path
+
+# --- IMPORTANTE: Importar el servicio de Rewards ---
+from backend.services.rewards_service import RewardsService
+
+# Endpoints de Kick
+URL_REWARDS = "https://api.kick.com/public/v1/channels/rewards"
 
 class TriggerService:
     """
-    Servicio de Lógica para el Overlay Multimedia.
+    Servicio de Lógica para el Overlay Multimedia + Gestión de Recompensas de Kick.
     """
     def __init__(self, db_handler, server_worker):
         self.db = db_handler
         self.server = server_worker
+        self.scraper = cloudscraper.create_scraper()
         
-        # Extensiones soportadas
+        self.rewards_api = RewardsService()
+        
         self.VIDEO_EXTS = {'.mp4', '.webm'}
         self.AUDIO_EXTS = {'.mp3', '.wav', '.ogg'}
 
     # =========================================================================
-    # REGIÓN 1: CONFIGURACIÓN GENERAL Y ESTADO
+    # REGIÓN 1: GESTIÓN DE API KICK (WRAPPER)
+    # =========================================================================
+    
+    def get_available_kick_rewards(self) -> list:
+        return self.rewards_api.list_rewards()
+
+    # --- CORRECCIÓN AQUÍ: ACEPTAR TODOS LOS PARÁMETROS ---
+    def sync_reward_to_kick(self, old_title: str, new_title: str, cost: int, color: str, description: str, is_active: bool) -> bool:
+        """
+        Sincroniza buscando primero por el nombre ANTIGUO para permitir renombrar.
+        """
+        rewards = self.rewards_api.list_rewards()
+        target_id = None
+        
+        clean_old = old_title.strip().lower()
+        clean_new = new_title.strip().lower()
+
+        # 1. Buscar por nombre ANTIGUO
+        if clean_old:
+            for r in rewards:
+                if r.get("title", "").strip().lower() == clean_old:
+                    target_id = r.get("id")
+                    break
+        
+        # 2. Si no, buscar por nombre NUEVO
+        if not target_id:
+            for r in rewards:
+                if r.get("title", "").strip().lower() == clean_new:
+                    target_id = r.get("id")
+                    break
+        
+        # 3. Ejecutar pasando is_active
+        if target_id:          
+            return self.rewards_api.edit_reward(
+                reward_id=target_id, 
+                title=new_title, 
+                cost=cost, 
+                color=color, 
+                description=description, 
+                is_active=is_active # <--- IMPORTANTE: Pasa el estado (True/False)
+            )
+        else:
+            return self.rewards_api.create_reward(
+                title=new_title, 
+                cost=cost, 
+                color=color, 
+                description=description, 
+                is_active=is_active # <--- IMPORTANTE
+            )
+
+    def delete_reward_from_kick(self, title: str):
+        self.rewards_api.delete_reward_by_title(title)
+
+    # =========================================================================
+    # REGIÓN 2: LÓGICA DE NEGOCIO "HIGHLANDER" (UNICIDAD)
+    # =========================================================================
+
+    def ensure_unique_assignment(self, current_filename: str, reward_title: str):
+        if not reward_title: return
+
+        clean_title = reward_title.strip().lower()
+        triggers = self.db.get_all_triggers()
+        
+        for fname, config in triggers.items():
+            if fname != current_filename:
+                existing_cmd = config.get("cmd", "").strip().lower()
+                
+                if existing_cmd == clean_title:
+                    # Desactivar el trigger conflictivo localmente
+                    self.db.set_trigger(
+                        cmd="", 
+                        file=fname,
+                        ftype=config.get("type", "audio"),
+                        dur=config.get("dur", 0),
+                        sc=config.get("scale", 1.0),
+                        act=0, 
+                        cost=config.get("cost", 0),
+                        vol=config.get("volume", 100),
+                        pos_x=config.get("pos_x", 0),
+                        pos_y=config.get("pos_y", 0)
+                    )
+
+    # =========================================================================
+    # REGIÓN 3: GESTIÓN DE ARCHIVOS Y DB
     # =========================================================================
     def get_local_ip_url(self) -> str:
-        local_ip = "127.0.0.1"
-        return f"http://{local_ip}:8081"
+        return "http://127.0.0.1:8081"
 
     def get_media_folder(self) -> str:
         return self.db.get("media_folder")
@@ -34,20 +127,13 @@ class TriggerService:
         return self.db.get_bool("overlay_enabled")
 
     def set_overlay_active(self, active: bool):
-        """Activa/Desactiva el servidor y guarda la preferencia."""
         self.db.set("overlay_enabled", active)
         self.server.set_active(active)
 
     def set_random_pos(self, active: bool):
         self.db.set("random_pos", active)
 
-    # =========================================================================
-    # REGIÓN 2: GESTIÓN DE ARCHIVOS MULTIMEDIA
-    # =========================================================================
     def get_media_files_with_config(self) -> List[Dict[str, Any]]:
-        """
-        Escanea la carpeta de medios y fusiona los archivos encontrados con la DB.
-        """
         folder = self.get_media_folder()
         if not folder or not os.path.exists(folder):
             return []
@@ -57,179 +143,153 @@ class TriggerService:
         
         try:
             all_files = os.listdir(folder)
-            
             for f in sorted(all_files):
                 ext = os.path.splitext(f)[1].lower()
-                
                 ftype = None
                 if ext in self.VIDEO_EXTS: ftype = "video"
                 elif ext in self.AUDIO_EXTS: ftype = "audio"
                 
                 if ftype:
-                    # Buscamos config previa en DB
                     config = triggers_map.get(f)
-                    
                     if not config:
-                        # Si es archivo nuevo, creamos config default (APAGADA)
                         config = {
                             "cmd": "", "active": 0,
                             "scale": 1.0, "volume": 100,
-                            "dur": 0, "cost": 0
+                            "dur": 0, "cost": 100
                         }
-                    
-                    results.append({
-                        "filename": f,
-                        "type": ftype,
-                        "config": config 
-                    })
-        except Exception as e:
-            print(f"[DEBUG_OVERLAY] Error escaneando carpeta: {e}")
+                    results.append({"filename": f, "type": ftype, "config": config})
+        except Exception:
             return []
-            
         return results
 
-    def save_trigger(self, filename: str, ftype: str, data: Dict) -> Tuple[bool, str]:
+    def save_trigger(self, filename: str, ftype: str, data: Dict, sync_kick: bool = True) -> Tuple[bool, str]:
         """
-        Guarda o actualiza la configuración de una alerta específica.
+        Guarda detectando cambio de nombre para actualizar Kick correctamente.
         """
-        # 1. Limpieza previa para evitar duplicados
-        self.db.delete_triggers_by_filename(filename)        
-        # 2. Validación de comando
-        cmd = data.get("cmd", "").strip()
-        if not cmd:
-            return False, "El comando es obligatorio"
+        # --- PASO 1: RECUPERAR NOMBRE ANTERIOR ---
+        # Antes de borrar, miramos qué nombre tenía este archivo en la DB
+        old_config = self.db.get_all_triggers().get(filename, {})
+        old_title = old_config.get("cmd", "")
+
+        # --- PASO 2: LIMPIEZA DB ---
+        self.db.delete_triggers_by_filename(filename) 
+
+        # --- PASO 3: PREPARAR DATOS NUEVOS ---
+        new_title = data.get("cmd", "").strip()
+        cost = int(data.get("cost", 0))
+        color = data.get("color", "#53fc18")
+        desc = data.get("description", "Trigger KickMonitor")
+        is_active = bool(data.get("active", 1))
+
+        if not new_title:
+            self.db.set_trigger(cmd="", file=filename, ftype=ftype, dur=0, sc=1.0, act=0, cost=0, vol=100, pos_x=0, pos_y=0)
+            return True, "Trigger desactivado (sin nombre)"
             
-        if not cmd.startswith("!"): 
-            cmd = "!" + cmd       
-        # 3. Guardado en DB (Usando kwargs correctos para el Facade)
+        # --- PASO 4: GUARDAR LOCAL ---
         result = self.db.set_trigger(
-            cmd=cmd,
+            cmd=new_title.lower(),
             file=filename,
             ftype=ftype,
             dur=data.get("dur", 0),
             sc=data.get("scale", 1.0),
             act=data.get("active", 1),
-            cost=data.get("cost", 0),
+            cost=cost,
             vol=data.get("volume", 100),
             pos_x=data.get("pos_x", 0),
-            pos_y=data.get("pos_y", 0)
+            pos_y=data.get("pos_y", 0),
+            color=color,         
+            description=desc
         )
 
-        if isinstance(result, tuple):
-            return result
-        return result, "Guardado correctamente" if result else "Error al guardar en DB"
+        # --- PASO 5: SINCRONIZAR CON KICK ---
+        kick_msg = ""
+        if sync_kick:
+            # Pasamos old_title Y new_title
+            success_kick = self.sync_reward_to_kick(old_title, new_title, cost, color, desc, is_active)
+            if success_kick:
+                kick_msg = " y sincronizada con Kick"
+            else:
+                kick_msg = " (Local OK, error en Kick)"
+
+        if isinstance(result, tuple): return result
+        return result, f"Recompensa configurada{kick_msg}"
+
+    def delete_trigger_data(self, filename: str, reward_title: str):
+        self.db.delete_triggers_by_filename(filename)
+        if reward_title:
+            self.delete_reward_from_kick(reward_title)
 
     def clear_all_data(self) -> bool:
-        """Elimina TODOS los triggers configurados."""
-        result = self.db.clear_all_triggers()
-        if isinstance(result, tuple):
-            return result[0]
-        return result
+        return self.db.clear_all_triggers()
 
-    # =========================================================================
-    # REGIÓN 3: PERSISTENCIA CSV (IMPORTAR / EXPORTAR)
-    # =========================================================================
+    def preview_media(self, filename: str, ftype: str, config: Dict):
+        file_url = f"http://127.0.0.1:8081/media/{quote(filename)}"
+        try:
+            duration = int(float(config.get("dur", 0) or 0))
+            scale = float(config.get("scale", 1.0) or 1.0)
+            volume = int(float(config.get("volume", 100) or 100))
+            pos_x = int(config.get("pos_x", 0))
+            pos_y = int(config.get("pos_y", 0))
+
+            payload = {
+                "url": file_url,
+                "type": ftype,
+                "duration": duration * 1000,
+                "scale": scale,
+                "volume": volume,
+                "pos_x": pos_x,
+                "pos_y": pos_y,
+                "random": self.db.get_bool("random_pos"), # Leemos la config real
+                "user": "Streamer (Prueba)",
+                "reward_name": config.get("cmd", "Test"),
+                "input_text": ""
+            }
+            self.server.send_event("play_media", payload)
+        except Exception as e: 
+            print(f"Error Preview: {e}")
+
     def export_csv(self, path: str) -> bool:
-        headers = ["Comando", "Archivo", "Tipo", "Duracion", "Escala", "Activo", "Costo", "Volumen"]
+        headers = ["Recompensa", "Archivo", "Tipo", "Duracion", "Escala", "Activo", "Costo", "Volumen"]
         data_rows = []
-        
         triggers = self.db.get_all_triggers()
         for filename, cfg in triggers.items():
             ext = os.path.splitext(filename)[1].lower()
-            if ext in self.VIDEO_EXTS: ftype = "video"
-            elif ext in self.AUDIO_EXTS: ftype = "audio"
-            else: ftype = cfg.get("type", "audio")
-
+            ftype = "video" if ext in self.VIDEO_EXTS else "audio"
             data_rows.append([
                 cfg.get("cmd", ""), filename, ftype,
                 cfg.get("dur", 0), cfg.get("scale", 1.0),
                 cfg.get("active", 1), cfg.get("cost", 0),
                 cfg.get("volume", 100)
             ])
-            
         return DataManager.export_csv(path, headers, data_rows)
 
-    # --- NUEVA LÓGICA DE IMPORTAR ---
     def import_csv(self, path: str) -> Tuple[int, int, List[str]]:
-        # 1. Definimos qué columnas SON OBLIGATORIAS para considerar este CSV válido
-        required = ["comando", "archivo"]       
-        # 2. Usamos el DataManager
+        required = ["recompensa", "archivo"]       
         rows, error_msg = DataManager.import_csv(path, required)       
-        if rows is None:
-            return 0, 0, [error_msg]
-        # 3. Procesamos los datos ya validados
-        count_ok = 0
-        count_fail = 0
+        if rows is None: return 0, 0, [error_msg]
+        
+        count_ok, count_fail = 0, 0
         missing_files = []
         media_folder = self.get_media_folder()
 
         for row in rows:
             try:
-                cmd = row.get("comando") or row.get("command")
+                cmd = row.get("recompensa") or row.get("command")
                 filename = row.get("archivo") or row.get("file")
-                
                 if not cmd or not filename:
                     count_fail += 1; continue
 
-                try:
-                    dur = int(float(row.get("duracion", 0)))
-                    scale = float(row.get("escala", 1.0))
-                    active = int(row.get("activo", 1))
-                    cost = int(row.get("costo", 0))
-                    vol = int(row.get("volumen", 100))
-                except ValueError:
-                    dur, scale, active, cost, vol = 0, 1.0, 1, 0, 100
+                dur = int(float(row.get("duracion", 0)))
+                cost = int(float(row.get("costo", 0)))
 
-                ext = os.path.splitext(filename)[1].lower()
-                real_type = "video" if ext in self.VIDEO_EXTS else "audio"
+                self.db.set_trigger(cmd.lower(), filename, "audio", dur, 1.0, 1, cost, 100, 0, 0)
+                # Sincronizamos con defaults
+                self.sync_reward_to_kick(cmd, cost, "#53fc18", "Importado", True)
 
-                self.db.set_trigger(cmd, filename, real_type, dur, scale, active, cost, vol)
-
-                if media_folder:
-                    if not os.path.exists(os.path.join(media_folder, filename)):
-                        missing_files.append(filename)
+                if media_folder and not os.path.exists(os.path.join(media_folder, filename)):
+                    missing_files.append(filename)
                 
                 count_ok += 1
-            except Exception:
-                count_fail += 1
+            except: count_fail += 1
 
         return count_ok, count_fail, missing_files
-
-    # =========================================================================
-    # REGIÓN 4: PREVISUALIZACIÓN (TEST)
-    # =========================================================================
-    def preview_media(self, filename: str, ftype: str, config: Dict):
-        """
-        Envía un evento inmediato al Overlay Server para probar la alerta.
-        """
-        file_url = f"http://127.0.0.1:8081/media/{quote(filename)}"
-        
-        # --- CORRECCIÓN: Forzar conversión segura a tipos numéricos ---
-        try:
-            duration_val = int(float(config.get("dur", 0) or 0))
-        except ValueError:
-            duration_val = 0
-            
-        try:
-            scale_val = float(config.get("scale", 1.0) or 1.0)
-        except ValueError:
-            scale_val = 1.0
-
-        try:
-            vol_val = int(float(config.get("volume", 100) or 100))
-        except ValueError:
-            vol_val = 100
-        # -------------------------------------------------------------
-
-        payload = {
-            "url": file_url,
-            "type": ftype,
-            "duration": duration_val,
-            "scale": scale_val,
-            "volume": vol_val,
-            "random": self.db.get_bool("random_pos"),
-            "pos_x": int(config.get("pos_x", 0)),
-            "pos_y": int(config.get("pos_y", 0))
-        }
-        
-        self.server.send_event("play_media", payload)

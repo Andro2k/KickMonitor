@@ -1,4 +1,4 @@
-# frontend/pages/overlay_page.py
+# frontend/pages/trigger_page.py
 
 from typing import List, Dict
 from PyQt6.QtWidgets import (
@@ -6,20 +6,57 @@ from PyQt6.QtWidgets import (
     QLineEdit, QApplication, QFileDialog, 
     QCheckBox, QFrame, QScrollArea, QSizePolicy
 )
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import QThread, Qt, QTimer, pyqtSignal
 
+# --- MÓDULOS INTERNOS ---
+from backend.services.triggers_service import TriggerService
 from frontend.alerts.info_modal import InfoModal
 from frontend.components.cards import Card
 from frontend.alerts.modal_alert import ModalConfirm
 from frontend.alerts.toast_alert import ToastNotification
 from frontend.components.flow_layout import FlowLayout 
 from frontend.components.trigger_card import MediaCard
-from frontend.factories import create_help_btn, create_nav_btn, create_page_header, create_styled_input, create_icon_btn
+from frontend.factories import (
+    create_help_btn, create_nav_btn, create_page_header, 
+    create_styled_input, create_icon_btn
+)
 from frontend.help_content import load_help_content
 from frontend.utils import get_icon
 from frontend.theme import LAYOUT, STYLES, THEME_DARK, get_switch_style
-from backend.services.triggers_service import TriggerService
 
+
+# =========================================================================
+# WORKER: GUARDADO ASÍNCRONO (Para evitar Lag UI)
+# =========================================================================
+class SaveTriggerWorker(QThread):
+    """
+    Hilo secundario que maneja la conexión con la API de Kick y la DB
+    para no congelar la interfaz gráfica.
+    """
+    finished_signal = pyqtSignal(bool, str, str) # success, message, filename
+
+    def __init__(self, service, filename, ftype, data, sync_kick):
+        super().__init__()
+        self.service = service
+        self.filename = filename
+        self.ftype = ftype
+        self.data = data
+        self.sync_kick = sync_kick
+
+    def run(self):
+        try:
+            # Llamada pesada (Red + DB)
+            success, msg = self.service.save_trigger(
+                self.filename, self.ftype, self.data, sync_kick=self.sync_kick
+            )
+            self.finished_signal.emit(success, msg, self.filename)
+        except Exception as e:
+            self.finished_signal.emit(False, str(e), self.filename)
+
+
+# =========================================================================
+# CLASE PRINCIPAL: PÁGINA DE TRIGGERS
+# =========================================================================
 class TriggerPage(QWidget):
     def __init__(self, server_worker, db_handler, parent=None):
         super().__init__(parent)
@@ -29,10 +66,14 @@ class TriggerPage(QWidget):
         self.full_media_list: List[Dict] = [] 
         self.search_text: str = ""
         self.filter_mode: str = "Todos"
-
+        
+        # Lista para mantener referencias a workers activos y que no los mate el GC
+        self._active_workers = []
+        
         # --- Inicialización ---
         self.init_ui()
-        # Carga diferida para no bloquear el inicio de la app
+        
+        # Carga diferida para dar sensación de fluidez al inicio
         QTimer.singleShot(100, self.load_data)
 
     # =========================================================================
@@ -65,7 +106,6 @@ class TriggerPage(QWidget):
         main_layout.addWidget(self.scroll)
 
     def _setup_header(self):
-        """Encabezado con título y botones de importación/exportación."""
         h_layout = QHBoxLayout()
         h_layout.addWidget(create_page_header("Control de Triggers", "Configura tus alertas visuales y sonoras."))
         h_layout.addSpacing(10)
@@ -75,28 +115,15 @@ class TriggerPage(QWidget):
         h_layout.addWidget(create_nav_btn("Exportar", "download.svg", self._handle_export))
         self.content_layout.addLayout(h_layout)
 
-    def _show_help_modal(self):
-        # Llamamos al modal pasando el texto desde el diccionario
-        content = load_help_content("overlay_page")
-        InfoModal(self, "Guía de Overlays", content).exec()
-
     def _setup_config_section(self):
-        """
-        Sección superior con tarjetas de URL, Carpeta y Ajustes Globales.
-        """
         container = QHBoxLayout()
         container.setSpacing(LAYOUT["spacing"])
         
         layout_left = QVBoxLayout()
         layout_left.setSpacing(LAYOUT["spacing"])
 
-        # 1. Tarjeta URL del Servidor
         layout_left.addWidget(self._create_url_card())
-        
-        # 2. Tarjeta Ruta de Archivos
         layout_left.addWidget(self._create_path_card())
-
-        # 3. Tarjeta de Opciones (Derecha)
         card_options = self._create_options_card()
 
         container.addLayout(layout_left, stretch=1)
@@ -129,7 +156,6 @@ class TriggerPage(QWidget):
 
         current_path = self.service.get_media_folder() or "Sin carpeta seleccionada"
         self.lbl_path = QLabel(current_path)
-        # Reutilizamos estilo de input pero adaptado a Label
         lbl_style = STYLES["input_readonly"].replace("QLineEdit", "QLabel") + "border:none; padding:0;"
         self.lbl_path.setStyleSheet(lbl_style)
         self.lbl_path.setWordWrap(False)
@@ -145,7 +171,7 @@ class TriggerPage(QWidget):
     def _create_options_card(self) -> Card:
         card = Card(self)
         card.setFixedWidth(180)
-        card.setFixedHeight((48 * 2) + LAYOUT["spacing"]) # Altura basada en las dos cards de la izquierda
+        card.setFixedHeight((48 * 2) + LAYOUT["spacing"]) 
         
         title = QLabel("Ajustes Globales")
         title.setStyleSheet(f"color: {THEME_DARK['Gray_N2']}; font-weight: bold; font-size: 12px;")
@@ -171,7 +197,6 @@ class TriggerPage(QWidget):
         return card
 
     def _setup_toolbar(self):
-        """Barra de búsqueda y filtros."""
         bar = QFrame()
         bar.setFixedHeight(60)
         bar.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -181,15 +206,12 @@ class TriggerPage(QWidget):
         layout.setContentsMargins(*LAYOUT["margins"])
         layout.setSpacing(10)
 
-        # Icono búsqueda
         icon_lbl = QLabel()
         icon_lbl.setPixmap(get_icon("search.svg").pixmap(16, 16))
         icon_lbl.setStyleSheet("border:none; opacity:0.5;")
         
-        # Input búsqueda
         self.inp_search = create_styled_input("Buscar archivo.", is_cmd=False, callback=self._handle_search_changed)
 
-        # Filtro ComboBox
         lbl_filter = QLabel("Filtrar:")
         lbl_filter.setStyleSheet("border:none; color:#888;")
         
@@ -206,7 +228,6 @@ class TriggerPage(QWidget):
         self.content_layout.addWidget(bar)
 
     def _setup_media_grid(self):
-        """Contenedor para las MediaCards usando FlowLayout."""
         self.media_container = QWidget()
         self.media_container.setStyleSheet("background: transparent;")
         self.media_layout = FlowLayout(self.media_container, margin=0, spacing=10)
@@ -232,13 +253,12 @@ class TriggerPage(QWidget):
         search_term = self.search_text.lower()
 
         for item in self.full_media_list:
-            # Extracción de datos
             fname = item["filename"].lower()
             cmd = item["config"].get("cmd", "").lower()
             ftype = item["type"]
             is_active = bool(item["config"].get("active", 0))
 
-            # Lógica de Filtrado
+            # Filtros
             if search_term and (search_term not in fname) and (search_term not in cmd):
                 continue
             
@@ -247,12 +267,10 @@ class TriggerPage(QWidget):
             if self.filter_mode == "Video" and ftype != "video": continue
             if self.filter_mode == "Audio" and ftype != "audio": continue
 
-            # Creación de Card
             card = MediaCard(item["filename"], item["type"], item["config"], self)
             self.media_layout.addWidget(card)
             count += 1
 
-        # Estado vacío
         if count == 0:
             self._show_empty_state()
 
@@ -263,16 +281,77 @@ class TriggerPage(QWidget):
         self.media_layout.addWidget(lbl)
 
     def check_filter_refresh(self):
-        """
-        Si hay un filtro activo (que no sea 'Todos' ni tipos de archivo)
-        """
-        # Si estamos filtrando por estado (Activos/Desactivados), recargamos la grilla
         if self.filter_mode in ["Activos", "Desactivados"]:
             self._render_grid()
 
     # =========================================================================
-    # SECCIÓN 3: MANEJADORES DE EVENTOS (HANDLERS)
+    # SECCIÓN 3: API PÚBLICA & ASYNC (CORE LOGIC)
     # =========================================================================
+    def save_item(self, filename: str, ftype: str, data: dict, silent: bool = False, sync_kick: bool = True):
+        """
+        Guarda el item usando un hilo secundario para evitar el LAG de la UI.
+        """
+        worker = SaveTriggerWorker(self.service, filename, ftype, data, sync_kick)
+        
+        # Conectar señales
+        worker.finished_signal.connect(lambda s, m, f: self._on_save_finished(s, m, f, silent))
+        worker.finished.connect(lambda: self._cleanup_worker(worker))
+        
+        self._active_workers.append(worker)
+        worker.start()
+
+    def _on_save_finished(self, success, msg, filename, silent):
+        """
+        Callback cuando termina de guardar en la DB/Kick.
+        Actualiza SOLO el estado visual sin recargar toda la grilla.
+        """
+        if not silent:
+            type_msg = "status_success" if success else "status_error"
+            title = "Guardado" if success else "Error"
+            ToastNotification(self, title, msg, type_msg).show_toast()
+        
+        # IMPORTANTE: Refresco 'Optimista' visual
+        self._refresh_all_cards_ui()
+
+    def _refresh_all_cards_ui(self):
+        """
+        Actualiza el estado visual de las tarjetas existentes leyendo la DB.
+        Es rápido y no produce parpadeos.
+        """
+        fresh_data = self.service.db.get_all_triggers()
+        
+        # 1. Actualizar lista en memoria
+        for item in self.full_media_list:
+            fname = item["filename"]
+            if fname in fresh_data:
+                item["config"] = fresh_data[fname]
+
+        # 2. Notificar a los widgets (tarjetas) existentes
+        for i in range(self.media_layout.count()):
+            widget = self.media_layout.itemAt(i).widget()
+            if widget and hasattr(widget, 'filename'):
+                # Si el widget existe en los datos frescos, actualizamos su UI
+                if widget.filename in fresh_data:
+                    widget.refresh_state_from_config(fresh_data[widget.filename])
+
+    def _cleanup_worker(self, worker):
+        """Limpia la memoria del hilo terminado."""
+        if worker in self._active_workers:
+            self._active_workers.remove(worker)
+        worker.deleteLater()
+
+    def preview_item(self, filename: str, ftype: str, config: dict):
+        if not self.chk_on.isChecked():
+            return ToastNotification(self, "Overlay Apagado", "Activa el switch superior para probar.", "status_warning").show_toast()
+        self.service.preview_media(filename, ftype, config)
+
+    # =========================================================================
+    # SECCIÓN 4: MANEJADORES DE EVENTOS UI
+    # =========================================================================
+    def _show_help_modal(self):
+        content = load_help_content("overlay_page")
+        InfoModal(self, "Guía de Overlays", content).exec()
+
     def _handle_toggle_global(self, checked: bool):
         self.service.set_overlay_active(checked)
         status = "Activado" if checked else "Desactivado"
@@ -331,80 +410,3 @@ class TriggerPage(QWidget):
             ModalConfirm(self, "Archivos Faltantes", f"La configuración referencia archivos que no tienes:\n{msg_missing}").exec()
         
         ToastNotification(self, "Importación Finalizada", f"Éxito: {ok_count} | Errores: {fail_count}", "status_success").show_toast()
-
-    def handle_command_update(self, filename: str, new_cmd: str):
-        """
-        Maneja la lógica de negocio para comandos:
-        1. Si está vacío -> Desactiva la carta actual.
-        2. Si el comando ya existe en otra carta -> Desactiva la OTRA carta (para evitar duplicados).
-        """
-        new_cmd = new_cmd.strip()
-        
-        # Referencia al item actual en la lista local
-        current_item = next((x for x in self.full_media_list if x["filename"] == filename), None)
-        if not current_item: return
-
-        # Regla 1: Si no hay comando, desactivar y guardar
-        if not new_cmd:
-            current_item["config"]["cmd"] = ""
-            current_item["config"]["active"] = 0
-            self.save_item(filename, current_item["type"], current_item["config"], silent=True)
-            self._refresh_all_cards_ui() # Refrescar visualmente
-            return
-
-        # Regla 2: Buscar duplicados y desactivar el anterior
-        found_duplicate = False
-        for item in self.full_media_list:
-            # Si es otro archivo Y tiene el mismo comando
-            if item["filename"] != filename and item["config"].get("cmd") == new_cmd:
-                item["config"]["active"] = 0 # Desactivamos el "viejo" dueño del comando
-                # Guardamos el cambio en la base de datos para el item desactivado
-                self.service.save_trigger(item["filename"], item["type"], item["config"])
-                found_duplicate = True
-
-        # Actualizar el item actual
-        current_item["config"]["cmd"] = new_cmd
-        self.save_item(filename, current_item["type"], current_item["config"], silent=True)
-
-        # Si hubo cambios en otros items (duplicados) o el propio, refrescamos la UI
-        if found_duplicate or not current_item["config"].get("active"):
-            self._refresh_all_cards_ui()
-            
-            if found_duplicate:
-                ToastNotification(self, "Comando Reasignado", f"El comando '{new_cmd}' fue quitado de otra carta.", "info").show_toast()
-
-    def _refresh_all_cards_ui(self):
-        """
-        Itera sobre los widgets existentes y actualiza su estado visual
-        """
-        for i in range(self.media_layout.count()):
-            widget = self.media_layout.itemAt(i).widget()
-            if hasattr(widget, 'refresh_state_from_config'):
-                # Buscamos la config actualizada en la lista
-                item_data = next((x for x in self.full_media_list if x["filename"] == widget.filename), None)
-                if item_data:
-                    widget.refresh_state_from_config(item_data["config"])
-    # =========================================================================
-    # SECCIÓN 4: API PÚBLICA (USADA POR HIJOS/EXTERNOS)
-    # =========================================================================
-    def save_item(self, filename: str, ftype: str, data: dict, silent: bool = False):
-        """Callback llamado por MediaCard para guardar configuraciones individuales."""
-        success, msg = self.service.save_trigger(filename, ftype, data)
-        
-        if not silent:
-            type_msg = "status_success" if success else "status_error"
-            title = "Guardado" if success else "Error"
-            ToastNotification(self, title, msg, type_msg).show_toast()
-        
-        # Actualizar memoria local para evitar recarga completa de DB
-        for item in self.full_media_list:
-            if item["filename"] == filename:
-                item["config"] = data 
-                break
-
-    def preview_item(self, filename: str, ftype: str, config: dict):
-        """Callback llamado por MediaCard para previsualizar alertas."""
-        if not self.chk_on.isChecked():
-            return ToastNotification(self, "Overlay Apagado", "Activa el switch superior para probar.", "status_warning").show_toast()
-        
-        self.service.preview_media(filename, ftype, config)

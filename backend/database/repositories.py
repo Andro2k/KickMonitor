@@ -140,52 +140,62 @@ class TriggersRepository:
     def __init__(self, conn):
         self.conn = conn
 
-    def save_trigger(self, command, filename, ftype, duration=0, scale=1.0, is_active=1, cost=0, volume=100, pos_x=0, pos_y=0):
+    # 1. MODIFICAMOS SAVE_TRIGGER PARA INCLUIR COLOR Y DESCRIPCION
+    def save_trigger(self, command, filename, ftype, duration=0, scale=1.0, is_active=1, 
+                     cost=0, volume=100, pos_x=0, pos_y=0, 
+                     color="#53fc18", description="Trigger KickMonitor"): # <--- Nuevos argumentos
         cmd = command.lower().strip()
-        if not cmd.startswith("!"): cmd = "!" + cmd
-        
-        # Actualizar Query
+
         query = """
             INSERT OR REPLACE INTO triggers 
-            (command, filename, type, duration, scale, is_active, cost, volume, pos_x, pos_y) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (command, filename, type, duration, scale, is_active, cost, volume, pos_x, pos_y, color, description) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
-        return self.conn.execute_query(query, (cmd, filename, ftype, duration, scale, 1 if is_active else 0, cost, volume, pos_x, pos_y))
+        return self.conn.execute_query(query, (
+            cmd, filename, ftype, duration, scale, 1 if is_active else 0, 
+            cost, volume, pos_x, pos_y, color, description
+        ))
 
     def get_trigger(self, command: str) -> Optional[Tuple]:
         query = "SELECT filename, type, duration, scale, is_active, cost, volume, pos_x, pos_y FROM triggers WHERE command=?"
         return self.conn.fetch_one(query, (command.lower(),))
 
     def get_all(self) -> Dict:
-        # 1. AGREGAMOS pos_x y pos_y AL SELECT
-        query = "SELECT filename, command, duration, scale, is_active, cost, volume, type, pos_x, pos_y FROM triggers"
+        # Aseguramos traer todas las columnas, incluidas color y descripcion
+        query = "SELECT filename, command, duration, scale, is_active, cost, volume, type, pos_x, pos_y, color, description FROM triggers"
         rows = self.conn.fetch_all(query)
         data = {}
         
         for r in rows:
-            # Manejo de nulos por seguridad
+            # Manejo seguro de valores nulos
             vol = r['volume'] if r['volume'] is not None else 100
             ftype = r['type'] if 'type' in r.keys() and r['type'] else "audio"
-            
-            # Recuperamos coordenadas (o 0 si es nulo)
             px = r['pos_x'] if 'pos_x' in r.keys() and r['pos_x'] is not None else 0
             py = r['pos_y'] if 'pos_y' in r.keys() and r['pos_y'] is not None else 0
+
+            act = r['is_active']
+            if act is None: act = 1
+            
+            # Nuevos campos
+            col = r['color'] if 'color' in r.keys() and r['color'] else "#53fc18"
+            desc = r['description'] if 'description' in r.keys() and r['description'] else "Trigger KickMonitor"
 
             data[r['filename']] = {
                 "cmd": r['command'], 
                 "dur": r['duration'] or 0, 
                 "scale": r['scale'] or 1.0, 
-                "active": r['is_active'] or 1, 
+                "active": act,
                 "cost": r['cost'] or 0, 
                 "volume": vol,
                 "type": ftype,
-                # 2. MAPEAMOS LOS VALORES AQUÍ
                 "pos_x": px,
-                "pos_y": py
+                "pos_y": py,
+                "color": col,
+                "description": desc
             }
         return data
 
-    def delete_by_filename(self, filename: str): 
+    def delete_triggers_by_filename(self, filename: str): 
         return self.conn.execute_query("DELETE FROM triggers WHERE filename=?", (filename,))
 
     def clear_all(self): 

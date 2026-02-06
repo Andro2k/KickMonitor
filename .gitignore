@@ -21,3 +21,6 @@ build.py
 backend/config/
 *.csv
 *.log
+
+# test/api.py
+test/
