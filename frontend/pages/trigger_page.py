@@ -31,9 +31,8 @@ from frontend.theme import LAYOUT, STYLES, THEME_DARK, get_switch_style
 class SaveTriggerWorker(QThread):
     """
     Hilo secundario que maneja la conexión con la API de Kick y la DB
-    para no congelar la interfaz gráfica.
     """
-    finished_signal = pyqtSignal(bool, str, str) # success, message, filename
+    finished_signal = pyqtSignal(bool, str, str)
 
     def __init__(self, service, filename, ftype, data, sync_kick):
         super().__init__()
@@ -45,7 +44,6 @@ class SaveTriggerWorker(QThread):
 
     def run(self):
         try:
-            # Llamada pesada (Red + DB)
             success, msg = self.service.save_trigger(
                 self.filename, self.ftype, self.data, sync_kick=self.sync_kick
             )
@@ -56,16 +54,14 @@ class SaveTriggerWorker(QThread):
 class SyncKickWorker(QThread):
     """
     Hilo que descarga el estado de las recompensas de Kick
-    y actualiza la base de datos local si hay diferencias.
     """
-    finished = pyqtSignal(int)  # Emite la cantidad de cambios realizados
+    finished = pyqtSignal(int)
 
     def __init__(self, service):
         super().__init__()
         self.service = service
 
     def run(self):
-        # Llama a la función que creamos en el backend
         changes = self.service.sync_kick_states()
         self.finished.emit(changes)
 
@@ -76,7 +72,6 @@ class TriggerPage(QWidget):
     def __init__(self, server_worker, db_handler, parent=None):
         super().__init__(parent)
         
-        # --- Dependencias y Estado ---
         self.service = TriggerService(db_handler, server_worker)
         self.full_media_list: List[Dict] = [] 
         self.search_text: str = ""
@@ -84,17 +79,12 @@ class TriggerPage(QWidget):
         
         self._active_workers = []
         
-        # --- 1. Inicializar Worker de Sync (NUEVO) ---
         self.sync_worker = SyncKickWorker(self.service)
         self.sync_worker.finished.connect(self._on_sync_finished)
 
-        # --- Inicialización UI ---
         self.init_ui()
         
-        # Carga inicial rápida (visual)
         QTimer.singleShot(100, self.load_data)
-        
-        # --- 2. Lanzar Sincronización con Kick (NUEVO) ---
         QTimer.singleShot(1000, self.sync_worker.start)
 
     # =========================================================================
@@ -114,14 +104,16 @@ class TriggerPage(QWidget):
         # Contenedor principal de contenido
         content_widget = QWidget()
         self.content_layout = QVBoxLayout(content_widget)
-        self.content_layout.setContentsMargins(*LAYOUT["margins"])
-        self.content_layout.setSpacing(LAYOUT["spacing"])
+        self.content_layout.setContentsMargins(*LAYOUT["level_03"])
+        self.content_layout.setSpacing(LAYOUT["space_01"])
 
         # Construcción de secciones
         self._setup_header()
         self._setup_config_section()
         self._setup_toolbar()
         self._setup_media_grid()
+
+        self.content_layout.addStretch() 
 
         self.scroll.setWidget(content_widget)
         main_layout.addWidget(self.scroll)
@@ -136,30 +128,40 @@ class TriggerPage(QWidget):
         h_layout.addWidget(create_nav_btn("Exportar", "download.svg", self._handle_export))
         self.content_layout.addLayout(h_layout)
 
+    # =========================================================================
+    # SECCIÓN 2: MODIFICACIÓN DE LA CONFIGURACIÓN (UI)
+    # =========================================================================
     def _setup_config_section(self):
-        container = QHBoxLayout()
-        container.setSpacing(LAYOUT["spacing"])
+        """
+        MODIFICADO: Usa FlowLayout para que las tarjetas de configuración
+        """
+        config_container = QWidget()
+        config_container.setStyleSheet("background: transparent;")
         
-        layout_left = QVBoxLayout()
-        layout_left.setSpacing(LAYOUT["spacing"])
+        self.config_layout = FlowLayout(config_container, margin=0, spacing=10)
 
-        layout_left.addWidget(self._create_url_card())
-        layout_left.addWidget(self._create_path_card())
+        # Creamos las tarjetas
+        card_url = self._create_url_card()
+        card_path = self._create_path_card()
         card_options = self._create_options_card()
 
-        container.addLayout(layout_left, stretch=1)
-        container.addWidget(card_options)
-        self.content_layout.addLayout(container)
+        # Añadimos al FlowLayout
+        self.config_layout.addWidget(card_url)
+        self.config_layout.addWidget(card_path)
+        self.config_layout.addWidget(card_options)
+
+        # Añadimos el contenedor a la layout principal de la página
+        self.content_layout.addWidget(config_container)
 
     def _create_url_card(self) -> Card:
         card = Card(self)
-        card.setFixedHeight(48)
+        card.setMinimumWidth(300) 
+        card.setFixedHeight(60)
         layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 0, 0, 0) 
         
         self.txt_url = QLineEdit(self.service.get_local_ip_url())
         self.txt_url.setReadOnly(True)
-        self.txt_url.setStyleSheet(STYLES["input_readonly"])
         self.txt_url.setEchoMode(QLineEdit.EchoMode.Password)
         
         layout.addWidget(self.txt_url, stretch=1)
@@ -171,13 +173,14 @@ class TriggerPage(QWidget):
 
     def _create_path_card(self) -> Card:
         card = Card(self)
-        card.setFixedHeight(48)
+        card.setMinimumWidth(300)
+        card.setFixedHeight(60)
         layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 0, 0, 0) 
 
         current_path = self.service.get_media_folder() or "Sin carpeta seleccionada"
         self.lbl_path = QLabel(current_path)
-        lbl_style = STYLES["input_readonly"].replace("QLineEdit", "QLabel") + "border:none; padding:0;"
+        lbl_style = STYLES["input_cmd"]
         self.lbl_path.setStyleSheet(lbl_style)
         self.lbl_path.setWordWrap(False)
 
@@ -190,29 +193,38 @@ class TriggerPage(QWidget):
 
     def _create_options_card(self) -> Card:
         card = Card(self)
-        card.setFixedWidth(180)
-        card.setFixedHeight((48 * 2) + LAYOUT["spacing"]) 
+        card.setMinimumWidth(380) 
+        card.setFixedHeight(60)
+
+        h_layout = QHBoxLayout()
+        h_layout.setContentsMargins(0, 0, 0, 0)
+        h_layout.setSpacing(5)
         
-        title = QLabel("Ajustes Globales")
+        # Título
+        title = QLabel("Globales:")
         title.setStyleSheet(f"color: {THEME_DARK['Gray_N2']}; font-weight: bold; font-size: 12px;")
         
-        self.chk_rand = QCheckBox("Posición Aleatoria")
+        # Checkbox 1: Posición Aleatoria
+        self.chk_rand = QCheckBox("Pos. Aleatoria")
         self.chk_rand.setCursor(Qt.CursorShape.PointingHandCursor)
         self.chk_rand.setStyleSheet(get_switch_style())
         self.chk_rand.setChecked(self.service.db.get_bool("random_pos"))
         self.chk_rand.toggled.connect(self.service.set_random_pos)
 
+        # Checkbox 2: Overlay Activo
         self.chk_on = QCheckBox("Overlay Activo")
         self.chk_on.setCursor(Qt.CursorShape.PointingHandCursor)
         self.chk_on.setStyleSheet(get_switch_style())
         self.chk_on.setChecked(self.service.is_overlay_active())
         self.chk_on.toggled.connect(self._handle_toggle_global)
 
-        card.layout.addWidget(title)
-        card.layout.addWidget(self.chk_rand)
-        card.layout.addSpacing(5)
-        card.layout.addWidget(self.chk_on)
-        card.layout.addStretch()
+        # Añadimos los elementos en orden horizontal
+        h_layout.addWidget(title)
+        h_layout.addWidget(self.chk_rand)
+        h_layout.addWidget(self.chk_on)
+        h_layout.addStretch()
+
+        card.layout.addLayout(h_layout)
         
         return card
 
@@ -223,8 +235,7 @@ class TriggerPage(QWidget):
         bar.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 10px; border: 1px solid {THEME_DARK['Black_N1']};")
 
         layout = QHBoxLayout(bar)
-        layout.setContentsMargins(*LAYOUT["margins"])
-        layout.setSpacing(10)
+        layout.setSpacing(LAYOUT["space_01"])
 
         icon_lbl = QLabel()
         icon_lbl.setPixmap(get_icon("search.svg").pixmap(16, 16))
@@ -295,10 +306,39 @@ class TriggerPage(QWidget):
             self._show_empty_state()
 
     def _show_empty_state(self):
-        lbl = QLabel("No se encontraron archivos multimedia.")
-        lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lbl.setStyleSheet("color: #666; margin-top: 20px;")
-        self.media_layout.addWidget(lbl)
+        # Contenedor para el estado vacío
+        empty_widget = QWidget()
+        # Le damos un ancho mínimo para que intente centrarse visualmente en el FlowLayout
+        empty_widget.setMinimumWidth(400) 
+        
+        layout = QVBoxLayout(empty_widget)
+        layout.setSpacing(20)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # 1. Imagen SVG
+        lbl_img = QLabel()
+        lbl_img.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_img.setStyleSheet("background: transparent; border: none;")
+        
+        # Usamos get_icon para cargar el SVG y lo escalamos
+        pixmap = get_icon("UI_media.svg").pixmap(200, 200)
+        lbl_img.setPixmap(pixmap)
+        
+        # 2. Texto Principal
+        lbl_msg = QLabel("No hay triggers configurados")
+        lbl_msg.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_msg.setStyleSheet(f"color: {THEME_DARK['Gray_N2']}; font-size: 16px; font-weight: bold;")
+        
+        # 3. Subtítulo / Instrucción
+        lbl_sub = QLabel("Importa archivos o coloca medios en la carpeta seleccionada.")
+        lbl_sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_sub.setStyleSheet("color: #666; font-size: 13px;")
+
+        layout.addWidget(lbl_img)
+        layout.addWidget(lbl_msg)
+        layout.addWidget(lbl_sub)
+
+        self.media_layout.addWidget(empty_widget)
 
     def check_filter_refresh(self):
         if self.filter_mode in ["Activos", "Desactivados"]:
@@ -312,8 +352,7 @@ class TriggerPage(QWidget):
         Guarda el item usando un hilo secundario para evitar el LAG de la UI.
         """
         worker = SaveTriggerWorker(self.service, filename, ftype, data, sync_kick)
-        
-        # Conectar señales
+
         worker.finished_signal.connect(lambda s, m, f: self._on_save_finished(s, m, f, silent))
         worker.finished.connect(lambda: self._cleanup_worker(worker))
         
@@ -323,20 +362,17 @@ class TriggerPage(QWidget):
     def _on_save_finished(self, success, msg, filename, silent):
         """
         Callback cuando termina de guardar en la DB/Kick.
-        Actualiza SOLO el estado visual sin recargar toda la grilla.
         """
         if not silent:
             type_msg = "status_success" if success else "status_error"
             title = "Guardado" if success else "Error"
             ToastNotification(self, title, msg, type_msg).show_toast()
         
-        # IMPORTANTE: Refresco 'Optimista' visual
         self._refresh_all_cards_ui()
 
     def _refresh_all_cards_ui(self):
         """
         Actualiza el estado visual de las tarjetas existentes leyendo la DB.
-        Es rápido y no produce parpadeos.
         """
         fresh_data = self.service.db.get_all_triggers()
         
@@ -350,7 +386,6 @@ class TriggerPage(QWidget):
         for i in range(self.media_layout.count()):
             widget = self.media_layout.itemAt(i).widget()
             if widget and hasattr(widget, 'filename'):
-                # Si el widget existe en los datos frescos, actualizamos su UI
                 if widget.filename in fresh_data:
                     widget.refresh_state_from_config(fresh_data[widget.filename])
 
@@ -368,14 +403,10 @@ class TriggerPage(QWidget):
     def _on_sync_finished(self, changes_count):
         """
         Se llama cuando termina la sincronización con Kick.
-        Si hubo cambios (ej: activaste algo en la web), recarga la UI.
         """
         if changes_count > 0:
-            # print(f"[UI] Sincronización completada. Cambios detectados: {changes_count}")
-            # Recargamos los datos para que los botones se pongan verdes/rojos
             self.load_data()
-            
-            # Opcional: Avisar al usuario con un Toast discreto
+
             ToastNotification(
                 self, 
                 "Sincronizado", 

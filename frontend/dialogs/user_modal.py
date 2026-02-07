@@ -126,7 +126,7 @@ class UsernameInputDialog(BaseModal):
         ph_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         lbl_illustration = QLabel()
-        pix = get_icon("Illustration.svg").pixmap(200, 200)
+        pix = get_icon("UI_streamer.svg").pixmap(200, 200)
         if pix.isNull(): pix = get_icon("user.svg").pixmap(100, 100)
         
         lbl_illustration.setPixmap(pix)

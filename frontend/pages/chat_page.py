@@ -28,8 +28,8 @@ class ChatPage(QWidget):
         # CONTENEDOR PRINCIPAL CON MARGENES
         content = QWidget()
         l_content = QVBoxLayout(content)
-        l_content.setContentsMargins(*LAYOUT["margins"])
-        l_content.setSpacing(LAYOUT["spacing"])
+        l_content.setContentsMargins(*LAYOUT["level_03"])
+        l_content.setSpacing(LAYOUT["space_01"])
 
         # 1. HEADER
         self._setup_header(l_content)
@@ -81,8 +81,8 @@ class ChatPage(QWidget):
         frame.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
         
         l = QVBoxLayout(frame)
-        l.setContentsMargins(*LAYOUT["margins"])
-        l.setSpacing(LAYOUT["spacing"])
+        l.setContentsMargins(*LAYOUT["level_03"])
+        l.setSpacing(LAYOUT["space_01"])
 
         # Título
         h_head = QHBoxLayout()
@@ -115,8 +115,8 @@ class ChatPage(QWidget):
         frame.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
         
         l = QVBoxLayout(frame)
-        l.setContentsMargins(*LAYOUT["margins"])
-        l.setSpacing(LAYOUT["spacing"])
+        l.setContentsMargins(*LAYOUT["level_03"])
+        l.setSpacing(LAYOUT["space_01"])
 
         # Título
         l.addWidget(QLabel("Comportamiento", objectName="h3"))

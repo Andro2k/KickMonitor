@@ -117,8 +117,8 @@ class ToastNotification(QWidget):
 
     def _setup_ui(self):
         main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(*LAYOUT["margins"])
-        main_layout.setSpacing(LAYOUT["spacing"])
+        main_layout.setContentsMargins(*LAYOUT["level_03"])
+        main_layout.setSpacing(LAYOUT["space_01"])
 
         # 1. ICONO VISUAL (SVG + Círculo)
         icon_widget = ToastIcon(self.tipo, self)

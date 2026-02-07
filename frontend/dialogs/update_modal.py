@@ -22,8 +22,8 @@ class UpdateModal(BaseModal):
     def init_ui(self):
         # 2. Usar el layout del cuerpo provisto por BaseModal
         layout = self.body_layout
-        layout.setContentsMargins(*LAYOUT["margins"])
-        layout.setSpacing(LAYOUT["spacing"])
+        layout.setContentsMargins(*LAYOUT["level_03"])
+        layout.setSpacing(LAYOUT["space_01"])
 
         # 1. Título e Icono (Texto simple por ahora)
         lbl_title = QLabel("¡Nueva Actualización!")
@@ -49,7 +49,7 @@ class UpdateModal(BaseModal):
 
         # 4. Botones
         h_btns = QHBoxLayout()
-        h_btns.setSpacing(LAYOUT["spacing"])
+        h_btns.setSpacing(LAYOUT["space_01"])
 
         btn_later = QPushButton("Más tarde")
         btn_later.setCursor(Qt.CursorShape.PointingHandCursor)

@@ -50,7 +50,7 @@ class BaseAccordionCard(QFrame):
         self.header.mousePressEvent = self.toggle_expand
         
         h_layout = QHBoxLayout(self.header)
-        h_layout.setContentsMargins(*LAYOUT["margins"])
+        h_layout.setContentsMargins(*LAYOUT["level_03"])
         
         # Icono Estado
         self.status_indicator = QLabel("●")

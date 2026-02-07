@@ -27,7 +27,7 @@ class AlertsPage(QWidget):
         
         content_widget = QWidget()
         layout = QVBoxLayout(content_widget)
-        layout.setContentsMargins(*LAYOUT["margins"])
+        layout.setContentsMargins(*LAYOUT["level_03"])
         layout.setSpacing(20)
         
         # -----------------------------------------------------------------
@@ -38,7 +38,7 @@ class AlertsPage(QWidget):
         events_container = QWidget()
         events_container.setStyleSheet("background: transparent;")
         # Usamos FlowLayout para que las cards se acomoden solas
-        events_flow = FlowLayout(events_container, margin=0, spacing=(LAYOUT["spacing"]))
+        events_flow = FlowLayout(events_container, margin=0, spacing=(LAYOUT["space_01"]))
         # Tarjetas de Eventos
         events_flow.addWidget(AlertCard(self.service, "Nuevo Seguidor", "follow", "Mensaje al seguir.", "{user}, {count}"))
         events_flow.addWidget(AlertCard(self.service, "Suscripción", "subscription", "Mensaje al suscribirse.", "{user}, {months}"))
@@ -53,7 +53,7 @@ class AlertsPage(QWidget):
         timers_container = QWidget()
         timers_container.setStyleSheet("background: transparent;")
         # Otro FlowLayout independiente para esta sección
-        timers_flow = FlowLayout(timers_container, margin=0, spacing=(LAYOUT["spacing"]))
+        timers_flow = FlowLayout(timers_container, margin=0, spacing=(LAYOUT["space_01"]))
         # Tarjetas de Timers
         timers_flow.addWidget(TimerCard(self.service, "Redes Sociales", "redes", "Ej: Sígueme en Twitter."))
         timers_flow.addWidget(TimerCard(self.service, "Discord / Comunidad", "discord", "Ej: Únete al server."))

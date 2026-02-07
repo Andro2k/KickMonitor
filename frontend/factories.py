@@ -123,7 +123,7 @@ def create_card_header(title: str, icon_name: str = None) -> QWidget:
     if icon_name:
         lbl_icon = QLabel()
         lbl_icon.setPixmap(get_icon(icon_name).pixmap(20, 20))
-        lbl_icon.setStyleSheet("border: none; opacity: 0.8;")
+        lbl_icon.setStyleSheet("border: none; background: transparent;")
         l.addWidget(lbl_icon)
 
     lbl_text = QLabel(title)

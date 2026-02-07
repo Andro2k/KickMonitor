@@ -30,8 +30,8 @@ class MusicPlayerPanel(QFrame):
 
     def _setup_ui(self):
         main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(*LAYOUT["margins"])
-        main_layout.setSpacing(LAYOUT["spacing"])
+        main_layout.setContentsMargins(*LAYOUT["level_03"])
+        main_layout.setSpacing(LAYOUT["space_01"])
 
         # ==========================================
         # 1. SECCIÓN REPRODUCTOR (Izquierda)
@@ -42,7 +42,7 @@ class MusicPlayerPanel(QFrame):
         # CAMBIO CLAVE: Layout Horizontal para: [ FOTO ]  [ INFO + BARRA + CONTROLES ]
         player_row = QHBoxLayout(player_container)
         player_row.setContentsMargins(0,0,0,0)
-        player_row.setSpacing(LAYOUT["spacing"]) # Espacio entre carátula y textos
+        player_row.setSpacing(LAYOUT["space_01"]) # Espacio entre carátula y textos
 
         # A. CARÁTULA (Toda a la izquierda)
         self.lbl_art = QLabel()

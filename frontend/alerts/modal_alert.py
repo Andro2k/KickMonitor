@@ -41,7 +41,7 @@ class CustomModal(QDialog):
         
         body_layout = QVBoxLayout(body)
         body_layout.setContentsMargins(10, 45, 10, 10)
-        body_layout.setSpacing(LAYOUT["spacing"])
+        body_layout.setSpacing(LAYOUT["space_01"])
 
         lbl_tit = QLabel(titulo)
         lbl_tit.setAlignment(Qt.AlignmentFlag.AlignCenter)

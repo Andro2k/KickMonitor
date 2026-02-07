@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QPushButton, QSizePolicy, QDialog
 )
 from PyQt6.QtCore import QThreadPool, QTimer, Qt
-from frontend.theme import THEME_DARK, STYLES
+from frontend.theme import LAYOUT, THEME_DARK, STYLES
 from frontend.utils import ThumbnailWorker, get_icon_colored, get_icon, get_rounded_pixmap
 from frontend.factories import create_icon_btn
 from frontend.alerts.modal_alert import ModalConfirm
@@ -26,7 +26,7 @@ class MediaCard(QFrame):
             folder = self.page.service.get_media_folder()
             
         self.full_path = os.path.join(folder, filename)
-
+        self.setFixedSize(360, 160)
         self._init_ui()
         self._load_values()
 
@@ -36,13 +36,12 @@ class MediaCard(QFrame):
     def _init_ui(self):
         self.setMinimumWidth(180) 
         self.setFixedHeight(260)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: {THEME_DARK['Black_N2']};
                 border-radius: 12px;
-                border: 1px solid {THEME_DARK['Black_N1']};
             }}
             QFrame:hover {{
                 border: 1px solid {THEME_DARK['Gray_N1']};
@@ -50,7 +49,7 @@ class MediaCard(QFrame):
         """)
         
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setContentsMargins(*LAYOUT["level_01"])
         layout.setSpacing(8)
 
         # 1. Icono / Thumbnail
@@ -58,8 +57,8 @@ class MediaCard(QFrame):
         self.lbl_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_icon.setStyleSheet("background: transparent; border: none;")
         icon_name = "video.svg" if self.ftype == "video" else "music.svg"
-        self.lbl_icon.setPixmap(get_icon(icon_name).pixmap(48, 48))
-        self.lbl_icon.setFixedHeight(90)
+        self.lbl_icon.setPixmap(get_icon(icon_name).pixmap(52, 52))
+        self.lbl_icon.setFixedHeight(120)
         
         bg_icon = QFrame()
         bg_icon.setStyleSheet(f"background-color: {THEME_DARK['Black_N1']}; border-radius: 8px; border: none;")
@@ -70,7 +69,7 @@ class MediaCard(QFrame):
 
         # 2. Nombre del Archivo
         self.lbl_name = QLabel(self.filename)
-        self.lbl_name.setStyleSheet("color: #AAA; font-size: 11px; font-weight: bold; border:none;")
+        self.lbl_name.setStyleSheet("color: #AAA; font-size: 12px; font-weight: bold; border:none;")
         self.lbl_name.setWordWrap(False) 
         layout.addWidget(self.lbl_name)
 

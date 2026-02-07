@@ -30,8 +30,8 @@ class CommandsPage(QWidget):
         # Contenedor Interno
         content = QWidget()
         l_content = QVBoxLayout(content)
-        l_content.setContentsMargins(*LAYOUT["margins"])
-        l_content.setSpacing(LAYOUT["spacing"])
+        l_content.setContentsMargins(*LAYOUT["level_03"])
+        l_content.setSpacing(LAYOUT["space_01"])
         
         # 1. HEADER
         header = QHBoxLayout()

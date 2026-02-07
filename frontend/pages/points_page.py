@@ -54,8 +54,8 @@ class PointsPage(QWidget):
         content.setStyleSheet("background: transparent;")
         
         self.content_layout = QVBoxLayout(content)
-        self.content_layout.setContentsMargins(*LAYOUT["margins"])
-        self.content_layout.setSpacing(LAYOUT["spacing"])
+        self.content_layout.setContentsMargins(*LAYOUT["level_03"])
+        self.content_layout.setSpacing(LAYOUT["space_01"])
 
         # 3. CONSTRUCCIÓN DE LA UI
         # A. Header
@@ -93,8 +93,8 @@ class PointsPage(QWidget):
         card.setStyleSheet(f"background: {THEME_DARK['Black_N2']}; border-radius: 12px;")
         
         l = QHBoxLayout(card)
-        l.setContentsMargins(*LAYOUT["margins"])
-        l.setSpacing(LAYOUT["spacing"])
+        l.setContentsMargins(*LAYOUT["level_03"])
+        l.setSpacing(LAYOUT["space_01"])
 
         # Inputs
         l.addWidget(QLabel("Usuario:", styleSheet="color:#888; font-weight:bold; "))
@@ -117,7 +117,7 @@ class PointsPage(QWidget):
         l.addStretch()
 
         # Botón Aplicar (Estilo Sólido)
-        btn_apply = QPushButton(" Aplicar")
+        btn_apply = QPushButton("Aplicar")
         btn_apply.setIcon(get_icon_colored("save.svg", THEME_DARK['NeonGreen_Main']))
         btn_apply.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_apply.setFixedHeight(34)
@@ -141,8 +141,8 @@ class PointsPage(QWidget):
         bar = QFrame()
         bar.setStyleSheet(f"border: 1px solid {THEME_DARK['Black_N4']};")
         h_bar = QHBoxLayout(bar)
-        h_bar.setContentsMargins(*LAYOUT["margins"])
-        h_bar.setSpacing(LAYOUT["spacing"])
+        h_bar.setContentsMargins(*LAYOUT["level_03"])
+        h_bar.setSpacing(LAYOUT["space_01"])
 
         lbl_search = QLabel()
         lbl_search.setPixmap(get_icon("search.svg").pixmap(16,16))

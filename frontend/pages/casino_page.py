@@ -40,8 +40,8 @@ class GamblingPage(QWidget):
         
         # 2. LAYOUT PRINCIPAL DEL CONTENIDO
         self.main_layout = QVBoxLayout(content)
-        self.main_layout.setContentsMargins(*LAYOUT["margins"])
-        self.main_layout.setSpacing(LAYOUT["spacing"])
+        self.main_layout.setContentsMargins(*LAYOUT["level_03"])
+        self.main_layout.setSpacing(LAYOUT["space_01"])
 
         # 3. CONSTRUCCIÓN
         self._setup_header()
@@ -90,7 +90,7 @@ class GamblingPage(QWidget):
         cards_container.setStyleSheet("background: transparent;")
         
         # FlowLayout para que las tarjetas se acomoden automáticamente
-        self.flow_layout = FlowLayout(cards_container, margin=0, spacing=(LAYOUT["spacing"]))
+        self.flow_layout = FlowLayout(cards_container, margin=0, spacing=(LAYOUT["space_01"]))
         
         # 1. Tarjeta de Límites Globales (Acordeón)
         self.flow_layout.addWidget(LimitsCard(self.service))
@@ -135,7 +135,7 @@ class GamblingPage(QWidget):
 
     def _setup_history_section(self):
         """Tarjeta ancha para la tabla de historial."""
-        self.main_layout.addSpacing(LAYOUT["spacing"])
+        self.main_layout.addSpacing(LAYOUT["space_01"])
         
         h_sec = QHBoxLayout()
         h_sec.addWidget(QLabel("Historial en Vivo", objectName="h3"))

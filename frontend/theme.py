@@ -64,10 +64,10 @@ class Dims:
         "scroll": "4px"
     }
     layout = {
-        # "outer": (16,16,16,16), 
-        # "inner": (8,8,8,8), 
-        "margins": (12,12,12,12), 
-        "spacing": 8
+        "level_01": (10,10,10,10),
+        "level_02": (16,16,16,16), 
+        "level_03": (20,20,20,20), 
+        "space_01": 12
     }
 
 class Fonts:

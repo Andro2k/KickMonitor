@@ -49,7 +49,7 @@ class RewardsLoaderWorker(QThread):
 
 class ModalEditMedia(BaseModal):
     def __init__(self, parent_page, filename, ftype, data):
-        super().__init__(parent_page, width=420, height=650)
+        super().__init__(parent_page, width=420, height=560)
         
         self.page = parent_page 
         self.filename = filename
@@ -110,7 +110,7 @@ class ModalEditMedia(BaseModal):
         self.txt_desc.setStyleSheet(STYLES["text_edit_console"])
         self.txt_desc.setPlaceholderText("Instrucciones...")
         self.txt_desc.setText(self.description)
-        self.txt_desc.setFixedHeight(45)
+        self.txt_desc.setFixedHeight(65)
         lk.addWidget(self.txt_desc)
         l.addWidget(frame_kick)
 

@@ -33,8 +33,8 @@ class BaseModal(QDialog):
         
         # Layout interno donde las clases hijas pondrán sus widgets
         self.body_layout = QVBoxLayout(self.body)
-        self.body_layout.setContentsMargins(*LAYOUT["margins"])
-        self.body_layout.setSpacing(LAYOUT["spacing"])
+        self.body_layout.setContentsMargins(*LAYOUT["level_03"])
+        self.body_layout.setSpacing(LAYOUT["space_01"])
         
         self.main_layout.addWidget(self.body)
         
