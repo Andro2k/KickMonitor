@@ -72,7 +72,6 @@ class RedemptionWorker(QThread):
                 with open(path, 'r') as f:
                     return json.load(f).get("access_token")
         except Exception as e:
-            # Loguear error de lectura solo si es necesario depurar
             print(f"Error leyendo token: {e}")
             return None
 
@@ -88,7 +87,6 @@ class RedemptionWorker(QThread):
         try:
             resp = self.scraper.get(url, headers=headers)
         except Exception as e:
-            # AQUI ESTABA EL PROBLEMA: Antes era 'pass'
             if time.time() - self._last_error_time > 30:
                 self.log_signal.emit(LoggerText.error(f"Error de Red (Kick): {e}"))
                 self._last_error_time = time.time()
@@ -117,7 +115,6 @@ class RedemptionWorker(QThread):
             data = resp.json()
             groups = data.get("data", [])
         except Exception as e:
-            # Error de JSON
             return False
 
         found_new = False
@@ -145,8 +142,6 @@ class RedemptionWorker(QThread):
 
                 # 1. Disparar Trigger
                 self.redemption_detected.emit(username, reward_title, user_input)
-                # Ojo: Usamos LoggerText.info para que no se vea como 'success' si no hay trigger,
-                # pero el controlador luego decide.
                 
                 # 2. Aceptar en Kick si está pendiente
                 if status == "pending":

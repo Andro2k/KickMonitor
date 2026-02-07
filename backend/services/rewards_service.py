@@ -14,7 +14,7 @@ URL_TOKEN = "https://id.kick.com/oauth/token"
 class RewardsService:
     def __init__(self):
         self.scraper = cloudscraper.create_scraper()
-        self.db = DBHandler() # Instanciamos DB para leer credenciales
+        self.db = DBHandler()
 
     def _get_random_color(self):
         """Genera un color hexadecimal aleatorio."""
@@ -70,11 +70,9 @@ class RewardsService:
             if resp.status_code == 200:
                 new_data = resp.json()
                 
-                # A veces Kick no devuelve un nuevo refresh_token, así que mantenemos el viejo
                 if "refresh_token" not in new_data:
                     new_data["refresh_token"] = refresh_token
                 
-                # Guardamos en disco para que el Bot y otros servicios lo vean
                 self._save_session_data(new_data)
                 print("[SISTEMA] Token renovado con éxito.")
                 return True
@@ -120,7 +118,6 @@ class RewardsService:
             if resp.status_code == 401 and retry:
                 # Intentamos renovar
                 if self._refresh_token():
-                    # REINTENTO RECURSIVO (Solo una vez)
                     return self._make_request(method, url, json_data, retry=False)
                 else:
                     print("[FATAL] No se pudo renovar el token. Necesitas volver a loguearte.")
@@ -134,7 +131,6 @@ class RewardsService:
     # =========================================================================
     # MÉTODOS PÚBLICOS (Ahora usan _make_request)
     # =========================================================================
-
     def list_rewards(self) -> list:
         resp = self._make_request("GET", URL_REWARDS)
         if resp and resp.status_code == 200:
@@ -147,8 +143,8 @@ class RewardsService:
             "title": title, 
             "cost": cost, 
             "description": description or "Trigger KickMonitor", 
-            "is_enabled": is_active,      # True = Visible, False = Oculto
-            "is_paused": False,           # Siempre False para que no salga "Pausado" sino que se oculte
+            "is_enabled": is_active,
+            "is_paused": False,
             "is_user_input_required": False,
             "should_redemptions_skip_request_queue": False,
             "background_color": color or self._get_random_color()
@@ -172,7 +168,7 @@ class RewardsService:
             "title": title,
             "cost": cost,
             "description": description or "Trigger KickMonitor",
-            "is_enabled": is_active,       # Aquí mandamos el estado del botón
+            "is_enabled": is_active,
             "is_paused": False,
             "is_user_input_required": False,
             "should_redemptions_skip_request_queue": False,

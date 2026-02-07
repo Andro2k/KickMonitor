@@ -53,6 +53,21 @@ class SaveTriggerWorker(QThread):
         except Exception as e:
             self.finished_signal.emit(False, str(e), self.filename)
 
+class SyncKickWorker(QThread):
+    """
+    Hilo que descarga el estado de las recompensas de Kick
+    y actualiza la base de datos local si hay diferencias.
+    """
+    finished = pyqtSignal(int)  # Emite la cantidad de cambios realizados
+
+    def __init__(self, service):
+        super().__init__()
+        self.service = service
+
+    def run(self):
+        # Llama a la función que creamos en el backend
+        changes = self.service.sync_kick_states()
+        self.finished.emit(changes)
 
 # =========================================================================
 # CLASE PRINCIPAL: PÁGINA DE TRIGGERS
@@ -67,14 +82,20 @@ class TriggerPage(QWidget):
         self.search_text: str = ""
         self.filter_mode: str = "Todos"
         
-        # Lista para mantener referencias a workers activos y que no los mate el GC
         self._active_workers = []
         
-        # --- Inicialización ---
+        # --- 1. Inicializar Worker de Sync (NUEVO) ---
+        self.sync_worker = SyncKickWorker(self.service)
+        self.sync_worker.finished.connect(self._on_sync_finished)
+
+        # --- Inicialización UI ---
         self.init_ui()
         
-        # Carga diferida para dar sensación de fluidez al inicio
+        # Carga inicial rápida (visual)
         QTimer.singleShot(100, self.load_data)
+        
+        # --- 2. Lanzar Sincronización con Kick (NUEVO) ---
+        QTimer.singleShot(1000, self.sync_worker.start)
 
     # =========================================================================
     # SECCIÓN 1: CONSTRUCCIÓN DE LA INTERFAZ (UI)
@@ -344,6 +365,24 @@ class TriggerPage(QWidget):
         if not self.chk_on.isChecked():
             return ToastNotification(self, "Overlay Apagado", "Activa el switch superior para probar.", "status_warning").show_toast()
         self.service.preview_media(filename, ftype, config)
+    
+    def _on_sync_finished(self, changes_count):
+        """
+        Se llama cuando termina la sincronización con Kick.
+        Si hubo cambios (ej: activaste algo en la web), recarga la UI.
+        """
+        if changes_count > 0:
+            # print(f"[UI] Sincronización completada. Cambios detectados: {changes_count}")
+            # Recargamos los datos para que los botones se pongan verdes/rojos
+            self.load_data()
+            
+            # Opcional: Avisar al usuario con un Toast discreto
+            ToastNotification(
+                self, 
+                "Sincronizado", 
+                f"Se actualizaron {changes_count} estados desde Kick.", 
+                "info"
+            ).show_toast()
 
     # =========================================================================
     # SECCIÓN 4: MANEJADORES DE EVENTOS UI

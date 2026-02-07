@@ -192,7 +192,8 @@ class DBHandler:
     # --- Triggers Multimedia (ACTUALIZADO CON COLOR Y DESCRIPCION) ---
     def set_trigger(self, cmd, file, ftype, dur=0, sc=1.0, act=1, cost=0, vol=100, pos_x=0, pos_y=0, color="#53fc18", description="Trigger KickMonitor"):
         return self.triggers.save_trigger(cmd, file, ftype, dur, sc, act, cost, vol, pos_x, pos_y, color, description)
-        
+    def update_active_state(self, filename: str, is_active: bool):
+        return self.triggers.update_active_state(filename, is_active)    
     def get_trigger_file(self, cmd: str): return self.triggers.get_trigger(cmd)
     def delete_triggers_by_filename(self, fname: str): return self.triggers.delete_triggers_by_filename(fname)
     def get_all_triggers(self) -> Dict: return self.triggers.get_all()

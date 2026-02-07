@@ -204,6 +204,12 @@ class TriggersRepository:
     def get_shop_items(self) -> List[Tuple[str, int]]:
         query = "SELECT command, cost FROM triggers WHERE is_active = 1 ORDER BY cost ASC"
         return self.conn.fetch_all(query)
+    
+    def update_active_state(self, filename: str, is_active: bool):
+        """Actualiza solo el estado activo/inactivo de un archivo específico."""
+        val = 1 if is_active else 0
+        query = "UPDATE triggers SET is_active = ? WHERE filename = ?"
+        return self.conn.execute_query(query, (val, filename))
 
 # ==========================================
 # 5. REPOSITORIO DE COMANDOS DE TEXTO

@@ -71,7 +71,7 @@ class MainController(QObject):
         # 5. Configuración
         self._setup_timers()
         self.debug_enabled = self.db.get_bool("debug_mode")
-        LoggerText.enabled_debug = self.debug_enabled # Sincronizar clase Log
+        LoggerText.enabled_debug = self.debug_enabled
         
         # 6. Registro de Logs (Solo la señal principal)
         self.log_signal.connect(self._write_log_to_file)
@@ -124,10 +124,6 @@ class MainController(QObject):
         if self._handle_custom_responses(user, msg_lower):
             self._finalize_message(timestamp, user, content)
             return
-        # # Alertas / Overlay
-        # if self.alert_handler.handle_trigger(user, msg_lower, self.send_msg, self.emit_log):
-        #     self._finalize_message(timestamp, user, content)
-        #     return
         # Consulta Puntos
         if self._handle_points_query(user, msg_lower):
             self._finalize_message(timestamp, user, content)
@@ -246,7 +242,6 @@ class MainController(QObject):
         if not self.redemption_worker:
             self.redemption_worker = RedemptionWorker(self.db)
             self.redemption_worker.log_signal.connect(self.emit_log)
-            # CONEXIÓN CLAVE: Del worker al nuevo método on_redemption
             self.redemption_worker.redemption_detected.connect(self.on_redemption_received)
             self.redemption_worker.start()
 
@@ -421,7 +416,6 @@ class MainController(QObject):
     # =========================================================================
     # REGIÓN 6: LOGS & DEBUG
     # =========================================================================
-
     def _write_log_to_file(self, html_msg: str):
         """
         Escribe el log en un archivo de texto plano, limpiando las etiquetas HTML.
@@ -462,7 +456,6 @@ class MainController(QObject):
         """
         Recibe el canje limpio del Worker y lo pasa al Handler.
         """
-        # Pasamos directamente el Título (ej: "Susto")
         found = self.trigger_handler.handle_redemption(
             user, 
             reward_title, 

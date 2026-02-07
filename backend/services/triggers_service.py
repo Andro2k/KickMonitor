@@ -1,12 +1,10 @@
 # backend/services/triggers_service.py
 
 import os
-import json
 import cloudscraper
 from urllib.parse import quote
 from typing import List, Dict, Any, Tuple
 from backend.utils.data_manager import DataManager
-from backend.utils.paths import get_config_path
 
 # --- IMPORTANTE: Importar el servicio de Rewards ---
 from backend.services.rewards_service import RewardsService
@@ -30,12 +28,10 @@ class TriggerService:
 
     # =========================================================================
     # REGIÓN 1: GESTIÓN DE API KICK (WRAPPER)
-    # =========================================================================
-    
+    # =========================================================================    
     def get_available_kick_rewards(self) -> list:
         return self.rewards_api.list_rewards()
 
-    # --- CORRECCIÓN AQUÍ: ACEPTAR TODOS LOS PARÁMETROS ---
     def sync_reward_to_kick(self, old_title: str, new_title: str, cost: int, color: str, description: str, is_active: bool) -> bool:
         """
         Sincroniza buscando primero por el nombre ANTIGUO para permitir renombrar.
@@ -85,7 +81,6 @@ class TriggerService:
     # =========================================================================
     # REGIÓN 2: LÓGICA DE NEGOCIO "HIGHLANDER" (UNICIDAD)
     # =========================================================================
-
     def ensure_unique_assignment(self, current_filename: str, reward_title: str):
         if not reward_title: return
 
@@ -221,7 +216,49 @@ class TriggerService:
 
     def clear_all_data(self) -> bool:
         return self.db.clear_all_triggers()
+    
+    def sync_kick_states(self) -> int:
+        """
+        Descarga las recompensas de Kick y actualiza el estado (Activo/Inactivo)
+        """
+        try:
+            # 1. Obtener lista real de Kick
+            kick_rewards = self.rewards_api.list_rewards()
+            if not kick_rewards:
+                return 0
 
+            # 2. Obtener configuración local
+            local_triggers = self.db.get_all_triggers() # Esto devuelve un dict {filename: config}
+            
+            # 3. Crear mapa rápido de Kick: { 'nombre_comando': is_enabled }
+            kick_map = {
+                r.get("title", "").strip().lower(): r.get("is_enabled", False) 
+                for r in kick_rewards
+            }
+
+            changes_count = 0
+
+            # 4. Comparar y Sincronizar
+            for filename, config in local_triggers.items():
+                cmd = config.get("cmd", "").strip().lower()
+                
+                # Si el trigger local tiene un comando y ese comando existe en Kick
+                if cmd and cmd in kick_map:
+                    kick_is_active = kick_map[cmd]
+                    local_is_active = bool(config.get("active", 0))
+
+                    # SI HAY DISCREPANCIA: Gana Kick (La web es la verdad absoluta)
+                    if kick_is_active != local_is_active:
+                        self.db.update_active_state(filename, kick_is_active)
+                        changes_count += 1
+                        # print(f"[SYNC] Sincronizado {filename}: Local {local_is_active} -> Kick {kick_is_active}")
+
+            return changes_count
+
+        except Exception as e:
+            # print(f"[ERROR SYNC] Falló la sincronización de estados: {e}")
+            return 0
+        
     def preview_media(self, filename: str, ftype: str, config: Dict):
         file_url = f"http://127.0.0.1:8081/media/{quote(filename)}"
         try:
@@ -239,7 +276,7 @@ class TriggerService:
                 "volume": volume,
                 "pos_x": pos_x,
                 "pos_y": pos_y,
-                "random": self.db.get_bool("random_pos"), # Leemos la config real
+                "random": self.db.get_bool("random_pos"),
                 "user": "Streamer (Prueba)",
                 "reward_name": config.get("cmd", "Test"),
                 "input_text": ""

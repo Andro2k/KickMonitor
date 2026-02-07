@@ -2,7 +2,7 @@
 
 import os
 from urllib.parse import quote
-from typing import Optional, Callable
+from typing import Callable
 
 # --- MÓDULOS INTERNOS ---
 from backend.utils.logger_text import LoggerText
@@ -11,8 +11,7 @@ from backend.services.rewards_service import RewardsService
 class TriggerHandler:
     """
     Maneja la lógica de negocio para las Alertas Multimedia (Triggers).
-    """
-    
+    """  
     def __init__(self, db_handler, overlay_worker):
         self.db = db_handler
         self.server = overlay_worker
@@ -25,18 +24,14 @@ class TriggerHandler:
         # 1. Verificar si el Overlay está activado globalmente
         if not self.db.get_bool("overlay_enabled"):
             return False
-
         # 2. Búsqueda Inteligente (Nombre exacto vs Nombre con !)
         clean_title = reward_title.strip().lower()
         trigger_data = self.db.get_trigger_file(clean_title)
-
         if not trigger_data:
             # Intento de fallback (compatibilidad vieja)
             trigger_data = self.db.get_trigger_file(f"!{clean_title}")
 
         if not trigger_data:
-            # Si quieres debug, descomenta:
-            # print(f"[Handler] No se encontró trigger para: {reward_title}")
             return False
 
         # 3. Desempaquetar datos (Con índices seguros)
@@ -48,7 +43,6 @@ class TriggerHandler:
             is_active = bool(trigger_data[4])
             # cost = trigger_data[5]
             volume = trigger_data[6] if trigger_data[6] is not None else 100
-            
             pos_x = trigger_data[7] if len(trigger_data) > 7 else 0
             pos_y = trigger_data[8] if len(trigger_data) > 8 else 0
         except IndexError:
@@ -68,11 +62,9 @@ class TriggerHandler:
         if not os.path.exists(full_path):
             log_callback(LoggerText.error(f"Archivo 404: {filename}"))
             return False
-
+        
         # 5. Construir URL y Payload
         file_url = f"http://127.0.0.1:8081/media/{quote(filename)}"
-
-        # --- CORRECCIÓN: LEER CONFIGURACIÓN ALEATORIA ---
         is_random = self.db.get_bool("random_pos")
 
         payload = {
@@ -83,12 +75,12 @@ class TriggerHandler:
             "volume": volume,
             "pos_x": pos_x,
             "pos_y": pos_y,
-            "random": is_random, # <--- ¡ESTO FALTABA!
+            "random": is_random,
             "user": user,          
             "reward_name": reward_title,
             "input_text": user_input
-        }
-        
+        }     
+
         # 6. Enviar al Overlay
         self.server.send_event("play_media", payload)
         
@@ -97,12 +89,10 @@ class TriggerHandler:
     # =========================================================================
     # GESTIÓN DESDE LA UI
     # =========================================================================
-
     def create_trigger(self, title: str, filename: str, ftype: str, cost: int, 
                        duration: int, scale: float, volume: int, 
                        pos_x: int, pos_y: int, create_in_kick: bool = True) -> bool:
         
-        # Guardar en DB (repositories.py ya no debe poner "!")
         db_key = title.strip().lower()
         
         success_db = self.db.set_trigger(
@@ -128,8 +118,6 @@ class TriggerHandler:
 
     def delete_trigger(self, title: str, delete_in_kick: bool = True) -> bool:
         db_key = title.strip().lower()
-        
-        # Borrado doble por seguridad
         self.db.conn_handler.execute_query("DELETE FROM triggers WHERE command=?", (db_key,))
         self.db.conn_handler.execute_query("DELETE FROM triggers WHERE command=?", (f"!{db_key}",))
 
