@@ -180,7 +180,6 @@ class ChatPage(QWidget):
         
         slider = QSlider(Qt.Orientation.Horizontal)
         slider.setRange(min_v, max_v)
-        slider.setStyleSheet("background-color: transparent;")
         
         # Conexión interna para actualizar etiqueta
         slider.valueChanged.connect(lambda v: lbl_val.setText(str(v)))

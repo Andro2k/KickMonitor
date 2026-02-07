@@ -1,30 +1,55 @@
 # frontend/dialogs/trigger_modal.py
 
+import json
+import os
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, 
-    QLineEdit, QPushButton, QSpinBox, QSlider, QComboBox,
-    QTextEdit, QColorDialog, QWidget, QFrame
+    QPushButton, QSpinBox, QSlider, QComboBox,
+    QTextEdit, QColorDialog, QFrame, QWidget
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QColor, QCursor
+from backend.utils.paths import get_config_path
 from frontend.theme import STYLES, THEME_DARK
 from frontend.components.base_modal import BaseModal
 
 class RewardsLoaderWorker(QThread):
-    finished = pyqtSignal(list)
+    finished = pyqtSignal(bool, list)
+
     def __init__(self, service):
         super().__init__()
         self.service = service
+
     def run(self):
+        # 1. Verificar si tenemos token guardado
+        has_token = False
+        try:
+            path = os.path.join(get_config_path(), "session.json")
+            if os.path.exists(path):
+                with open(path, 'r') as f:
+                    data = json.load(f)
+                    if data.get("access_token"):
+                        has_token = True
+        except:
+            has_token = False
+
+        # Si no hay token, ni intentamos conectar
+        if not has_token:
+            self.finished.emit(False, [])
+            return
+
+        # 2. Intentar descargar recompensas
         try:
             rewards = self.service.get_available_kick_rewards()
-            self.finished.emit(rewards)
+            # Si devuelve una lista (aunque sea vacía), asumimos conexión exitosa
+            self.finished.emit(True, rewards)
         except:
-            self.finished.emit([])
+            # Si falla la petición (ej: sin internet), enviamos desconectado
+            self.finished.emit(False, [])
 
 class ModalEditMedia(BaseModal):
     def __init__(self, parent_page, filename, ftype, data):
-        super().__init__(parent_page, width=420, height=650) # Aumenté un poco la altura
+        super().__init__(parent_page, width=420, height=650)
         
         self.page = parent_page 
         self.filename = filename
@@ -49,7 +74,7 @@ class ModalEditMedia(BaseModal):
         l.setSpacing(10)
 
         # 1. TÍTULO
-        l.addWidget(QLabel(f"Configurar: {self.filename}", styleSheet="border:none; font-size: 14px; font-weight: bold; color: white;"))
+        l.addWidget(QLabel(f"Configurar: {self.filename}", styleSheet=STYLES["label_title"]))
 
         # 2. SELECCIONAR RECOMPENSA
         l.addWidget(QLabel("Nombre del Canje (Kick):", styleSheet="border:none; color: #AAA;"))
@@ -82,10 +107,10 @@ class ModalEditMedia(BaseModal):
         
         lk.addWidget(QLabel("Descripción:", styleSheet="border:none; color: #DDD;"))
         self.txt_desc = QTextEdit()
+        self.txt_desc.setStyleSheet(STYLES["text_edit_console"])
         self.txt_desc.setPlaceholderText("Instrucciones...")
         self.txt_desc.setText(self.description)
         self.txt_desc.setFixedHeight(45)
-        self.txt_desc.setStyleSheet(STYLES["input_cmd"])
         lk.addWidget(self.txt_desc)
         l.addWidget(frame_kick)
 
@@ -118,37 +143,53 @@ class ModalEditMedia(BaseModal):
         h_pos.addLayout(self.spin_y)
         l.addLayout(h_pos)
 
-        # 6. SLIDERS CON ETIQUETAS
-        # Volumen
+        # 6. SLIDERS CON ETIQUETAS (Fondo Transparente)
+        
+        # --- VOLUMEN ---
+        # Contenedor para alinear etiqueta y valor
+        w_vol = QWidget()
+        w_vol.setStyleSheet("background: transparent;") # <--- CLAVE: Fondo transparente
+        l_vol = QVBoxLayout(w_vol)
+        l_vol.setContentsMargins(0,0,0,0)
+        l_vol.setSpacing(2)
+
         h_vol_lbl = QHBoxLayout()
-        h_vol_lbl.addWidget(QLabel("Volumen:", styleSheet="border:none; color: #888;"))
+        h_vol_lbl.addWidget(QLabel("Volumen:", styleSheet="border:none; color: #888; background: transparent;"))
         self.lbl_vol_val = QLabel(f"{self.vol}%")
-        self.lbl_vol_val.setStyleSheet("color: #AAA; font-weight: bold; border:none;")
+        self.lbl_vol_val.setStyleSheet("color: #AAA; font-weight: bold; border:none; background: transparent;")
         h_vol_lbl.addWidget(self.lbl_vol_val)
         h_vol_lbl.addStretch()
-        l.addLayout(h_vol_lbl)
+        l_vol.addLayout(h_vol_lbl)
 
         self.slider_vol = QSlider(Qt.Orientation.Horizontal)
         self.slider_vol.setRange(0, 100)
         self.slider_vol.setValue(self.vol)
         self.slider_vol.valueChanged.connect(lambda v: self.lbl_vol_val.setText(f"{v}%"))
-        l.addWidget(self.slider_vol)
+        l_vol.addWidget(self.slider_vol)
+        l.addWidget(w_vol)
 
-        # Escala (SOLO SI ES VIDEO)
+        # --- ESCALA (SOLO SI ES VIDEO) ---
         if self.ftype == "video":
+            w_zoom = QWidget()
+            w_zoom.setStyleSheet("background: transparent;")
+            l_zoom = QVBoxLayout(w_zoom)
+            l_zoom.setContentsMargins(0,0,0,0)
+            l_zoom.setSpacing(2)
+
             h_zoom_lbl = QHBoxLayout()
-            h_zoom_lbl.addWidget(QLabel("Tamaño (Escala):", styleSheet="border:none; color: #888;"))
+            h_zoom_lbl.addWidget(QLabel("Tamaño (Escala):", styleSheet="border:none; color: #888; background: transparent;"))
             self.lbl_zoom_val = QLabel(f"{int(self.scale * 100)}%")
-            self.lbl_zoom_val.setStyleSheet("color: #AAA; font-weight: bold; border:none;")
+            self.lbl_zoom_val.setStyleSheet("color: #AAA; font-weight: bold; border:none; background: transparent;")
             h_zoom_lbl.addWidget(self.lbl_zoom_val)
             h_zoom_lbl.addStretch()
-            l.addLayout(h_zoom_lbl)
+            l_zoom.addLayout(h_zoom_lbl)
 
             self.slider_zoom = QSlider(Qt.Orientation.Horizontal)
-            self.slider_zoom.setRange(10, 200) # 10% a 200%
+            self.slider_zoom.setRange(10, 200) 
             self.slider_zoom.setValue(int(self.scale * 100))
             self.slider_zoom.valueChanged.connect(lambda v: self.lbl_zoom_val.setText(f"{v}%"))
-            l.addWidget(self.slider_zoom)
+            l_zoom.addWidget(self.slider_zoom)
+            l.addWidget(w_zoom)
         
         l.addStretch()
 
@@ -164,15 +205,24 @@ class ModalEditMedia(BaseModal):
         h_btns.addWidget(btn_save)
         l.addLayout(h_btns)
 
-    def _create_coord_spin(self, label, val):
-        layout = QVBoxLayout()
-        layout.addWidget(QLabel(label, styleSheet="border:none; color:#888;"))
+    def _create_coord_spin(self, label_text, val):
+        # CORRECCIÓN: Creamos el layout directamente sin un widget padre temporal
+        l = QVBoxLayout() 
+        l.setContentsMargins(0,0,0,0)
+        l.setSpacing(2)
+        
+        # Etiqueta con fondo transparente
+        l.addWidget(QLabel(label_text, styleSheet="border:none; color:#888; background: transparent;"))
+        
+        # SpinBox configurado sin negativos
         spin = QSpinBox()
-        spin.setRange(-5000, 5000)
-        spin.setValue(val)
+        spin.setRange(0, 5000) # Mínimo 0
+        spin.setValue(val if val >= 0 else 0)
         spin.setStyleSheet(STYLES["spinbox_modern"])
-        layout.addWidget(spin)
-        return layout
+        
+        l.addWidget(spin)
+        
+        return l
 
     def _update_color_btn(self):
         self.btn_color.setStyleSheet(f"background-color: {self.color}; border: 2px solid #555; border-radius: 4px;")
@@ -190,20 +240,34 @@ class ModalEditMedia(BaseModal):
             self.worker.finished.connect(self._on_rewards_loaded)
             self.worker.start()
 
-    def _on_rewards_loaded(self, rewards):
+    def _on_rewards_loaded(self, is_connected, rewards):
         self.combo_rewards.clear()
-        for r in rewards:
-            self.combo_rewards.addItem(r['title'], r)
         
-        if self.cmd:
-            self.combo_rewards.setEditText(self.cmd)
-            index = self.combo_rewards.findText(self.cmd)
-            if index >= 0:
-                self.combo_rewards.setCurrentIndex(index)
+        if not is_connected:
+            # ESTADO: DESCONECTADO
+            self.combo_rewards.setPlaceholderText("⚠️ Desconectado (Requiere Login)")
+            self.combo_rewards.setStyleSheet(STYLES["combobox"] + "border: 1px solid #e74c3c; color: #e74c3c;")
+            self.combo_rewards.setEnabled(False)
         else:
-            self.combo_rewards.setPlaceholderText("Nuevo o existente...")
-            self.combo_rewards.setCurrentIndex(-1)
-        self.combo_rewards.setEnabled(True)
+            # ESTADO: CONECTADO
+            self.combo_rewards.setEnabled(True)
+            self.combo_rewards.setStyleSheet(STYLES["combobox"])
+            
+            if not rewards:
+                self.combo_rewards.setPlaceholderText("Conectado (Sin recompensas creadas)")
+            else:
+                for r in rewards:
+                    self.combo_rewards.addItem(r['title'], r)
+                
+                # Restaurar selección previa si existe
+                if self.cmd:
+                    self.combo_rewards.setEditText(self.cmd)
+                    index = self.combo_rewards.findText(self.cmd)
+                    if index >= 0:
+                        self.combo_rewards.setCurrentIndex(index)
+                else:
+                    self.combo_rewards.setPlaceholderText("Seleccione una recompensa...")
+                    self.combo_rewards.setCurrentIndex(-1)
 
     def _on_reward_selected(self, index):
         if not self.combo_rewards.isEnabled(): return

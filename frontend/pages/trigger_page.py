@@ -183,8 +183,7 @@ class TriggerPage(QWidget):
 
         layout.addWidget(self.lbl_path, stretch=1)
         layout.addWidget(create_icon_btn("folder.svg", self._handle_pick_folder))
-        layout.addWidget(create_icon_btn("refresh-cw.svg", self.load_data))
-        layout.addWidget(create_icon_btn("trash.svg", self._handle_clean_all, color_hover=THEME_DARK['status_error']))
+        layout.addWidget(create_icon_btn("refresh-cw.svg", self._handle_manual_sync))
         
         card.layout.addLayout(layout)
         return card
@@ -396,10 +395,17 @@ class TriggerPage(QWidget):
         status = "Activado" if checked else "Desactivado"
         ToastNotification(self, "Overlay", status, "info").show_toast()
     
-    def _handle_clean_all(self):
-        if ModalConfirm(self, "Borrar Todo", "Se eliminarán todas las configuraciones.").exec():
-            self.service.clear_all_data()
-            self.load_data()
+    def _handle_manual_sync(self):
+        """
+        Recarga los archivos locales Y fuerza la sincronización con Kick.
+        """
+        # 1. Feedback visual
+        ToastNotification(self, "Sincronizando", "Verificando archivos y estado en Kick...", "info").show_toast()
+        # 2. Carga inmediata de archivos locales (por si pusiste un video nuevo en la carpeta)
+        self.load_data()      
+        # 3. Inicia la sincronización con la nube (si no está corriendo ya)
+        if not self.sync_worker.isRunning():
+            self.sync_worker.start()
 
     def _handle_pick_folder(self):
         folder = QFileDialog.getExistingDirectory(self, "Seleccionar Carpeta")

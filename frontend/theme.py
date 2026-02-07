@@ -155,6 +155,15 @@ def get_sheet(is_dark: bool = True) -> str:
         border: 1px solid {c.NeonGreen_Dark}; 
     }}
 
+    /* --- Sliders --- */
+    QSlider::groove:horizontal {{
+        border: 1px solid {c.Black_N4}; height: 6px; border-radius: 3px; background-color: transparent;
+    }}
+    QSlider::handle:horizontal {{
+        background-color: {c.NeonGreen_Main}; width: 16px; height: 16px; margin: -5px 0; border-radius: 8px;
+    }}
+    
+
     /* --- SCROLLBARS --- */
     
     /* VERTICAL */
@@ -203,6 +212,12 @@ STYLES = {
     "label_text": f"""
         QLabel {{font-weight: bold; font-size: 13px; color: white; border: none; background: transparent;}}
     """,
+    "label_title": f"""
+        QLabel {{ 
+            border:none; font-size: 14px; 
+            font-weight: bold; color: white;
+        }}
+    """,
     # --- INPUTS ---
     "input": f"""
         QLineEdit {{ background: {c.Black_N3}; border-radius: {r['input']}; padding: 6px; color: white; }}
@@ -229,7 +244,6 @@ STYLES = {
             background-color: {c.Black_N2};
             color: {c.White_N1};
             border: 1px solid {c.Black_N2};
-            border-radius: 12px;
             padding: 12px;
             font-family: 'Segoe UI', monospace;
             font-size: 13px;
@@ -237,7 +251,7 @@ STYLES = {
     """,
     "text_edit_console": f"""
          QTextEdit {{
-            background-color: {c.Black_N2}; color: {c.Gray_N1}; border-radius: 12px;
+            background-color: {c.Black_N2}; color: {c.Gray_N1};
             font-family: Consolas, monospace; font-size: 12px; padding: 10px; border: none;
         }}
     """,
