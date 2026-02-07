@@ -1,5 +1,5 @@
 {
-    "version": "1.8.4.0",
-    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.8.4.0/KickMonitor_Setup_v1.8.4.0.exe",
-    "changelog": "<ul><li><b>NUEVO (Posicionamiento):</b> Ahora puedes definir coordenadas exactas (X, Y) para tus alertas multimedia desde el menú de edición.</li><li><b>MEJORA (Lógica Overlay):</b> Nuevo sistema de prioridades: Las coordenadas fijas tienen prioridad sobre el modo aleatorio.</li><li><b>CORRECCIÓN CRÍTICA:</b> Solucionado el error 404 de rutas (Assets) al ejecutar la app compilada y bugs de persistencia en base de datos.</li><li><b>TÉCNICO:</b> Migración automática de tablas y validación de tipos numéricos para mayor estabilidad.</li></ul>"
+    "version": "1.9.0.0",
+    "url": "https://github.com/Andro2k/KickMonitor/releases/download/kickmonitorV1.9.0.0/KickMonitor_Setup_v1.9.0.0.exe",
+    "changelog": "<h3>🚀 v1.9.0.0: Sincronización Total & Personalización</h3><ul><li><b>NUEVO (Sincronización Bidireccional):</b> Ahora la App conoce el estado real de la nube. Si desactivas un trigger, se fuerza el apagado en Kick inmediatamente.</li><li><b>NUEVO (Personalización):</b> Ahora puedes editar el <b>Color</b> y la <b>Descripción</b> de tus recompensas directamente desde el menú de edición.</li><li><b>CORRECCIÓN (Bug Rebote):</b> Solucionado el error visual donde el botón regresaba a 'Activo' después de apagarlo.</li><li><b>MEJORA (Estabilidad API):</b> Implementado envío de datos estrictos (Payload completo) para evitar errores silenciosos al crear puntos.</li><li><b>UX:</b> Mejoras visuales en los sliders del modal y validación de coordenadas.</li></ul>"
 }

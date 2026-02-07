@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(1000, self.controller.start_bot)
 
     def _setup_app_id(self):
-        myappid = u'kickmonitor.v1.8.4.0' 
+        myappid = u'kickmonitor.v1.9.0.0' 
         try: 
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
         except Exception as e:
