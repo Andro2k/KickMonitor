@@ -86,7 +86,7 @@ class ModalEditMedia(BaseModal):
         l.addWidget(QLabel(f"Configurar: {self.filename}", styleSheet=STYLES["label_title"]))
 
         # 2. SELECCIÓN DE RECOMPENSA (COMBO + BOTÓN REFRESH)
-        l.addWidget(QLabel("Nombre del Canje (Kick) - Max 20 letras:", styleSheet="border:none; color: #AAA; font-size: 11px;"))
+        l.addWidget(QLabel("Nombre del Canje (Kick) - Max 20 letras:", styleSheet="border:none; color: #AAA; font-size: 12px;"))
         
         h_combo = QHBoxLayout()
         h_combo.setSpacing(5)

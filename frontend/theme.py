@@ -390,15 +390,15 @@ STYLES = {
     "combobox": f"""
         QComboBox {{
             background-color: {c.Black_N3}; border: 1px solid {c.Black_N4};
-            color: {c.White_N1}; border-radius: 6px; padding: 6px 12px; min-height: 16px;
+            color: {c.White_N1}; border-radius: 6px; padding: 6px; min-height: 18px;
         }}
         QComboBox:hover, QComboBox:focus {{
             border: 1px solid {c.Gray_N1}; background-color: {c.Black_N2};
         }}
         
         QComboBox::drop-down{{border: none;}}
-        QComboBox::down-arrow {{image: url({asset_url("chevron-down.svg")});}}
-        QComboBox::down-arrow::on {{image: url({asset_url("chevron-up.svg")});}}
+        QComboBox::down-arrow {{image: url({asset_url("chevron-down.svg")}); margin-right: 4px;}}
+        QComboBox::down-arrow::on {{image: url({asset_url("chevron-up.svg")}); margin-right: 4px;}}
 
         QComboBox QAbstractItemView {{
             background-color: {c.NeonGreen_Dark}; color: {c.Black_N3};
