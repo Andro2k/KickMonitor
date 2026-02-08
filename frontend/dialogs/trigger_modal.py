@@ -2,17 +2,24 @@
 
 import json
 import os
+import re
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, 
     QPushButton, QSpinBox, QSlider, QComboBox,
     QTextEdit, QColorDialog, QFrame, QWidget
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QColor, QCursor
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
+from PyQt6.QtGui import QColor, QCursor, QTextCursor
+
+# --- IMPORTACIONES DEL PROYECTO ---
 from backend.utils.paths import get_config_path
+from frontend.factories import create_icon_btn
 from frontend.theme import STYLES, THEME_DARK
 from frontend.components.base_modal import BaseModal
 
+# =============================================================================
+# WORKER: CARGA ASÍNCRONA DE KICK
+# =============================================================================
 class RewardsLoaderWorker(QThread):
     finished = pyqtSignal(bool, list)
 
@@ -21,7 +28,7 @@ class RewardsLoaderWorker(QThread):
         self.service = service
 
     def run(self):
-        # 1. Verificar si tenemos token guardado
+        # 1. Verificar Token
         has_token = False
         try:
             path = os.path.join(get_config_path(), "session.json")
@@ -33,29 +40,29 @@ class RewardsLoaderWorker(QThread):
         except:
             has_token = False
 
-        # Si no hay token, ni intentamos conectar
         if not has_token:
             self.finished.emit(False, [])
             return
 
-        # 2. Intentar descargar recompensas
+        # 2. Obtener Recompensas
         try:
             rewards = self.service.get_available_kick_rewards()
-            # Si devuelve una lista (aunque sea vacía), asumimos conexión exitosa
             self.finished.emit(True, rewards)
         except:
-            # Si falla la petición (ej: sin internet), enviamos desconectado
             self.finished.emit(False, [])
 
+# =============================================================================
+# CLASE PRINCIPAL: MODAL DE EDICIÓN
+# =============================================================================
 class ModalEditMedia(BaseModal):
     def __init__(self, parent_page, filename, ftype, data):
-        super().__init__(parent_page, width=420, height=560)
+        super().__init__(parent_page, width=420, height=620)
         
         self.page = parent_page 
         self.filename = filename
         self.ftype = ftype
         
-        # Carga de datos
+        # Carga de Datos Iniciales
         self.cmd = data.get("cmd", "")
         self.cost = int(data.get("cost", 0))
         self.dur = int(data.get("dur", 0))
@@ -67,33 +74,51 @@ class ModalEditMedia(BaseModal):
         self.description = data.get("description", "Trigger KickMonitor")
         
         self._setup_ui()
-        self._start_async_loading()
+        
+        # Iniciar carga con retraso para asegurar que la UI existe
+        QTimer.singleShot(100, self._start_async_loading)
 
     def _setup_ui(self):
         l = self.body_layout
         l.setSpacing(10)
 
-        # 1. TÍTULO
+        # 1. TÍTULO DEL ARCHIVO
         l.addWidget(QLabel(f"Configurar: {self.filename}", styleSheet=STYLES["label_title"]))
 
-        # 2. SELECCIONAR RECOMPENSA
-        l.addWidget(QLabel("Nombre del Canje (Kick):", styleSheet="border:none; color: #AAA;"))
+        # 2. SELECCIÓN DE RECOMPENSA (COMBO + BOTÓN REFRESH)
+        l.addWidget(QLabel("Nombre del Canje (Kick) - Max 20 letras:", styleSheet="border:none; color: #AAA; font-size: 11px;"))
+        
+        h_combo = QHBoxLayout()
+        h_combo.setSpacing(5)
+
         self.combo_rewards = QComboBox()
         self.combo_rewards.setEditable(True) 
-        self.combo_rewards.setPlaceholderText("Cargando lista de Kick...") 
-        self.combo_rewards.setEnabled(False) 
+        self.combo_rewards.setPlaceholderText("Cargando lista...") 
+        self.combo_rewards.lineEdit().setMaxLength(20) # Límite físico de entrada
         self.combo_rewards.setStyleSheet(STYLES["combobox"])
-        if self.cmd:
-            self.combo_rewards.addItem(self.cmd)
-            self.combo_rewards.setCurrentText(self.cmd)
+        
+        # Conexiones de Señales
+        self.combo_rewards.editTextChanged.connect(self._validate_title)
         self.combo_rewards.currentIndexChanged.connect(self._on_reward_selected)
-        l.addWidget(self.combo_rewards)
+        
+        h_combo.addWidget(self.combo_rewards)
 
-        # 3. APARIENCIA KICK
+        # Botón de Refrescar (Usando Factory)
+        self.btn_refresh = create_icon_btn(
+            "refresh-cw.svg",            
+            self._start_async_loading,   
+            tooltip="Recargar lista de Kick"
+        )
+        h_combo.addWidget(self.btn_refresh)
+
+        l.addLayout(h_combo)
+
+        # 3. APARIENCIA KICK (COLOR + DESCRIPCIÓN)
         frame_kick = QFrame()
         frame_kick.setStyleSheet(f"background-color: {THEME_DARK['Black_N1']}; border-radius: 8px; padding: 5px;")
         lk = QVBoxLayout(frame_kick)
         
+        # Selector de Color
         h_color = QHBoxLayout()
         h_color.addWidget(QLabel("Color:", styleSheet="border:none; color: #DDD;"))
         self.btn_color = QPushButton()
@@ -105,16 +130,26 @@ class ModalEditMedia(BaseModal):
         h_color.addStretch()
         lk.addLayout(h_color)
         
-        lk.addWidget(QLabel("Descripción:", styleSheet="border:none; color: #DDD;"))
+        # Descripción con Contador
+        h_desc_lbl = QHBoxLayout()
+        h_desc_lbl.addWidget(QLabel("Descripción:", styleSheet="border:none; color: #DDD;"))
+        self.lbl_desc_count = QLabel("0/200")
+        self.lbl_desc_count.setStyleSheet("border:none; color: #666; font-size: 11px;")
+        h_desc_lbl.addWidget(self.lbl_desc_count)
+        h_desc_lbl.addStretch()
+        lk.addLayout(h_desc_lbl)
+
         self.txt_desc = QTextEdit()
         self.txt_desc.setStyleSheet(STYLES["text_edit_console"])
-        self.txt_desc.setPlaceholderText("Instrucciones...")
+        self.txt_desc.setPlaceholderText("Instrucciones para el usuario...")
         self.txt_desc.setText(self.description)
         self.txt_desc.setFixedHeight(65)
+        self.txt_desc.textChanged.connect(self._validate_desc)
+        
         lk.addWidget(self.txt_desc)
         l.addWidget(frame_kick)
 
-        # 4. COSTO Y DURACIÓN
+        # 4. CONFIGURACIÓN NUMÉRICA (COSTO Y DURACIÓN)
         h_nums = QHBoxLayout()
         v_cost = QVBoxLayout()
         v_cost.addWidget(QLabel("Costo:", styleSheet="border:none; color: #888;"))
@@ -135,7 +170,7 @@ class ModalEditMedia(BaseModal):
         h_nums.addLayout(v_dur)
         l.addLayout(h_nums)
 
-        # 5. COORDENADAS
+        # 5. COORDENADAS (X / Y)
         h_pos = QHBoxLayout()
         self.spin_x = self._create_coord_spin("Pos X:", self.pos_x)
         self.spin_y = self._create_coord_spin("Pos Y:", self.pos_y)
@@ -143,12 +178,10 @@ class ModalEditMedia(BaseModal):
         h_pos.addLayout(self.spin_y)
         l.addLayout(h_pos)
 
-        # 6. SLIDERS CON ETIQUETAS (Fondo Transparente)
-        
-        # --- VOLUMEN ---
-        # Contenedor para alinear etiqueta y valor
+        # 6. SLIDERS (VOLUMEN Y ESCALA)
+        # Volumen
         w_vol = QWidget()
-        w_vol.setStyleSheet("background: transparent;") # <--- CLAVE: Fondo transparente
+        w_vol.setStyleSheet("background: transparent;")
         l_vol = QVBoxLayout(w_vol)
         l_vol.setContentsMargins(0,0,0,0)
         l_vol.setSpacing(2)
@@ -168,7 +201,7 @@ class ModalEditMedia(BaseModal):
         l_vol.addWidget(self.slider_vol)
         l.addWidget(w_vol)
 
-        # --- ESCALA (SOLO SI ES VIDEO) ---
+        # Escala (Solo si es video)
         if self.ftype == "video":
             w_zoom = QWidget()
             w_zoom.setStyleSheet("background: transparent;")
@@ -193,35 +226,90 @@ class ModalEditMedia(BaseModal):
         
         l.addStretch()
 
-        # 7. BOTONES
+        # 7. BOTONES DE ACCIÓN
         h_btns = QHBoxLayout()
         btn_cancel = QPushButton("Cancelar")
         btn_cancel.clicked.connect(self.reject)
         btn_cancel.setStyleSheet(STYLES["btn_outlined"])
-        btn_save = QPushButton("Guardar")
-        btn_save.clicked.connect(self._save_data)
-        btn_save.setStyleSheet(STYLES["btn_primary"])
+        
+        # Botón Guardar (Guardamos referencia 'self' para bloquearlo)
+        self.btn_save = QPushButton("Guardar") 
+        self.btn_save.clicked.connect(self._save_data)
+        self.btn_save.setStyleSheet(STYLES["btn_primary"])
+        
         h_btns.addWidget(btn_cancel)
-        h_btns.addWidget(btn_save)
+        h_btns.addWidget(self.btn_save)
         l.addLayout(h_btns)
 
+        self._validate_desc()
+
+    # =========================================================================
+    # LÓGICA DE VALIDACIÓN Y UI
+    # =========================================================================
+    def _validate_title(self, text):
+        """Valida caracteres del título."""
+        # Solo letras, números y espacios
+        pattern = r"^[a-zA-Z0-9\sñÑáéíóúÁÉÍÓÚ]*$"
+        
+        if not re.match(pattern, text):
+            self.combo_rewards.setStyleSheet(STYLES["combobox"] + "border: 2px solid #e74c3c;")
+            self.btn_save.setEnabled(False) 
+        else:
+            self.combo_rewards.setStyleSheet(STYLES["combobox"])
+            self._check_save_enabled()
+
+    def _validate_desc(self):
+        """Valida longitud y caracteres de la descripción."""
+        text = self.txt_desc.toPlainText()
+        limit = 200
+        
+        # 1. Control de Longitud (Con bloqueo de señales para evitar recursividad)
+        if len(text) > limit:
+            self.txt_desc.blockSignals(True) # <--- CRÍTICO
+            text = text[:limit]
+            self.txt_desc.setPlainText(text)
+            cursor = self.txt_desc.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+            self.txt_desc.setTextCursor(cursor)
+            self.txt_desc.blockSignals(False) # <--- CRÍTICO
+        
+        self.lbl_desc_count.setText(f"{len(text)}/{limit}")
+
+        # 2. Validación de Símbolos
+        # Permite: Letras, números, espacios y PUNTUACIÓN BÁSICA (.,;¿?!)
+        pattern = r"^[a-zA-Z0-9\sñÑáéíóúÁÉÍÓÚ.,;¿?!]*$"
+        
+        # re.DOTALL permite que el punto coincida con saltos de línea
+        if not re.match(pattern, text, re.DOTALL):
+            self.txt_desc.setStyleSheet(STYLES["text_edit_console"] + "border: 2px solid #e74c3c;")
+            self.btn_save.setEnabled(False)
+        else:
+            self.txt_desc.setStyleSheet(STYLES["text_edit_console"])
+            self._check_save_enabled()
+
+    def _check_save_enabled(self):
+        """Reactiva el botón guardar solo si AMBOS campos son válidos."""
+        pat_title = r"^[a-zA-Z0-9\sñÑáéíóúÁÉÍÓÚ]*$"
+        pat_desc = r"^[a-zA-Z0-9\sñÑáéíóúÁÉÍÓÚ.,;¿?!]*$"
+        
+        title_ok = bool(re.match(pat_title, self.combo_rewards.currentText()))
+        desc_ok = bool(re.match(pat_desc, self.txt_desc.toPlainText(), re.DOTALL))
+        
+        if title_ok and desc_ok:
+            self.btn_save.setEnabled(True)
+        else:
+            self.btn_save.setEnabled(False)
+
     def _create_coord_spin(self, label_text, val):
-        # CORRECCIÓN: Creamos el layout directamente sin un widget padre temporal
         l = QVBoxLayout() 
         l.setContentsMargins(0,0,0,0)
         l.setSpacing(2)
-        
-        # Etiqueta con fondo transparente
         l.addWidget(QLabel(label_text, styleSheet="border:none; color:#888; background: transparent;"))
-        
-        # SpinBox configurado sin negativos
         spin = QSpinBox()
-        spin.setRange(0, 5000) # Mínimo 0
+        spin.setRange(0, 5000)
         spin.setValue(val if val >= 0 else 0)
         spin.setStyleSheet(STYLES["spinbox_modern"])
-        
         l.addWidget(spin)
-        
         return l
 
     def _update_color_btn(self):
@@ -234,32 +322,55 @@ class ModalEditMedia(BaseModal):
             self.color = dialog.selectedColor().name()
             self._update_color_btn()
 
+    # =========================================================================
+    # LÓGICA ASÍNCRONA Y CARGA DE DATOS
+    # =========================================================================
     def _start_async_loading(self):
+        """Inicia la carga de Kick de forma segura y controlada."""
+        # 1. PROTECCIÓN DE HILOS
+        if hasattr(self, 'worker') and self.worker is not None and self.worker.isRunning():
+            return 
+
+        # 2. Feedback Visual
+        self.combo_rewards.clear()
+        self.combo_rewards.setPlaceholderText("Buscando en Kick...")
+        self.combo_rewards.setEnabled(False) 
+        self.btn_refresh.setEnabled(False)
+
+        # 3. Iniciar Worker
         if hasattr(self.page, 'service'):
             self.worker = RewardsLoaderWorker(self.page.service)
             self.worker.finished.connect(self._on_rewards_loaded)
+            
+            # Limpieza automática de memoria
+            self.worker.finished.connect(lambda: setattr(self, 'worker', None))
+            self.worker.finished.connect(self.worker.deleteLater)
+            
             self.worker.start()
 
     def _on_rewards_loaded(self, is_connected, rewards):
-        self.combo_rewards.clear()
+        """Callback al terminar la carga."""
+        self.combo_rewards.setEnabled(True)
+        self.btn_refresh.setEnabled(True)
+        
+        self.combo_rewards.clear() 
         
         if not is_connected:
-            # ESTADO: DESCONECTADO
-            self.combo_rewards.setPlaceholderText("⚠️ Desconectado (Requiere Login)")
+            self.combo_rewards.setPlaceholderText("⚠️ Error de Conexión")
+            self.combo_rewards.addItem("Offline - Revise conexión") 
             self.combo_rewards.setStyleSheet(STYLES["combobox"] + "border: 1px solid #e74c3c; color: #e74c3c;")
-            self.combo_rewards.setEnabled(False)
         else:
-            # ESTADO: CONECTADO
-            self.combo_rewards.setEnabled(True)
             self.combo_rewards.setStyleSheet(STYLES["combobox"])
             
             if not rewards:
-                self.combo_rewards.setPlaceholderText("Conectado (Sin recompensas creadas)")
+                self.combo_rewards.setPlaceholderText("Sin recompensas")
+                self.combo_rewards.addItem("(Ninguna recompensa en Kick)")
+                self.combo_rewards.model().item(0).setEnabled(False)
             else:
                 for r in rewards:
                     self.combo_rewards.addItem(r['title'], r)
                 
-                # Restaurar selección previa si existe
+                # Restaurar selección anterior
                 if self.cmd:
                     self.combo_rewards.setEditText(self.cmd)
                     index = self.combo_rewards.findText(self.cmd)
@@ -269,16 +380,29 @@ class ModalEditMedia(BaseModal):
                     self.combo_rewards.setPlaceholderText("Seleccione una recompensa...")
                     self.combo_rewards.setCurrentIndex(-1)
 
+        # Forzar repintado UI
+        self.combo_rewards.update()
+        self.combo_rewards.repaint()
+
     def _on_reward_selected(self, index):
+        """Rellena el formulario si seleccionas una recompensa existente."""
         if not self.combo_rewards.isEnabled(): return
         data = self.combo_rewards.itemData(index)
+        
         if data and isinstance(data, dict):
+            # Costo
             self.spin_cost.setValue(data.get('cost', 0))
+            # Color
             if 'background_color' in data:
                 self.color = data['background_color']
                 self._update_color_btn()
+            # Descripción (Sincronización)
+            kick_desc = data.get("description", "")
+            if kick_desc:
+                self.txt_desc.setText(kick_desc)
 
     def _save_data(self):
+        # Recopilación final de datos
         self.cmd = self.combo_rewards.currentText().strip()
         self.description = self.txt_desc.toPlainText()
         self.cost = self.spin_cost.value()

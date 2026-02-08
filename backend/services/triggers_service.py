@@ -162,7 +162,6 @@ class TriggerService:
         Guarda detectando cambio de nombre para actualizar Kick correctamente.
         """
         # --- PASO 1: RECUPERAR NOMBRE ANTERIOR ---
-        # Antes de borrar, miramos qué nombre tenía este archivo en la DB
         old_config = self.db.get_all_triggers().get(filename, {})
         old_title = old_config.get("cmd", "")
 
@@ -180,6 +179,30 @@ class TriggerService:
             self.db.set_trigger(cmd="", file=filename, ftype=ftype, dur=0, sc=1.0, act=0, cost=0, vol=100, pos_x=0, pos_y=0)
             return True, "Trigger desactivado (sin nombre)"
             
+        if sync_kick:
+            # Obtenemos las recompensas actuales
+            current_rewards = self.rewards_api.list_rewards()
+            
+            # Verificamos si estamos EDITANDO o CREANDO
+            # Si el titulo nuevo NO está en la lista actual, y el titulo viejo tampoco... es CREACIÓN.
+            is_creation = True
+            
+            # Buscamos si ya existe (por nombre viejo o nuevo)
+            for r in current_rewards:
+                r_title = r.get("title", "").strip().lower()
+                if r_title == old_title.lower() or r_title == new_title.lower():
+                    is_creation = False
+                    break
+            
+            # Si es creación nueva y ya tenemos 15 o más... BLOQUEAR
+            if is_creation and len(current_rewards) >= 15:
+                # Restauramos la config local anterior para no romper la UI
+                if old_title:
+                    # (Opcional) Aquí podrías intentar restaurar, pero devolviendo False basta para alertar
+                    pass
+                return False, "Error: Kick solo permite máximo 15 recompensas activas."
+        # =====================================================================
+
         # --- PASO 4: GUARDAR LOCAL ---
         result = self.db.set_trigger(
             cmd=new_title.lower(),
@@ -219,7 +242,7 @@ class TriggerService:
     
     def sync_kick_states(self) -> int:
         """
-        Descarga las recompensas de Kick y actualiza el estado (Activo/Inactivo)
+        Descarga las recompensas de Kick y actualiza TODO (Estado, Costo, Descripción, Color)
         """
         try:
             # 1. Obtener lista real de Kick
@@ -228,11 +251,11 @@ class TriggerService:
                 return 0
 
             # 2. Obtener configuración local
-            local_triggers = self.db.get_all_triggers() # Esto devuelve un dict {filename: config}
+            local_triggers = self.db.get_all_triggers()
             
-            # 3. Crear mapa rápido de Kick: { 'nombre_comando': is_enabled }
+            # 3. Crear mapa completo de Kick: { 'titulo_lower': objeto_recompensa }
             kick_map = {
-                r.get("title", "").strip().lower(): r.get("is_enabled", False) 
+                r.get("title", "").strip().lower(): r 
                 for r in kick_rewards
             }
 
@@ -242,21 +265,54 @@ class TriggerService:
             for filename, config in local_triggers.items():
                 cmd = config.get("cmd", "").strip().lower()
                 
-                # Si el trigger local tiene un comando y ese comando existe en Kick
+                # Si el trigger local existe en Kick
                 if cmd and cmd in kick_map:
-                    kick_is_active = kick_map[cmd]
-                    local_is_active = bool(config.get("active", 0))
+                    kick_data = kick_map[cmd]
+                    
+                    # --- Extracción de datos de Kick ---
+                    k_active = kick_data.get("is_enabled", False)
+                    k_cost = kick_data.get("cost", 0)
+                    k_desc = kick_data.get("description", "") or "Trigger KickMonitor"
+                    k_color = kick_data.get("background_color", "#53fc18")
 
-                    # SI HAY DISCREPANCIA: Gana Kick (La web es la verdad absoluta)
-                    if kick_is_active != local_is_active:
-                        self.db.update_active_state(filename, kick_is_active)
+                    # --- Extracción de datos Locales ---
+                    l_active = bool(config.get("active", 0))
+                    l_cost = int(config.get("cost", 0))
+                    l_desc = config.get("description", "")
+                    l_color = config.get("color", "")
+
+                    # --- Detección de Cambios ---
+                    has_changes = (
+                        k_active != l_active or 
+                        k_cost != l_cost or 
+                        k_desc != l_desc or
+                        k_color != l_color
+                    )
+
+                    if has_changes:
+                        # Actualizamos la DB Local con los datos de Kick
+                        # Manteniendo los datos "físicos" (archivo, duracion, escala, volumen, pos)
+                        self.db.set_trigger(
+                            cmd=config.get("cmd"), # Mantenemos el nombre original (casing)
+                            file=filename,
+                            ftype=config.get("type", "audio"), # Fallback seguro
+                            dur=config.get("dur", 0),
+                            sc=config.get("scale", 1.0),
+                            act=1 if k_active else 0,     # <--- Actualiza Activo
+                            cost=k_cost,                  # <--- Actualiza Costo
+                            vol=config.get("volume", 100),
+                            pos_x=config.get("pos_x", 0),
+                            pos_y=config.get("pos_y", 0),
+                            color=k_color,                # <--- Actualiza Color
+                            description=k_desc            # <--- Actualiza Descripción
+                        )
                         changes_count += 1
-                        # print(f"[SYNC] Sincronizado {filename}: Local {local_is_active} -> Kick {kick_is_active}")
+                        print(f"[SYNC] Actualizado {filename} desde Kick.")
 
             return changes_count
 
         except Exception as e:
-            # print(f"[ERROR SYNC] Falló la sincronización de estados: {e}")
+            print(f"[ERROR SYNC] Falló la sincronización: {e}")
             return 0
         
     def preview_media(self, filename: str, ftype: str, config: Dict):

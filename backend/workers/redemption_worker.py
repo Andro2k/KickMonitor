@@ -8,6 +8,8 @@ from PyQt6.QtCore import QThread, pyqtSignal
 
 from backend.utils.logger_text import LoggerText
 from backend.utils.paths import get_config_path
+# [NUEVO] Importamos el servicio que sabe renovar tokens
+from backend.services.rewards_service import RewardsService 
 
 URL_REDEMPTIONS = "https://api.kick.com/public/v1/channels/rewards/redemptions"
 
@@ -22,6 +24,9 @@ class RedemptionWorker(QThread):
         self.is_running = True
         self.scraper = cloudscraper.create_scraper()
         
+        # [NUEVO] Instancia para poder llamar a _refresh_token
+        self.auth_service = RewardsService() 
+        
         self.normal_interval = 1.5  
         self.burst_interval = 0.5   
         self.processed_ids = set() 
@@ -34,6 +39,7 @@ class RedemptionWorker(QThread):
         self.log_signal.emit(LoggerText.system("Monitor de Puntos: Iniciado"))
         
         while self.is_running:
+            # 1. Obtenemos el token (siempre lee del archivo por si se actualizó)
             token = self._get_token()
             found_something = False
 
@@ -45,7 +51,6 @@ class RedemptionWorker(QThread):
                 
                 found_something = found_p or found_f
             else:
-                # Solo loguear esto una vez cada 60 segundos para no spamear
                 if time.time() - self._last_error_time > 60:
                     self.log_signal.emit(LoggerText.warning("Monitor Puntos: No se encontró token."))
                     self._last_error_time = time.time()
@@ -55,7 +60,7 @@ class RedemptionWorker(QThread):
 
             sleep_time = self.burst_interval if found_something else self.normal_interval
             
-            # Loop de espera fraccionado para poder detener el hilo rápido
+            # Loop de espera fraccionado
             steps = int(sleep_time * 10)
             for _ in range(steps):
                 if not self.is_running: break
@@ -72,7 +77,7 @@ class RedemptionWorker(QThread):
                 with open(path, 'r') as f:
                     return json.load(f).get("access_token")
         except Exception as e:
-            print(f"Error leyendo token: {e}")
+            # print(f"Error leyendo token: {e}")
             return None
 
     def _check_redemptions(self, token, status) -> bool:
@@ -97,14 +102,27 @@ class RedemptionWorker(QThread):
             time.sleep(2)
             return False
         
-        # Manejo de Token Expirado (401)
+        # =====================================================================
+        # [CORREGIDO] AUTO-RENOVACIÓN DE TOKEN (401)
+        # =====================================================================
         if resp.status_code == 401:
-            if time.time() - self._last_error_time > 30:
-                self.log_signal.emit(LoggerText.warning("Monitor Puntos: Token expirado (401). Esperando renovación..."))
-                self._last_error_time = time.time()
+            self.log_signal.emit(LoggerText.warning("Monitor: Token caducado (401). Renovando..."))
+            
+            # Intentamos renovar usando el servicio
+            success = self.auth_service._refresh_token()
+            
+            if success:
+                self.log_signal.emit(LoggerText.success("Monitor: Token renovado exitosamente."))
+                # IMPORTANTE: No retornamos nada más, el bucle principal 'while'
+                # volverá a empezar, llamará a _get_token() y leerá el NUEVO token del archivo.
+            else:
+                if time.time() - self._last_error_time > 60:
+                    self.log_signal.emit(LoggerText.error("Monitor: Falló la renovación. Requiere Login."))
+                    self._last_error_time = time.time()
+            
             return False
+        # =====================================================================
 
-        # Otros errores (500, 403, etc)
         if resp.status_code != 200:
             if time.time() - self._last_error_time > 30:
                 self.log_signal.emit(LoggerText.debug(f"Monitor Puntos API Error: {resp.status_code}"))
@@ -142,7 +160,8 @@ class RedemptionWorker(QThread):
 
                 # 1. Disparar Trigger
                 self.redemption_detected.emit(username, reward_title, user_input)
-                
+                self.log_signal.emit(LoggerText.success(f"Canje detectado: {reward_title} ({username})"))
+
                 # 2. Aceptar en Kick si está pendiente
                 if status == "pending":
                     self._fulfill_redemption(red_id, token, headers)

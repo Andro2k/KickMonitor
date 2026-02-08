@@ -186,10 +186,30 @@ class RewardsService:
         return False
 
     def delete_reward_by_title(self, title: str):
-        # Primero necesitamos listar para encontrar el ID
+        print(f"[KICK] Intentando borrar recompensa: '{title}'")
+        
+        # 1. Obtener lista actual para buscar el ID
         rewards = self.list_rewards()
+        if not rewards:
+            print("[ERROR] No se pudo obtener la lista de recompensas para borrar.")
+            return
+
+        target_id = None
+        clean_title = title.strip().lower()
+
+        # 2. Buscar coincidencia insensible a mayúsculas
         for r in rewards:
-            if r.get("title", "").strip().lower() == title.strip().lower():
-                url = f"{URL_REWARDS}/{r['id']}"
-                self._make_request("DELETE", url)
+            if r.get("title", "").strip().lower() == clean_title:
+                target_id = r.get("id")
                 break
+        
+        # 3. Ejecutar borrado si se encontró
+        if target_id:
+            url = f"{URL_REWARDS}/{target_id}"
+            resp = self._make_request("DELETE", url)
+            if resp and resp.status_code in [200, 204]:
+                print(f"[KICK] Recompensa '{title}' eliminada correctamente.")
+            else:
+                print(f"[ERROR] Falló el borrado en API. Code: {resp.status_code if resp else 'N/A'}")
+        else:
+            print(f"[ADVERTENCIA] No se encontró ninguna recompensa en Kick con el nombre '{title}'.")
