@@ -2,7 +2,7 @@
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QPushButton, QLabel, 
-    QFrame, QScrollArea, QHBoxLayout
+    QFrame, QScrollArea, QHBoxLayout, QSizePolicy
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve, QSize, QUrl
 from PyQt6.QtGui import QPixmap, QPainter, QPainterPath
@@ -30,8 +30,8 @@ class Sidebar(QFrame):
         self.setObjectName("SidebarContainer")
         self.setStyleSheet(STYLES["sidebar_container"])
         
-        # Dimensiones
-        self.full_width = 174
+        # Dimensiones ajustadas para el centrado perfecto
+        self.full_width = 180
         self.mini_width = 64
         self.is_collapsed = False
         self.buttons = []
@@ -45,8 +45,8 @@ class Sidebar(QFrame):
         
         # Layout Principal
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(5)
+        self.layout.setContentsMargins(8, 8, 8, 8)
+        self.layout.setSpacing(8)
         
         # Partes del Sidebar
         self._setup_header()
@@ -60,10 +60,10 @@ class Sidebar(QFrame):
 
     def _setup_header(self):
         header_frame = QFrame()
-        header_frame.setFixedHeight(60)
-        header_frame.setStyleSheet("background: transparent; border: none;")
+        # header_frame.setFixedHeight(60)
+        header_frame.setStyleSheet(f"background: {THEME_DARK['Black_N2']}; border-radius: 8px;")
         h_layout = QHBoxLayout(header_frame)
-        h_layout.setContentsMargins(15, 10, 15, 10)
+        h_layout.setContentsMargins(5, 5, 5, 5)
         h_layout.setSpacing(5)
 
         self.lbl_title = QLabel("Kick Monitor")
@@ -76,8 +76,12 @@ class Sidebar(QFrame):
         self.btn_toggle.setStyleSheet(STYLES["btn_icon_ghost"])
         self.btn_toggle.clicked.connect(self.toggle_sidebar)
 
+        # Espaciador para centrar al plegar
+        self.header_spacer = QWidget()
+        self.header_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
         h_layout.addWidget(self.lbl_title)
-        h_layout.addStretch()
+        h_layout.addWidget(self.header_spacer)
         h_layout.addWidget(self.btn_toggle)
         self.layout.addWidget(header_frame)
 
@@ -89,11 +93,11 @@ class Sidebar(QFrame):
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         
         content = QWidget()
-        content.setStyleSheet("background: transparent;")
+        content.setStyleSheet(f"background: {THEME_DARK['Black_N2']}; border-radius: 8px;")
         
         self.menu_layout = QVBoxLayout(content)
-        self.menu_layout.setContentsMargins(10,5,10,5)
-        self.menu_layout.setSpacing(0)
+        self.menu_layout.setContentsMargins(5, 5, 5, 5)
+        self.menu_layout.setSpacing(2)
 
         # MAIN MENU
         self._add_section_label("MAIN MENU")
@@ -101,7 +105,7 @@ class Sidebar(QFrame):
         self._add_btn("Chat Monitor", "chat.svg", 1)
         self._add_btn("Comandos", "terminal.svg", 2)
         
-        self.menu_layout.addSpacing(10)
+        self.menu_layout.addSpacing(15)
         
         # TOOLS
         self._add_section_label("TOOLS")
@@ -113,6 +117,7 @@ class Sidebar(QFrame):
         self.menu_layout.addStretch()
         
         # OTHER
+        self.menu_layout.addSpacing(15)
         self._add_section_label("OTHER")
         self._add_btn("Configuración", "settings.svg", 7)
 
@@ -121,18 +126,18 @@ class Sidebar(QFrame):
 
     def _setup_footer(self):
         self.footer = QFrame()
-        self.footer.setFixedHeight(60)
-        self.footer.setStyleSheet(f"border: none; border-top: 1px solid {THEME_DARK['Black_N2']}; background: transparent;")
+        # self.footer.setFixedHeight(60)
+        self.footer.setStyleSheet(f"background: {THEME_DARK['Black_N2']}; border-radius: 8px;")
         
         f_layout = QHBoxLayout(self.footer)
-        f_layout.setContentsMargins(15, 10, 15, 10)
-        f_layout.setSpacing(5) # Menos espacio para que quepa todo
+        f_layout.setContentsMargins(5, 5, 5, 5)
+        f_layout.setSpacing(5)
         
         # Avatar
         self.lbl_avatar = QLabel()
         self.lbl_avatar.setFixedSize(32, 32)
         self.lbl_avatar.setStyleSheet(f"background-color: {THEME_DARK['Black_N4']}; border-radius: 16px;")
-        self.lbl_avatar.setPixmap(get_icon("user.svg").pixmap(56,56)) # Icono por defecto
+        self.lbl_avatar.setPixmap(get_icon("user.svg").pixmap(56,56))
         self.lbl_avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_avatar.setScaledContents(True)
 
@@ -140,29 +145,29 @@ class Sidebar(QFrame):
         self.lbl_user_text = QLabel("Sin Conexión")
         self.lbl_user_text.setStyleSheet("font-size: 12px; font-weight: bold; color: #ddd; border:none;")
 
+        # Espaciador ocultable para el footer
+        self.footer_spacer = QWidget()
+        self.footer_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
         f_layout.addWidget(self.lbl_avatar)
         f_layout.addWidget(self.lbl_user_text)
-        f_layout.addStretch()
+        f_layout.addWidget(self.footer_spacer)
         self.layout.addWidget(self.footer)
 
     # ==========================================
-    # NUEVO: LÓGICA DE ACTUALIZACIÓN DE PERFIL
+    # LÓGICA DE ACTUALIZACIÓN DE USUARIO
     # ==========================================
     def update_user_info(self, username, avatar_url):
         """Método público llamado desde MainWindow"""
-        
-        # 1. Actualizar texto
         if username and username != "Streamer":
             self.lbl_user_text.setText(username)
         else:
             self.lbl_user_text.setText("Sin Conexión")
         
-        # 2. Actualizar Avatar
         if avatar_url:
             req = QNetworkRequest(QUrl(avatar_url))
             self.nam.get(req)
         else:
-            # --- CAMBIO AQUÍ: Resetear a icono por defecto ---
             pix = get_icon("user.svg").pixmap(56,56)
             self._set_circular_avatar(pix)
 
@@ -204,13 +209,10 @@ class Sidebar(QFrame):
         
         self.lbl_avatar.setPixmap(rounded)
 
-    # ==========================================
-    # LÓGICA EXISTENTE
-    # ==========================================
     def _add_section_label(self, text):
         lbl = QLabel(text)
         lbl.setObjectName("SectionLabel")
-        lbl.setStyleSheet(f"color: {THEME_DARK['Gray_N2']}; font-size: 11px; font-weight: bold; margin-left: 10px; margin-top: 5px;")
+        lbl.setStyleSheet(f"color: {THEME_DARK['Gray_N2']}; font-size: 11px; font-weight: bold; margin-left: 5px; margin-top: 5px; margin-bottom: 5px;")
         self.menu_layout.addWidget(lbl)
 
     def _add_btn(self, text, icon, index):
@@ -232,11 +234,14 @@ class Sidebar(QFrame):
         self.anim.stop()
         
         if self.is_collapsed:
-            # EXPANDIR
             self.anim.setStartValue(self.width())
             self.anim.setEndValue(self.full_width)
+            
             self.lbl_title.show()
+            self.header_spacer.show()
             self.lbl_user_text.show()
+            self.footer_spacer.show()
+            
             self.btn_toggle.setIcon(get_icon("chevron-left-pipe.svg"))
             
             for btn in self.buttons:
@@ -245,16 +250,28 @@ class Sidebar(QFrame):
             for child in self.findChildren(QLabel, "SectionLabel"):
                 child.show()
         else:
-            # COLAPSAR
             self.anim.setStartValue(self.width())
             self.anim.setEndValue(self.mini_width)
+            
             self.lbl_title.hide()
+            self.header_spacer.hide() 
             self.lbl_user_text.hide()
+            self.footer_spacer.hide()
+            
             self.btn_toggle.setIcon(get_icon("menu.svg"))
             
             for btn in self.buttons:
                 btn.setText("")
-                btn.setStyleSheet(STYLES["sidebar_btn"] + "QPushButton { padding: 6px; text-align: center; }")
+                # Reemplazo de Padding dinámico
+                collapsed_style = STYLES["sidebar_btn"] + """
+                    QPushButton { 
+                        padding: 8px 0px; 
+                        padding-left: 0px; 
+                        text-align: center; 
+                    }
+                """
+                btn.setStyleSheet(collapsed_style)
+                
             for child in self.findChildren(QLabel, "SectionLabel"):
                 child.hide()
 
