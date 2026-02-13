@@ -21,6 +21,5 @@ build.py
 backend/config/
 *.csv
 *.log
-
-# test/api.py
+venv.txt
 test/
