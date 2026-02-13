@@ -14,7 +14,6 @@ class DatabaseConnection:
         
         # Conexión Segura
         try:
-            # check_same_thread=False es necesario para PyQt
             self.conn = sqlite3.connect(self.db_path, check_same_thread=False, timeout=30)
             self.conn.row_factory = sqlite3.Row 
             self._init_wal()

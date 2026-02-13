@@ -139,9 +139,8 @@ class PointsPage(QWidget):
 
         # Toolbar Interna
         bar = QFrame()
-        bar.setStyleSheet(f"border: 1px solid {THEME_DARK['Black_N4']};")
         h_bar = QHBoxLayout(bar)
-        h_bar.setContentsMargins(*LAYOUT["level_03"])
+        h_bar.setContentsMargins(*LAYOUT["level_01"])
         h_bar.setSpacing(LAYOUT["space_01"])
 
         lbl_search = QLabel()
@@ -150,7 +149,7 @@ class PointsPage(QWidget):
         h_bar.addWidget(lbl_search)
 
         # Input estilizado desde factory
-        self.inp_search = create_styled_input("Buscar usuario.", is_cmd=False, callback=self._handle_search_changed)
+        self.inp_search = create_styled_input("Buscar usuario", is_cmd=False, callback=self._handle_search_changed)
         h_bar.addWidget(self.inp_search, stretch=1)
         
         self.combo_filter = QComboBox()

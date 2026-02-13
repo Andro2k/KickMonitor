@@ -13,59 +13,50 @@ from frontend.utils import get_icon_colored
 # ==========================================
 TOAST_CONFIG = {
     "global": {
-        "background": "#1E1E1E",   # Fondo de la tarjeta
-        "text_title": "#FFFFFF",   # Color título
-        "text_body":  "#9CA3AF",   # Color mensaje
+        "background": "#1E1E1E",
+        "text_title": "#FFFFFF",
+        "text_body":  "#9CA3AF",
         "border_radius": 8
     },
     "types": {
         "success": {
-            "color": "#32D74B",    # Verde Kick
-            "icon": "check.svg"    # Nombre del archivo en assets/icons
+            "color": "#32D74B",
+            "icon": "check.svg"
         },
         "error": {
-            "color": "#FF453A",    # Rojo
+            "color": "#FF453A",
             "icon": "error.svg" 
         },
         "warning": {
-            "color": "#FFD60A",    # Amarillo
+            "color": "#FFD60A",
             "icon": "warning.svg"
         },
         "info": {
-            "color": "#0A84FF",    # Azul
+            "color": "#0A84FF",
             "icon": "info.svg"
         }
     }
 }
 
-# ==========================================
-# NUEVA VERSIÓN SIMPLIFICADA DE TOASTICON
-# ==========================================
 class ToastIcon(QLabel): 
     """
     Muestra el icono SVG teñido del color correspondiente al tipo de notificación.
-    Sin círculo de fondo.
     """
     def __init__(self, tipo, parent=None):
         super().__init__(parent)
         
         icon_size = 24
         self.setFixedSize(icon_size, icon_size)
-        
-        # 1. Obtener configuración del tipo
+
         config = TOAST_CONFIG["types"].get(tipo, TOAST_CONFIG["types"]["info"])
         
         color_hex = config["color"] 
         icon_name = config["icon"]
 
-        # 2. Obtenemos el QIcon desde utils
-        # Nota: Cambié el nombre de la variable de 'colored_pixmap' a 'colored_icon' para ser precisos
         colored_icon = get_icon_colored(icon_name, color_hex, size=icon_size)
 
-        # 3. Extraer el QPixmap del QIcon y mostrarlo
-        # Usamos .pixmap(ancho, alto) para convertir el icono en una imagen mostrable
         if not colored_icon.isNull():
-            self.setPixmap(colored_icon.pixmap(icon_size, icon_size)) # <--- AQUÍ ESTÁ EL CAMBIO
+            self.setPixmap(colored_icon.pixmap(icon_size, icon_size))
             self.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
 
@@ -95,7 +86,6 @@ class ToastNotification(QWidget):
             self.parent_ref.installEventFilter(self)
 
     def _setup_vars(self):
-        # Extraer colores de la configuración local
         glob = TOAST_CONFIG["global"]
         type_conf = TOAST_CONFIG["types"][self.tipo]
         
@@ -117,7 +107,7 @@ class ToastNotification(QWidget):
 
     def _setup_ui(self):
         main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(*LAYOUT["level_03"])
+        main_layout.setContentsMargins(*LAYOUT["level_02"])
         main_layout.setSpacing(LAYOUT["space_01"])
 
         # 1. ICONO VISUAL (SVG + Círculo)
@@ -191,10 +181,8 @@ class ToastNotification(QWidget):
         path = QPainterPath()
         path.addRoundedRect(rect, self.radius, self.radius)
         
-        # 1. Fondo de la tarjeta
         painter.fillPath(path, self.bg_color)
-        
-        # 2. Barra de progreso inferior (recortada al borde redondeado)
+
         if self._progress > 0:
             painter.setClipPath(path)
             bar_height = 3
@@ -203,7 +191,6 @@ class ToastNotification(QWidget):
             painter.fillRect(rect_bar, self.accent_color)
 
     def show_toast(self):
-        # Gestionar cola de notificaciones
         if len(ToastNotification._active_toasts) >= self.MAX_VISIBLE:
             oldest = ToastNotification._active_toasts.pop(0)
             oldest.close_toast_immediate()
@@ -261,10 +248,8 @@ class ToastNotification(QWidget):
 
         for toast in reversed(active):
             w = toast.width()
-            h = toast.height()
-            
+            h = toast.height()  
             target_x = screen_pos.x() + parent_geo.width() - w - margin_right
             target_y = current_y - h
-            
             toast.move_to(QPoint(target_x, target_y), animate)
             current_y = target_y - spacing

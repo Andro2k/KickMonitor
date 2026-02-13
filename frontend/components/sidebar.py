@@ -31,8 +31,8 @@ class Sidebar(QFrame):
         self.setStyleSheet(STYLES["sidebar_container"])
         
         # Dimensiones ajustadas para el centrado perfecto
-        self.full_width = 180
-        self.mini_width = 64
+        self.full_width = 190
+        self.mini_width = 70
         self.is_collapsed = False
         self.buttons = []
         
@@ -60,7 +60,6 @@ class Sidebar(QFrame):
 
     def _setup_header(self):
         header_frame = QFrame()
-        # header_frame.setFixedHeight(60)
         header_frame.setStyleSheet(f"background: {THEME_DARK['Black_N2']}; border-radius: 8px;")
         h_layout = QHBoxLayout(header_frame)
         h_layout.setContentsMargins(5, 5, 5, 5)
@@ -100,7 +99,7 @@ class Sidebar(QFrame):
         self.menu_layout.setSpacing(2)
 
         # MAIN MENU
-        self._add_section_label("MAIN MENU")
+        self._add_section_label("MENÚ PRINCIPAL")
         self._add_btn("Inicio", "home.svg", 0)
         self._add_btn("Chat Monitor", "chat.svg", 1)
         self._add_btn("Comandos", "terminal.svg", 2)
@@ -108,7 +107,7 @@ class Sidebar(QFrame):
         self.menu_layout.addSpacing(15)
         
         # TOOLS
-        self._add_section_label("TOOLS")
+        self._add_section_label("HERRAMIENTAS")
         self._add_btn("Alertas", "bell.svg", 3)
         self._add_btn("Triggers", "layers.svg", 4)
         self._add_btn("Usuarios", "users.svg", 5)
@@ -118,7 +117,7 @@ class Sidebar(QFrame):
         
         # OTHER
         self.menu_layout.addSpacing(15)
-        self._add_section_label("OTHER")
+        self._add_section_label("PREFERENCIAS")
         self._add_btn("Configuración", "settings.svg", 7)
 
         scroll.setWidget(content)
@@ -126,7 +125,6 @@ class Sidebar(QFrame):
 
     def _setup_footer(self):
         self.footer = QFrame()
-        # self.footer.setFixedHeight(60)
         self.footer.setStyleSheet(f"background: {THEME_DARK['Black_N2']}; border-radius: 8px;")
         
         f_layout = QHBoxLayout(self.footer)

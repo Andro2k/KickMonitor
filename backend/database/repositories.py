@@ -37,11 +37,10 @@ class UsersRepository:
 
     def save_user(self, slug, username, followers, pic, chat_id, user_id=None):
         slug = slug.lower()
-        # Lógica SQL compleja para preservar datos existentes (bans, bio, etc.)
         user_id_clause = "?" if user_id else "COALESCE((SELECT user_id FROM kick_streamer WHERE slug=?), NULL)"
         
         params = [slug, username, followers, pic, chat_id]
-        params.extend([slug, slug]) # Params para subqueries
+        params.extend([slug, slug])
         params.append(user_id if user_id else slug)
         
         query = f"""

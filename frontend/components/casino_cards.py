@@ -13,26 +13,19 @@ class GameConfigCard(BaseAccordionCard):
     Tarjeta acordeón para configurar un juego específico (Dados, Slots, etc).
     """
     def __init__(self, service, icon_name, title, settings):
-        # 1. Inicializar Acordeón
-        # is_active=True para que el indicador se vea verde (o podemos ocultarlo)
         super().__init__(title, "Configuración de pagos", is_active=True)
         self.service = service
 
-        # 2. Inyectar Icono en el Header (Modificamos el layout base)
-        # Accedemos al layout del header definido en BaseAccordionCard
         header_layout = self.header.layout()
         
         ico = QLabel()
         ico.setPixmap(get_icon(icon_name).pixmap(24, 24))
         ico.setStyleSheet("border:none; margin-right: 8px; opacity: 0.9;")
-        
-        # Insertamos el icono ANTES del indicador de estado (índice 0)
+
         header_layout.insertWidget(0, ico)
-        
-        # Opcional: Ocultar el punto de estado si prefieres solo el icono
+
         self.status_indicator.hide() 
 
-        # 3. Construir el Contenido (Inputs)
         for lbl_text, key, default, is_int in settings:
             self.add_content_widget(self._create_content_row(lbl_text, key, default, is_int))
 
@@ -55,7 +48,6 @@ class GameConfigCard(BaseAccordionCard):
             inp.setValue(val)
             if "%" in text: inp.setSuffix("%")
             elif "x" in text: inp.setSuffix(" x")
-            # Usamos lambda con k=key para capturar el valor actual de la iteración
             inp.valueChanged.connect(lambda v, k=key: self.service.set_setting(k, v))
         else:
             inp = QDoubleSpinBox()
@@ -67,7 +59,7 @@ class GameConfigCard(BaseAccordionCard):
             inp.valueChanged.connect(lambda v, k=key: self.service.set_setting(k, v))
 
         inp.setStyleSheet(STYLES["spinbox_modern"])
-        inp.setFixedWidth(110) # Ancho fijo para uniformidad
+        inp.setFixedWidth(110)
 
         l.addWidget(lbl)
         l.addStretch()

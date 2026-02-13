@@ -14,7 +14,6 @@ class InfoModal(BaseModal):
     Modal especializado para mostrar ayuda, tutoriales o documentación.
     """
     def __init__(self, parent, title: str, html_content: str):
-        # Hacemos el modal un poco más ancho/alto para leer cómodo
         super().__init__(parent, width=700, height=700)
         
         # 1. HEADER (Icono + Título)
@@ -31,9 +30,7 @@ class InfoModal(BaseModal):
         header_layout.addWidget(icon)
         header_layout.addWidget(lbl_title)
         header_layout.addStretch()
-        
-        # 2. BODY (Browser de Texto HTML)
-        # --- PASO CRITICO: PRIMERO CREAMOS EL BROWSER ---
+
         self.browser = QTextBrowser()
         self.browser.setOpenExternalLinks(True)
         
@@ -42,9 +39,6 @@ class InfoModal(BaseModal):
         self.browser.setSearchPaths([img_path.replace("\\", "/"), docs_path.replace("\\", "/")])
         search_path = img_path.replace("\\", "/")
         self.browser.setSearchPaths([search_path])
-        # -----------------------------------------------
-
-        # Estilos visuales del browser
         self.browser.setStyleSheet(f"""
             QTextBrowser {{
                 background-color: {THEME_DARK['Black_N3']};

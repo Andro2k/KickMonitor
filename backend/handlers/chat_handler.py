@@ -32,7 +32,6 @@ class ChatHandler:
     # =========================================================================
     def process_points(self, user: str, msg: str, badges: List[str] = None):
         """Asigna puntos por actividad."""
-        # Detectar rol
         new_role = "bot" if self.is_bot(user) else "user"
         self.db.update_user_role(user, new_role)
         
@@ -60,7 +59,6 @@ class ChatHandler:
         return self.re_emote.sub(r'<span style="color:#888;">(\1)</span>', content)
 
     def format_custom_message(self, message: str, user: str, args: str, extra_context: Dict[str, Any] = None) -> str:
-        # (Este método se mantiene igual que tu versión anterior)
         final = message
         ctx = extra_context or {}
         final = final.replace("{user}", user)

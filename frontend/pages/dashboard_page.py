@@ -246,24 +246,10 @@ class DashboardPage(QWidget):
     # HANDLERS (Simplificados)
     # ==========================================
     def _handle_kick_connect_click(self):
-        if self.btn_connect.isChecked():
-            pass 
-
         if not self._ensure_credentials("kick"):
             self.btn_connect.setChecked(False)
             return
-
-        current_user = self.service.get_kick_username()
-        if not current_user:
-            from frontend.dialogs.user_modal import UsernameInputDialog
-            dlg = UsernameInputDialog(self)
-            if dlg.exec():
-                self.service.set_kick_username(dlg.username)
-                self.connect_signal.emit()
-            else:
-                self.btn_connect.setChecked(False)
-        else:
-            self.connect_signal.emit()
+        self.connect_signal.emit()
 
     def _toggle_spotify_connection(self):
         if self.spotify.is_active:
@@ -278,15 +264,15 @@ class DashboardPage(QWidget):
                 self.spotify.sig_do_auth.emit()
 
     def _ensure_credentials(self, s_type):
-        """Lógica de UI para pedir credenciales si faltan."""
+        """Aplica credenciales por defecto automáticamente si faltan."""
         if self.service.has_credentials(s_type):
             return True
             
         defaults = self.service.get_default_creds(s_type)
-        if defaults and ModalConfirm(self, "Configuración", f"¿Usar credenciales default?").exec():
+        if defaults:
             self.service.apply_creds(defaults)
             return True
-            
+
         worker = self.spotify if s_type == "spotify" else None
         return ConnectionModal(self.service.db, service_type=s_type, worker=worker, parent=self).exec() == QDialog.DialogCode.Accepted
 

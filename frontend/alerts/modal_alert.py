@@ -33,7 +33,7 @@ class CustomModal(QDialog):
         body = QFrame()
         body.setStyleSheet(f"""
             QFrame {{
-                background-color: {THEME_DARK['Black_N3']}; 
+                background-color: {THEME_DARK['Black_N1']}; 
                 border-radius: 16px; 
                 border: 1px solid {self.config['color']};
             }}
@@ -98,14 +98,12 @@ class CustomModal(QDialog):
                 QPushButton {{
                     background-color: {THEME_DARK['Black_N2']};
                     color: {THEME_DARK['Gray_N1']};
-                    border: 1px solid {THEME_DARK['border']};
                     border-radius: 8px;
                     font-size: 12px;
                 }}
                 QPushButton:hover {{
-                    background-color: {THEME_DARK['Black_N1']};
+                    background-color: {THEME_DARK['Black_N4']};
                     color: {THEME_DARK['White_N1']};
-                    border: 1px solid {THEME_DARK['Gray_N1']};
                 }}
             """
         

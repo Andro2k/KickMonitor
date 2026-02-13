@@ -22,21 +22,20 @@ class Palette:
     Sistema de Color 'Kick Midnight' (Deep Dark).
     """
     # --- 1. Paleta Base (Deep Dark) ---
-    Black_N0       = "#000000" # Pure Black (Fondo de ventana base si se requiere)
-    Black_N1       = "#050505" # Fondo Principal (Main Window)
-    Black_N2       = "#191919" # Tarjetas / Paneles (Surface)
-    Black_N3       = "#262626" # Inputs / Hover States
-    Black_N4       = "#333333" # Bordes fuertes / Elementos activos
+    Black_N0       = "#030303"
+    Black_N1       = "#08090B"
+    Black_N2       = "#191919"
+    Black_N3       = "#242424"
+    Black_N4       = "#333333"
     
     # --- 2. Grises ---
-    Gray_N1        = "#8B8B8B" # Texto Secundario / Iconos inactivos
-    Gray_N2        = "#666666" # Texto Terciario / Placeholders
-    Gray_Border    = "#333333" # Bordes sutiles (Igual a N4 para integración)
+    Gray_N1        = "#8B8B8B"
+    Gray_N2        = "#666666"
+    Gray_Border    = "#333333"
     
     # --- 3. Blancos ---
     White_N1       = "#FFFFFF"
-    White_Alpha_08 = "rgba(255,255,255,0.08)"
-    White_Alpha_05 = "rgba(255,255,255,0.05)"
+    White_N2 = "rgba(255,255,255,0.08)"
     
     # --- 4. Acentos (Kick Green) ---
     NeonGreen_Main  = "#53fc18"
@@ -149,7 +148,7 @@ def get_sheet(is_dark: bool = True) -> str:
     QPushButton#MenuBtnMini {{ 
         background: transparent; border: none; margin: 4px; padding: 8px; border-radius: 12px; 
     }}
-    QPushButton#MenuBtnMini:hover {{ background-color: {c.White_Alpha_08}; }}
+    QPushButton#MenuBtnMini:hover {{ background-color: {c.White_N2}; }}
     QPushButton#MenuBtnMini:checked {{ 
         background-color: rgba(83, 252, 24, 0.1); 
         border: 1px solid {c.NeonGreen_Dark}; 
@@ -331,7 +330,7 @@ STYLES = {
     # Botón pequeño de acción (Editar, Borrar en tablas)
     "btn_icon_ghost": f"""
         QPushButton {{ background: transparent; border: none; border-radius: 6px; }} 
-        QPushButton:hover {{ background-color: {c.White_Alpha_08}; }}
+        QPushButton:hover {{ background-color: {c.White_N2}; }}
     """,
     # Botón grande del Dashboard (Accesos directos)
     "btn_shortcut": f"""
@@ -371,7 +370,7 @@ STYLES = {
     "list_clean": f"""
         QListWidget {{ background-color: {c.Black_N2}; outline: none; border-radius: {r['card']}; }}
         QListWidget::item {{ border-bottom: 1px solid {c.Black_N4}; padding: 6px; }}
-        QListWidget::item:hover {{ background: {c.White_Alpha_08}; }}
+        QListWidget::item:hover {{ background: {c.White_N2}; }}
         QListWidget::item:selected {{ background: {c.Black_N4}; }}
     """,
     "table_clean": f"""
@@ -383,17 +382,17 @@ STYLES = {
             padding: 8px; font-weight: bold; text-transform: uppercase; font-size: 11px;
         }}
         QTableWidget::item {{ padding: 6px; border-bottom: 1px solid {c.Black_N4}; }}
-        QTableWidget::item:selected {{ background-color: {c.White_Alpha_08}; color: {c.NeonGreen_Main}; }}
+        QTableWidget::item:selected {{ background-color: {c.White_N2}; color: {c.NeonGreen_Main}; }}
     """,
     
     # --- COMPLEX WIDGETS ---
     "combobox": f"""
         QComboBox {{
-            background-color: {c.Black_N3}; border: 1px solid {c.Black_N4};
+            background-color: {c.Black_N3}; border: 1px solid {c.border};
             color: {c.White_N1}; border-radius: 6px; padding: 6px; min-height: 18px;
         }}
         QComboBox:hover, QComboBox:focus {{
-            border: 1px solid {c.Gray_N1}; background-color: {c.Black_N2};
+            background-color: {c.Black_N4};
         }}
         
         QComboBox::drop-down{{border: none;}}
@@ -402,7 +401,7 @@ STYLES = {
 
         QComboBox QAbstractItemView {{
             background-color: {c.NeonGreen_Dark}; color: {c.Black_N3};
-            selection-background-color: {c.NeonGreen_Main}; selection-color: {c.Black_N0}; padding: 4px;
+            selection-background-color: {c.NeonGreen_Light}; selection-color: {c.Black_N0}; padding: 4px;
         }}
     """,
     "spinbox_modern": f"""
@@ -428,7 +427,7 @@ STYLES = {
             background-color: transparent; color: {c.Gray_N1}; 
             padding: 6px; border: none; border-radius: 8px; text-align: left; font-weight: 500; margin: 2px;
         }}
-        QPushButton:hover {{ background-color: {c.White_Alpha_08}; color: {c.White_N1}; }}
+        QPushButton:hover {{ background-color: {c.White_N2}; color: {c.White_N1}; }}
         QPushButton:checked {{ background-color: rgba(83, 252, 24, 0.15); color: {c.NeonGreen_Main}; font-weight: bold; }}
     """,
     "sidebar_container": f"""
@@ -443,7 +442,6 @@ STYLES = {
 # 5. HELPERS VISUALES
 # ==========================================
 def get_switch_style(on_icon_name: str = "switch-on.svg") -> str:
-    # Usamos asset_url porque CSS necesita rutas con '/'
     off = asset_url("switch-off.svg")
     on = asset_url(on_icon_name)
     return f"""

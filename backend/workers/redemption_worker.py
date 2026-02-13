@@ -1,20 +1,13 @@
 # backend/workers/redemption_worker.py
 
 import time
-import json
-import cloudscraper
-import os
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from backend.utils.logger_text import LoggerText
-from backend.utils.paths import get_config_path
-# [NUEVO] Importamos el servicio que sabe renovar tokens
 from backend.services.rewards_service import RewardsService 
 
-URL_REDEMPTIONS = "https://api.kick.com/public/v1/channels/rewards/redemptions"
-
 class RedemptionWorker(QThread):
-    # Señal: (usuario, recompensa, mensaje)
+    # Señal: (usuario, recompensa, mensaje_opcional)
     redemption_detected = pyqtSignal(str, str, str)
     log_signal = pyqtSignal(str)
 
@@ -22,45 +15,32 @@ class RedemptionWorker(QThread):
         super().__init__()
         self.db = db_handler
         self.is_running = True
-        self.scraper = cloudscraper.create_scraper()
         
-        # [NUEVO] Instancia para poder llamar a _refresh_token
-        self.auth_service = RewardsService() 
+        # El servicio centralizado ahora maneja toda la lógica HTTP y Tokens
+        self.rewards_api = RewardsService() 
         
         self.normal_interval = 1.5  
         self.burst_interval = 0.5   
         self.processed_ids = set() 
         self.first_scan = True 
-        
-        # Anti-Spam de logs de error
-        self._last_error_time = 0
 
     def run(self):
         self.log_signal.emit(LoggerText.system("Monitor de Puntos: Iniciado"))
         
         while self.is_running:
-            # 1. Obtenemos el token (siempre lee del archivo por si se actualizó)
-            token = self._get_token()
-            found_something = False
+            # Procesamos pendientes y completados de forma limpia
+            found_p = self._process_redemptions(status="pending")
+            found_f = self._process_redemptions(status="fulfilled")
+            
+            found_something = found_p or found_f
+            
+            # Al terminar la primera vuelta, desactivamos el primer escaneo
+            self.first_scan = False
 
-            if token:
-                # Revisar PENDIENTES
-                found_p = self._check_redemptions(token, status="pending")
-                # Revisar COMPLETADOS
-                found_f = self._check_redemptions(token, status="fulfilled")
-                
-                found_something = found_p or found_f
-            else:
-                if time.time() - self._last_error_time > 60:
-                    self.log_signal.emit(LoggerText.warning("Monitor Puntos: No se encontró token."))
-                    self._last_error_time = time.time()
-
-            if self.first_scan:
-                self.first_scan = False
-
+            # Calcular tiempo de espera (más rápido si hubo actividad reciente)
             sleep_time = self.burst_interval if found_something else self.normal_interval
             
-            # Loop de espera fraccionado
+            # Loop de espera fraccionado para permitir apagado rápido si cierras la app
             steps = int(sleep_time * 10)
             for _ in range(steps):
                 if not self.is_running: break
@@ -70,72 +50,13 @@ class RedemptionWorker(QThread):
         self.is_running = False
         self.wait()
 
-    def _get_token(self):
-        try:
-            path = os.path.join(get_config_path(), "session.json")
-            if os.path.exists(path):
-                with open(path, 'r') as f:
-                    return json.load(f).get("access_token")
-        except Exception as e:
-            # print(f"Error leyendo token: {e}")
-            return None
-
-    def _check_redemptions(self, token, status) -> bool:
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-        }
-
-        url = f"{URL_REDEMPTIONS}?status={status}"
-        
-        try:
-            resp = self.scraper.get(url, headers=headers)
-        except Exception as e:
-            if time.time() - self._last_error_time > 30:
-                self.log_signal.emit(LoggerText.error(f"Error de Red (Kick): {e}"))
-                self._last_error_time = time.time()
-            return False
-
-        # Manejo de Rate Limit (429)
-        if resp.status_code == 429:
-            time.sleep(2)
-            return False
-        
-        # =====================================================================
-        # [CORREGIDO] AUTO-RENOVACIÓN DE TOKEN (401)
-        # =====================================================================
-        if resp.status_code == 401:
-            self.log_signal.emit(LoggerText.warning("Monitor: Token caducado (401). Renovando..."))
-            
-            # Intentamos renovar usando el servicio
-            success = self.auth_service._refresh_token()
-            
-            if success:
-                self.log_signal.emit(LoggerText.success("Monitor: Token renovado exitosamente."))
-                # IMPORTANTE: No retornamos nada más, el bucle principal 'while'
-                # volverá a empezar, llamará a _get_token() y leerá el NUEVO token del archivo.
-            else:
-                if time.time() - self._last_error_time > 60:
-                    self.log_signal.emit(LoggerText.error("Monitor: Falló la renovación. Requiere Login."))
-                    self._last_error_time = time.time()
-            
-            return False
-        # =====================================================================
-
-        if resp.status_code != 200:
-            if time.time() - self._last_error_time > 30:
-                self.log_signal.emit(LoggerText.debug(f"Monitor Puntos API Error: {resp.status_code}"))
-                self._last_error_time = time.time()
-            return False
-
-        try:
-            data = resp.json()
-            groups = data.get("data", [])
-        except Exception as e:
-            return False
-
+    def _process_redemptions(self, status: str) -> bool:
+        """Obtiene y procesa los canjes delegando el HTTP al RewardsService."""
+        groups = self.rewards_api.get_redemptions(status)
         found_new = False
+
+        if not groups: 
+            return False
 
         for group in groups:
             reward_title = group.get("reward", {}).get("title", "")
@@ -144,11 +65,13 @@ class RedemptionWorker(QThread):
             for red in redemptions:
                 red_id = red.get("id")
                 
+                # Ignorar si ya lo procesamos previamente en esta sesión
                 if red_id in self.processed_ids:
                     continue
                 
                 self.processed_ids.add(red_id)
 
+                # Ignorar en el primer escaneo (evitar disparar eventos viejos al iniciar el bot)
                 if self.first_scan:
                     continue 
 
@@ -158,19 +81,12 @@ class RedemptionWorker(QThread):
                 username = redeemer.get("username") or redeemer.get("slug") or "Anonimo"
                 user_input = red.get("user_input", "")
 
-                # 1. Disparar Trigger
+                # 1. Disparar evento a la Interfaz / Controller (para ejecutar triggers/overlay)
                 self.redemption_detected.emit(username, reward_title, user_input)
                 self.log_signal.emit(LoggerText.success(f"Canje detectado: {reward_title} ({username})"))
 
-                # 2. Aceptar en Kick si está pendiente
+                # 2. Aceptar el canje en Kick automáticamente si estaba pendiente
                 if status == "pending":
-                    self._fulfill_redemption(red_id, token, headers)
+                    self.rewards_api.accept_redemption(red_id)
         
         return found_new
-
-    def _fulfill_redemption(self, red_id, token, headers):
-        url = f"{URL_REDEMPTIONS}/accept"
-        payload = {"ids": [red_id]}
-        try:
-            self.scraper.post(url, headers=headers, json=payload)
-        except: pass
