@@ -2,11 +2,15 @@
 
 import sys
 import os
+import tempfile
+
+from frontend.utils import get_icon_colored
 
 # ==========================================
 # 1. SISTEMA DE RUTAS (Para CSS/QSS)
 # ==========================================
 def asset_url(filename: str) -> str:
+    """Obtiene la ruta absoluta de un asset (útil para combobox chevrons)."""
     if getattr(sys, 'frozen', False):
         base_path = sys._MEIPASS
     else:
@@ -18,69 +22,53 @@ def asset_url(filename: str) -> str:
 # 2. DEFINICIONES DE DISEÑO (TOKENS)
 # ==========================================
 class Palette:
-    """
-    Sistema de Color 'Kick Midnight' (Deep Dark).
-    """
-    # --- 1. Paleta Base (Deep Dark) ---
+    """Sistema de Color 'Kick Midnight' (Exclusivo Dark Mode)."""
     Black_N0       = "#030303"
     Black_N1       = "#08090B"
     Black_N2       = "#191919"
     Black_N3       = "#242424"
     Black_N4       = "#333333"
     
-    # --- 2. Grises ---
     Gray_N1        = "#8B8B8B"
     Gray_N2        = "#666666"
     Gray_Border    = "#333333"
     
-    # --- 3. Blancos ---
     White_N1       = "#FFFFFF"
-    White_N2 = "rgba(255,255,255,0.08)"
+    White_N2       = "rgba(255,255,255,0.08)"
     
-    # --- 4. Acentos (Kick Green) ---
     NeonGreen_Main  = "#53fc18"
     NeonGreen_Light = "#6aff2e"
     NeonGreen_Dark  = "#3da812"
     
-    # --- 5. Estados ---
-    status_error      = "#FF453A"
-    status_success    = "#32D74B"
-    status_warning   = "#FFD60A"
+    status_error    = "#FF453A"
+    status_success  = "#32D74B"
+    status_warning  = "#FFD60A"
     status_info     = "#0A84FF"
 
-    # --- 6. Alias Funcionales ---    
-    border        = Gray_Border
-    info          = status_info
+    border          = Gray_Border
+    info            = status_info
 
 class Dims:
     """Dimensiones y Espaciados."""
     radius = {
-        "card":   "12px",
-        "modal":  "16px",
-        "input":  "8px",
-        "button": "8px",
-        "chip":   "6px",
-        "scroll": "4px"
+        "card": "12px", "modal": "16px", "input": "8px",
+        "button": "8px", "chip": "6px", "scroll": "4px"
     }
     layout = {
-        "level_01": (10,10,10,10),
-        "level_02": (16,16,16,16), 
-        "level_03": (20,20,20,20), 
-        "space_01": 12
+        "level_01": (10,10,10,10), "level_02": (16,16,16,16), 
+        "level_03": (20,20,20,20), "space_01": 12
     }
 
 class Fonts:
     """Configuración tipográfica."""
     family = "Segoe UI"
-    h1 = "18pt"    # ~24px
-    h2 = "14pt"    # ~20px
-    h3 = "12pt"    # ~16px
-    body = "10pt"  # ~14px
+    h1 = "18pt"; h2 = "14pt"; h3 = "12pt"; body = "10pt"
 
 # ==========================================
 # 3. HOJA DE ESTILOS GLOBAL (QSS MAESTRO)
 # ==========================================
-def get_sheet(is_dark: bool = True) -> str:
+def get_sheet() -> str:
+    """Devuelve la hoja de estilos principal (Siempre Dark)."""
     c = Palette
     r = Dims.radius
     f = Fonts
@@ -94,37 +82,11 @@ def get_sheet(is_dark: bool = True) -> str:
     
     /* --- TEXTOS --- */
     QLabel {{ background: transparent; border: none; padding: 0px; }}
-    
-    QLabel#h1 {{ 
-        font-size: {f.h1}; font-weight: bold; 
-        padding: 0px 5px 0px -5px;
-    }}
-    
-    QLabel#h2 {{ 
-        font-size: {f.h2}; font-weight: bold; 
-        padding: 0px 5px 0px -5px;
-    }}
-    
-    QLabel#h3 {{ 
-        font-size: {f.h3}; font-weight: bold; 
-        color: {c.White_N1}; 
-        padding: 0px 5px 0px -5px;
-    }}
-
-    QLabel#h4 {{ 
-        font-size: {f.h3}; font-weight: bold; 
-        color: {c.White_N1};
-        border-bottom: 1px solid #333;
-        padding: 0px 5px 8px -3px;
-    }}
-
-    QLabel#h5 {{ 
-        font-size: {f.body}; 
-        font-weight: bold; 
-        color: {c.Gray_N1}; 
-        padding: 0px 5px 0px -3px;
-    }}
-    
+    QLabel#h1 {{ font-size: {f.h1}; font-weight: bold; padding: 0px 5px 0px -5px; }}
+    QLabel#h2 {{ font-size: {f.h2}; font-weight: bold; padding: 0px 5px 0px -5px; }}
+    QLabel#h3 {{ font-size: {f.h3}; font-weight: bold; color: {c.White_N1}; padding: 0px 5px 0px -5px; }}
+    QLabel#h4 {{ font-size: {f.h3}; font-weight: bold; color: {c.White_N1}; border-bottom: 1px solid #333; padding: 0px 5px 8px -3px; }}
+    QLabel#h5 {{ font-size: {f.body}; font-weight: bold; color: {c.Gray_N1}; padding: 0px 5px 0px -3px; }}
     QLabel#normal {{ font-size: {f.body}; font-weight: 500; color: {c.Gray_N2}; }}
     QLabel#subtitle {{ font-size: {f.body}; color: {c.Gray_N2}; }}
     
@@ -136,43 +98,27 @@ def get_sheet(is_dark: bool = True) -> str:
     /* --- INPUTS --- */
     QLineEdit, QPlainTextEdit {{ 
         background-color: {c.Black_N2}; color: {c.White_N1}; 
-        border-radius: {r['input']}; padding: 4px;
-        border: 1px solid {c.border};
+        border-radius: {r['input']}; padding: 4px; border: 1px solid {c.border};
     }}
-    QLineEdit:focus, QPlainTextEdit:focus {{ 
-        border: 1px solid {c.NeonGreen_Main}; background-color: {c.Black_N3}; 
-    }}
+    QLineEdit:focus, QPlainTextEdit:focus {{ border: 1px solid {c.NeonGreen_Main}; background-color: {c.Black_N3}; }}
     QLineEdit[readOnly="true"] {{ color: {c.NeonGreen_Main}; font-family: Consolas; }}
     
-    /* Botón Sidebar */
-    QPushButton#MenuBtnMini {{ 
-        background: transparent; border: none; margin: 4px; padding: 8px; border-radius: 12px; 
-    }}
+    /* Botón Sidebar Menu Mini */
+    QPushButton#MenuBtnMini {{ background: transparent; border: none; margin: 4px; padding: 8px; border-radius: 12px; }}
     QPushButton#MenuBtnMini:hover {{ background-color: {c.White_N2}; }}
-    QPushButton#MenuBtnMini:checked {{ 
-        background-color: rgba(83, 252, 24, 0.1); 
-        border: 1px solid {c.NeonGreen_Dark}; 
-    }}
+    QPushButton#MenuBtnMini:checked {{ background-color: rgba(83, 252, 24, 0.1); border: 1px solid {c.NeonGreen_Dark}; }}
 
-    /* --- Sliders --- */
-    QSlider::groove:horizontal {{
-        border: 1px solid {c.Black_N4}; height: 6px; border-radius: 3px; background-color: transparent;
-    }}
-    QSlider::handle:horizontal {{
-        background-color: {c.NeonGreen_Main}; width: 16px; height: 16px; margin: -5px 0; border-radius: 8px;
-    }}
-    
+    /* --- SLIDERS --- */
+    QSlider::groove:horizontal {{ border: 1px solid {c.Black_N4}; height: 6px; border-radius: 3px; background-color: transparent; }}
+    QSlider::handle:horizontal {{ background-color: {c.NeonGreen_Main}; width: 16px; height: 16px; margin: -5px 0; border-radius: 8px; }}
 
     /* --- SCROLLBARS --- */
-    
-    /* VERTICAL */
     QScrollBar:vertical {{ background: {c.Black_N1}; width: 8px; margin: 0; }}
     QScrollBar::handle:vertical {{ background: #444; border-radius: {r['scroll']}; min-height: 20px; }}
     QScrollBar::handle:vertical:hover {{ background: {c.NeonGreen_Main}; }}
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
     QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: none; }}
 
-    /* HORIZONTAL */
     QScrollBar:horizontal {{ background: {c.Black_N1}; height: 8px; margin: 0; }}
     QScrollBar::handle:horizontal {{ background: #444; border-radius: {r['scroll']}; min-width: 20px; }}
     QScrollBar::handle:horizontal:hover {{ background: {c.NeonGreen_Main}; }}
@@ -188,267 +134,91 @@ r = Dims.radius
 
 STYLES = {
     # --- CONTENEDORES ---
-    "card": f"""
-        QFrame {{
-            background-color: {c.Black_N2}; 
-            border-radius: {r['card']}; 
-        }}
-    """,
-    "card_large": f"""
-        QFrame {{
-            background-color: {c.Black_N2}; 
-            border-radius: 16px; 
-        }}
-    """,
-    # --- LABELS ---
-    "label_readonly": f"""
-        QLabel {{ 
-            background: {c.Black_N3}; color: {c.Gray_N1}; 
-            font-family: Consolas; border: 1px solid {c.border};
-            border-radius: {r['input']}; padding: 4px;
-        }}
-    """,
-    "label_text": f"""
-        QLabel {{font-weight: bold; font-size: 13px; color: white; border: none; background: transparent;}}
-    """,
-    "label_title": f"""
-        QLabel {{ 
-            border:none; font-size: 14px; 
-            font-weight: bold; color: white;
-        }}
-    """,
-    # --- INPUTS ---
-    "input": f"""
-        QLineEdit {{ background: {c.Black_N3}; border-radius: {r['input']}; padding: 6px; color: white; }}
-        QLineEdit:focus {{ border: 1px solid {c.Gray_N1}; }}
-    """,
-    "input_cmd": f"""
-        QLineEdit {{ 
-            background: {c.Black_N3}; color: {c.Gray_N1}; font-weight: bold; font-family: Consolas;
-            border-radius: 4px; padding: 6px; border: 1px solid {c.border};
-        }}
-        QLineEdit:focus {{ border-color: {c.Gray_N1}; }}
-    """,
-    "input_readonly": f"""
-        QLineEdit {{ 
-            background: {c.Black_N3}; color: {c.Gray_N1}; 
-            font-family: Consolas; border: 1px solid {c.border};
-            border-radius: {r['input']}; padding: 4px;
-        }}
-    """,
+    "card": f"QFrame {{ background-color: {c.Black_N2}; border-radius: {r['card']}; }}",
+    "card_large": f"QFrame {{ background-color: {c.Black_N2}; border-radius: 16px; }}",
+    
+    # --- LABELS & INPUTS ---
+    "label_readonly": f"QLabel {{ background: {c.Black_N3}; color: {c.Gray_N1}; font-family: Consolas; border: 1px solid {c.border}; border-radius: {r['input']}; padding: 4px; }}",
+    "input": f"QLineEdit {{ background: {c.Black_N3}; border-radius: {r['input']}; padding: 6px; color: white; }} QLineEdit:focus {{ border: 1px solid {c.Gray_N1}; }}",
+    "input_cmd": f"QLineEdit {{ background: {c.Black_N3}; color: {c.Gray_N1}; font-weight: bold; font-family: Consolas; border-radius: 4px; padding: 6px; border: 1px solid {c.border}; }} QLineEdit:focus {{ border-color: {c.Gray_N1}; }}",
+    "input_readonly": f"QLineEdit {{ background: {c.Black_N3}; color: {c.Gray_N1}; font-family: Consolas; border: 1px solid {c.border}; border-radius: {r['input']}; padding: 4px; }}",
     
     # --- LOGS Y CONSOLAS ---
-    "text_edit_log": f"""
-        QTextEdit {{
-            background-color: {c.Black_N2};
-            color: {c.White_N1};
-            border: 1px solid {c.Black_N2};
-            padding: 12px;
-            font-family: 'Segoe UI', monospace;
-            font-size: 13px;
-        }}
-    """,
-    "text_edit_console": f"""
-         QTextEdit {{
-            background-color: {c.Black_N2}; color: {c.Gray_N1};
-            font-family: Consolas, monospace; font-size: 12px; padding: 10px; border: none;
-        }}
-    """,
-    "textarea": f"""
-        QPlainTextEdit {{
-            background-color: {c.Black_N3};
-            color: {c.White_N1};
-            border: 1px solid {c.border};
-            border-radius: {r['input']};
-            padding: 8px;
-        }}
-        QPlainTextEdit:focus {{
-            border: 1px solid {c.Gray_N1}; 
-        }}
-    """,
-    "text_browser": f"""
-        QTextBrowser {{
-            background-color: {c.Black_N4};
-            color: #DDD;
-            border: 1px solid {c.border};
-            border-radius: {r['input']};
-            padding: 6px;
-            font-size: 12px;
-        }}
-    """,
-
-    # --- BOTONES ---
-    # Botón estándar para barra superior (Importar/Exportar)
-    "btn_nav": f"""
-        QPushButton {{
-            background-color: {c.Black_N2}; color: {c.White_N1};
-            padding: 6px 12px; border: 1px solid {c.Black_N2}; border-radius: 6px; 
-            font-size: 12px; font-weight: bold;
-            
-        }}
-        QPushButton:hover {{ 
-            background-color: {c.Black_N4}; border-color: {c.NeonGreen_Main}; 
-        }}
-    """,
-    # Botón sólido primario (Aplicar, Guardar)
-    "btn_primary": f"""
-        QPushButton {{ 
-            background-color: rgba(83, 252, 24, 0.15); border: 1px solid {c.NeonGreen_Main};
-            color: {c.NeonGreen_Main};
-            padding: 6px 12px; margin: 2px; border-radius: 6px;
-            font-size: 12px; font-weight: bold; 
-        }}
-        QPushButton:hover {{ background-color: {c.Black_N3}; }}
-    """,
+    "text_edit_log": f"QTextEdit {{ background-color: {c.Black_N2}; color: {c.White_N1}; border: 1px solid {c.Black_N2}; padding: 12px; font-family: 'Segoe UI', monospace; font-size: 13px; }}",
+    "text_edit_console": f"QTextEdit {{ background-color: {c.Black_N2}; color: {c.Gray_N1}; font-family: Consolas, monospace; font-size: 12px; padding: 10px; border: none; }}",
     
-    "btn_primary_disabled": f"""
-        QPushButton {{ 
-            background-color: {c.Black_N4}; border: 1px solid {c.Black_N4};
-            color: {c.Gray_N2};
-            padding: 6px 12px; margin: 2px; border-radius: 6px;
-            font-size: 12px; font-weight: bold; 
-        }}
-    """,
-    # Botón delineado (Configurar, Gestionar)
-    "btn_outlined": f"""
-        QPushButton {{ 
-            background-color: {c.Black_N3}; color: {c.White_N1}; 
-            padding: 6px 12px; margin: 2px; border: 1px solid {c.Gray_Border}; border-radius: 6px;
-            font-size: 12px; font-weight: bold; 
-        }} 
-        QPushButton:hover {{ border-color: {c.NeonGreen_Main}; color: {c.White_N1}; }}
-    """,
-    # Botón "Peligroso" delineado (Desvincular, Borrar todo)
-    "btn_danger_outlined": f"""
-        QPushButton {{
-            background-color: rgba(239, 83, 80, 0.2); color: {c.White_N1};
-            padding: 6px 12px; border: 1px solid {c.status_error}; border-radius: 6px;
-            font-weight: 500;
-        }}
-        QPushButton:hover {{ background-color: {c.status_error}; color: white; }}
-    """,
-    # Botón pequeño de acción (Editar, Borrar en tablas)
-    "btn_icon_ghost": f"""
-        QPushButton {{ background: transparent; border: none; border-radius: 6px; }} 
-        QPushButton:hover {{ background-color: {c.White_N2}; }}
-    """,
-    # Botón grande del Dashboard (Accesos directos)
-    "btn_shortcut": f"""
-        QPushButton {{ 
-            background-color: {c.Black_N4}; 
-            border-radius: 10px; 
-            border: 1px solid {c.Black_N2};
-        }} 
-        QPushButton:hover {{ 
-            background-color: {c.Black_N2}; 
-            border-color: {c.NeonGreen_Main}; 
-        }}
-    """,
-    # Botón verde translucido
+    # --- BOTONES ---
+    "btn_nav": f"QPushButton {{ background-color: {c.Black_N2}; color: {c.White_N1}; padding: 6px 12px; border: 1px solid {c.Black_N2}; border-radius: 6px; font-size: 12px; font-weight: bold; }} QPushButton:hover {{ background-color: {c.Black_N4}; border-color: {c.NeonGreen_Main}; }}",
+    "btn_primary": f"QPushButton {{ background-color: rgba(83, 252, 24, 0.15); border: 1px solid {c.NeonGreen_Main}; color: {c.NeonGreen_Main}; padding: 6px 12px; margin: 2px; border-radius: 6px; font-size: 12px; font-weight: bold; }} QPushButton:hover {{ background-color: {c.Black_N3}; }}",
+    "btn_outlined": f"QPushButton {{ background-color: {c.Black_N3}; color: {c.White_N1}; padding: 6px 12px; margin: 2px; border: 1px solid {c.Gray_Border}; border-radius: 6px; font-size: 12px; font-weight: bold; }} QPushButton:hover {{ border-color: {c.NeonGreen_Main}; color: {c.White_N1}; }}",
+    "btn_danger_outlined": f"QPushButton {{ background-color: rgba(239, 83, 80, 0.2); color: {c.White_N1}; padding: 6px 12px; border: 1px solid {c.status_error}; border-radius: 6px; font-weight: 500; }} QPushButton:hover {{ background-color: {c.status_error}; color: white; }}",
+    "btn_icon_ghost": f"QPushButton {{ background: transparent; border: none; border-radius: 6px; }} QPushButton:hover {{ background-color: {c.White_N2}; }}",
+    "btn_shortcut": f"QPushButton {{ background-color: {c.Black_N4}; border-radius: 10px; border: 1px solid {c.Black_N2}; }} QPushButton:hover {{ background-color: {c.Black_N2}; border-color: {c.NeonGreen_Main}; }}",
+    
+    # Switch Translucido de ON/OFF general (Ej: Auto Connect)
     "btn_toggle": f"""
-        QPushButton {{
-            background-color: {c.Black_N3};
-            border: 1px solid {c.border};
-            border-radius: 6px;
-            color: {c.White_N1};
-            padding: 6px 12px;
-            font-weight: 500;
-        }}
-        QPushButton:hover {{
-            background-color: {c.Black_N4};
-            border-color: {c.Gray_N1};
-        }}
-        /* ESTADO ACTIVO (CHECKED) - Reemplaza tu lógica manual */
-        QPushButton:checked {{
-            background-color: rgba(83, 252, 24, 0.15); 
-            border: 1px solid {c.NeonGreen_Main};
-            color: {c.NeonGreen_Main};
-        }}
+        QPushButton {{ background-color: {c.Black_N3}; border: 1px solid {c.border}; border-radius: 6px; color: {c.White_N1}; padding: 6px 12px; font-weight: 500; }}
+        QPushButton:hover {{ background-color: {c.Black_N4}; border-color: {c.Gray_N1}; }}
+        QPushButton:checked {{ background-color: rgba(83, 252, 24, 0.15); border: 1px solid {c.NeonGreen_Main}; color: {c.NeonGreen_Main}; }}
     """,
 
-    # --- LISTAS Y TABLAS ---
-    "list_clean": f"""
-        QListWidget {{ background-color: {c.Black_N2}; outline: none; border-radius: {r['card']}; }}
-        QListWidget::item {{ border-bottom: 1px solid {c.Black_N4}; padding: 6px; }}
-        QListWidget::item:hover {{ background: {c.White_N2}; }}
-        QListWidget::item:selected {{ background: {c.Black_N4}; }}
-    """,
+    # --- LISTAS, TABLAS Y COMBOBOX ---
     "table_clean": f"""
-        QTableWidget {{
-            background-color: {c.Black_N2}; gridline-color: {c.Black_N4}; outline: none; border: none;
-        }}
-        QHeaderView::section {{
-            background-color: {c.Black_N3}; color: {c.Gray_N1}; border: none; border-bottom: 1px solid {c.border};
-            padding: 8px; font-weight: bold; text-transform: uppercase; font-size: 11px;
-        }}
+        QTableWidget {{ background-color: {c.Black_N2}; gridline-color: {c.Black_N4}; outline: none; border: none; }}
+        QHeaderView::section {{ background-color: {c.Black_N3}; color: {c.Gray_N1}; border: none; border-bottom: 1px solid {c.border}; padding: 8px; font-weight: bold; text-transform: uppercase; font-size: 11px; }}
         QTableWidget::item {{ padding: 6px; border-bottom: 1px solid {c.Black_N4}; }}
         QTableWidget::item:selected {{ background-color: {c.White_N2}; color: {c.NeonGreen_Main}; }}
     """,
-    
-    # --- COMPLEX WIDGETS ---
     "combobox": f"""
-        QComboBox {{
-            background-color: {c.Black_N3}; border: 1px solid {c.border};
-            color: {c.White_N1}; border-radius: 6px; padding: 6px; min-height: 18px;
-        }}
-        QComboBox:hover, QComboBox:focus {{
-            background-color: {c.Black_N4};
-        }}
-        
+        QComboBox {{ background-color: {c.Black_N3}; border: 1px solid {c.border}; color: {c.White_N1}; border-radius: 6px; padding: 6px; min-height: 18px; }}
+        QComboBox:hover, QComboBox:focus {{ background-color: {c.Black_N4}; }}
         QComboBox::drop-down{{border: none;}}
         QComboBox::down-arrow {{image: url({asset_url("chevron-down.svg")}); margin-right: 4px;}}
         QComboBox::down-arrow::on {{image: url({asset_url("chevron-up.svg")}); margin-right: 4px;}}
-
-        QComboBox QAbstractItemView {{
-            background-color: {c.NeonGreen_Dark}; color: {c.Black_N3};
-            selection-background-color: {c.NeonGreen_Light}; selection-color: {c.Black_N0}; padding: 4px;
-        }}
+        QComboBox QAbstractItemView {{ background-color: {c.NeonGreen_Dark}; color: {c.Black_N3}; selection-background-color: {c.NeonGreen_Light}; selection-color: {c.Black_N0}; padding: 4px; }}
     """,
     "spinbox_modern": f"""
-        QSpinBox, QDoubleSpinBox {{
-            background-color: {c.Black_N3}; color: {c.White_N1}; border-radius: {r['input']};
-            padding: 6px 10px; padding-right: 25px; selection-color: {c.Black_N0};
-        }}
-        QSpinBox:focus, QDoubleSpinBox:focus {{  background-color: {c.Black_N3}; }}
-        QSpinBox::up-button, QDoubleSpinBox::up-button {{
-            subcontrol-origin: border; subcontrol-position: top right; width: 16px; border: none;
-            border-left: 1px solid {c.Black_N1}; border-top-right-radius: {r['input']}; background-color: {c.Black_N3};
-        }}
-        QSpinBox::down-button, QDoubleSpinBox::down-button {{
-            subcontrol-origin: border; subcontrol-position: bottom right; width: 16px; border: none;
-            border-left: 1px solid {c.Black_N1}; border-bottom-right-radius: {r['input']}; background-color: {c.Black_N3};
-        }}
+        QSpinBox, QDoubleSpinBox {{ background-color: {c.Black_N3}; color: {c.White_N1}; border-radius: {r['input']}; padding: 6px 10px; padding-right: 25px; selection-color: {c.Black_N0}; }}
+        QSpinBox:focus, QDoubleSpinBox:focus {{ background-color: {c.Black_N3}; }}
+        QSpinBox::up-button, QDoubleSpinBox::up-button {{ subcontrol-origin: border; subcontrol-position: top right; width: 16px; border: none; border-left: 1px solid {c.Black_N1}; border-top-right-radius: {r['input']}; background-color: {c.Black_N3}; }}
+        QSpinBox::down-button, QDoubleSpinBox::down-button {{ subcontrol-origin: border; subcontrol-position: bottom right; width: 16px; border: none; border-left: 1px solid {c.Black_N1}; border-bottom-right-radius: {r['input']}; background-color: {c.Black_N3}; }}
         QSpinBox::up-button:hover, QSpinBox::down-button:hover {{ background-color: {c.Black_N4}; }}
     """,
     
-    # --- SIDEBAR (Existente) ---
-    "sidebar_btn": f"""
-        QPushButton {{
-            background-color: transparent; color: {c.Gray_N1}; 
-            padding: 6px; border: none; border-radius: 8px; text-align: left; font-weight: 500; margin: 2px;
-        }}
-        QPushButton:hover {{ background-color: {c.White_N2}; color: {c.White_N1}; }}
-        QPushButton:checked {{ background-color: rgba(83, 252, 24, 0.15); color: {c.NeonGreen_Main}; font-weight: bold; }}
-    """,
-    "sidebar_container": f"""
-        QFrame {{
-            background-color: {c.Black_N1}; 
-            border-right: 1px solid {c.Black_N2};
-        }}
-    """
+    # --- SIDEBAR ---
+    "sidebar_btn": f"QPushButton {{ background-color: transparent; color: {c.Gray_N1}; padding: 6px; border: none; border-radius: 8px; text-align: left; font-weight: 500; margin: 2px; }} QPushButton:hover {{ background-color: {c.White_N2}; color: {c.White_N1}; }} QPushButton:checked {{ background-color: rgba(83, 252, 24, 0.15); color: {c.NeonGreen_Main}; font-weight: bold; }}",
+    "sidebar_container": f"QFrame {{ background-color: {c.Black_N1}; border-right: 1px solid {c.Black_N2}; }}"
 }
 
 # ==========================================
 # 5. HELPERS VISUALES
 # ==========================================
-def get_switch_style(on_icon_name: str = "switch-on.svg") -> str:
-    off = asset_url("switch-off.svg")
-    on = asset_url(on_icon_name)
+def get_switch_style(on_icon_name: str = "switch-on.svg", *args, **kwargs) -> str:
+    off_path = asset_url("switch-off.svg")
+    colored_icon = get_icon_colored(on_icon_name, Palette.NeonGreen_Main, size=36)
+    temp_dir = tempfile.gettempdir()
+    on_path = os.path.join(temp_dir, "kick_switch_on_colored.png").replace("\\", "/")
+
+    if not colored_icon.isNull():
+        colored_icon.pixmap(36, 20).save(on_path, "PNG")
+    else:
+        on_path = asset_url(on_icon_name)
+
     return f"""
-        QCheckBox {{ background: transparent; spacing: 5px; color: {Palette.Gray_N1}; }}
-        QCheckBox::indicator {{ width: 28px; height: 24px; border: none; }}
-        QCheckBox::indicator:unchecked {{ image: url({off}); }}
-        QCheckBox::indicator:checked {{ image: url({on}); }}
+        QCheckBox {{ 
+            background: transparent; 
+            spacing: 8px; 
+            color: {Palette.Gray_N1}; 
+            font-weight: bold; 
+            font-size: 13px; 
+        }}
+        QCheckBox::indicator {{ 
+            width: 36px; /* Ajustado al tamaño de tu SVG original */
+            height: 20px; 
+            border: none; 
+        }}
+        QCheckBox::indicator:unchecked {{ image: url({off_path}); }}
+        QCheckBox::indicator:checked {{ image: url({on_path}); }}
     """
 
 # ==========================================
@@ -457,4 +227,4 @@ def get_switch_style(on_icon_name: str = "switch-on.svg") -> str:
 COLORS = {k: v for k, v in Palette.__dict__.items() if not k.startswith("__")}
 LAYOUT = Dims.layout
 RADIUS = Dims.radius
-THEME_DARK = COLORS 
+THEME_DARK = COLORS

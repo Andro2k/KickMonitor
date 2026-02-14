@@ -1,7 +1,6 @@
 # --- Core y Red ---
 cffi
 curl_cffi
-kickpython
 requests
 aiohttp
 aiohttp_cors
@@ -18,7 +17,6 @@ pyttsx3
 spotipy
 opencv-python
 pywin32
-
 
 # --- Ayuda ---
 markdown

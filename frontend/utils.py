@@ -11,7 +11,6 @@ def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
     except Exception:
-        # Asume que utils.py está en frontend/, sube dos niveles a la raíz
         base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     return os.path.join(base_path, relative_path)
@@ -19,7 +18,6 @@ def resource_path(relative_path):
 def get_assets_path(subfolder: str = "") -> str:
     """
     Devuelve la ruta absoluta a la carpeta 'assets' (o subcarpeta).
-    Normaliza las barras a '/' para que el motor HTML de Qt no falle en Windows.
     """
     path = resource_path("assets")
     
