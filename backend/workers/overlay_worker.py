@@ -1,9 +1,9 @@
 # backend/workers/overlay_worker.py
 
 import asyncio
-import os
 import sys
 import logging
+from pathlib import Path
 from typing import Optional, Set, Dict, Any
 
 from aiohttp import web, WSMsgType
@@ -16,9 +16,8 @@ from backend.utils.logger_text import LoggerText
 # 1. CONSTANTES & CONFIGURACIÓN
 # ==========================================
 SERVER_PORT = 8081
-CHUNK_SIZE = 1024 * 1024  # 1MB para streaming local
+CHUNK_SIZE = 1024 * 1024
 
-# Silenciar logs ruidosos de librerías de terceros
 LOG_MODULES_TO_SILENCE = ['aiohttp.access', 'aiohttp.server', 'comtypes', 'kickpython']
 for lib in LOG_MODULES_TO_SILENCE:
     logging.getLogger(lib).setLevel(logging.WARNING)
@@ -28,47 +27,39 @@ class OverlayServerWorker(QThread):
     Servidor Web (aiohttp) que corre en un hilo secundario.
     Sirve el HTML del Overlay y maneja WebSockets para alertas en tiempo real.
     """    
-    # Señal para enviar logs a la consola principal UI
     log_signal = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
         self.db = DBHandler()        
-        # Asyncio & Aiohttp State
         self.loop: Optional[asyncio.AbstractEventLoop] = None
         self.runner: Optional[web.AppRunner] = None
         self.site: Optional[web.TCPSite] = None        
-        # Clientes Conectados
         self.websockets: Set[web.WebSocketResponse] = set()        
-        # Estado lógico
         self.is_active = self.db.get_bool("overlay_enabled")
 
     # =========================================================================
     # REGIÓN 1: API PÚBLICA (LLAMADA DESDE CONTROLLER/UI)
     # =========================================================================
     def set_active(self, state: bool):
-        """Habilita o deshabilita el envío de eventos (Broadcast)."""
         self.is_active = state
-        status = "ACTIVO" if state else "INACTIVO"
-        self.log_signal.emit(LoggerText.system(f"Servidor Overlay: {status}"))
+        self.log_signal.emit(LoggerText.system(f"Servidor Overlay: {'ACTIVO' if state else 'INACTIVO'}"))
 
     def send_event(self, action: str, payload: dict = None):
-        """Encola un mensaje para ser enviado a todos los clientes WebSocket."""
         if not self.is_active: return        
         if self.loop and self.loop.is_running(): 
             asyncio.run_coroutine_threadsafe(self._broadcast(action, payload), self.loop)
 
     def stop(self):
-        """Detiene el servidor y el hilo de forma segura."""
-        if self.loop and self.loop.is_running():
-            self.loop.call_soon_threadsafe(self.loop.stop)
-        self.wait()
+        if self.loop:
+             self.loop.call_soon_threadsafe(self.loop.stop)
+        self.quit()
+        self.wait(1000)
 
     # =========================================================================
     # REGIÓN 2: CICLO DE VIDA DEL SERVIDOR (THREAD RUN)
     # =========================================================================
     def run(self):
-        """Punto de entrada del QThread."""
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)       
         app = web.Application()
@@ -76,7 +67,7 @@ class OverlayServerWorker(QThread):
         self.runner = web.AppRunner(app, access_log=None)       
         try:
             self.loop.run_until_complete(self._async_start(app))
-            self.loop.run_forever() # Bloqueo principal
+            self.loop.run_forever() 
         except Exception as e:
             self.log_signal.emit(LoggerText.error(f"Excepción Crítica en Servidor: {e}"))
         finally:
@@ -84,64 +75,55 @@ class OverlayServerWorker(QThread):
             self.loop.close()
 
     async def _async_start(self, app):
-        """Inicializa el runner y el sitio TCP."""
         await self.runner.setup()
         self.site = web.TCPSite(self.runner, '127.0.0.1', SERVER_PORT)
         await self.site.start()
         self.log_signal.emit(LoggerText.success(f"Overlay Online: http://127.0.0.1:{SERVER_PORT}"))
 
     async def _async_cleanup(self):
-        """Cierra conexiones pendientes al apagar."""
-        # 1. Desconectar clientes WebSocket
         if self.websockets:
-            for ws in list(self.websockets):
-                await ws.close(code=1001, message=b"Server shutting down")        
-        # 2. Detener servidor
-        if self.site: 
-            await self.site.stop()
-        if self.runner: 
-            await self.runner.cleanup()
+            await asyncio.gather(
+                *(ws.close(code=1001, message=b"Server shutting down") for ws in self.websockets),
+                return_exceptions=True
+            )
+        if self.site: await self.site.stop()
+        if self.runner: await self.runner.cleanup()
 
     # =========================================================================
     # REGIÓN 3: RUTAS HTTP & ARCHIVOS
     # =========================================================================
     def _setup_routes(self, app):
-        # Index: El HTML principal
         app.router.add_get('/', self.handle_index)
-        # WebSocket: Canal de datos
         app.router.add_get('/ws', self.websocket_handler)        
-        # Media: Archivos del usuario (imágenes/sonidos)
         app.router.add_get('/media/{filename}', self.handle_media_request)       
-        # Assets: CSS/JS estáticos propios del bot
+        
         assets_path = self._get_asset_path("") 
-        if os.path.exists(assets_path):
-            app.router.add_static('/assets', path=assets_path)
+        if assets_path.exists():
+            app.router.add_static('/assets', path=str(assets_path))
 
     async def handle_index(self, request):
         path = self._get_asset_path("overlay.html")
-        if os.path.exists(path):
+        if path.exists():
             return web.FileResponse(path)
         return web.Response(status=404, text="<h1>Error 404</h1><p>overlay.html no encontrado en assets.</p>", content_type='text/html')
 
     async def handle_media_request(self, request):
-        """Sirve archivos dinámicos desde la carpeta configurada por el usuario."""
         filename = request.match_info['filename']
-        user_media_folder = self.db.get("media_folder")
+        folder_str = self.db.get("media_folder")
         
-        if not user_media_folder or not os.path.exists(user_media_folder):
+        if not folder_str:
             return web.Response(status=404, text="Carpeta multimedia no configurada.")
-            
-        full_path = os.path.join(user_media_folder, filename)
         
-        try:
-            full_path = os.path.abspath(full_path)
-            base_path = os.path.abspath(user_media_folder)
-            if not full_path.startswith(base_path):
-                return web.Response(status=403, text="Acceso Denegado.")
-        except:
-            return web.Response(status=400, text="Ruta inválida.")
+        user_folder = Path(folder_str).resolve()
+        if not user_folder.exists():
+            return web.Response(status=404, text="Carpeta no encontrada.")
 
-        if os.path.exists(full_path) and os.path.isfile(full_path):
+        full_path = (user_folder / filename).resolve()
+
+        if not full_path.is_relative_to(user_folder):
+            return web.Response(status=403, text="Acceso Denegado.")
+
+        if full_path.is_file():
             return web.FileResponse(full_path, chunk_size=CHUNK_SIZE)
             
         return web.Response(status=404, text="Archivo no encontrado.")
@@ -150,7 +132,6 @@ class OverlayServerWorker(QThread):
     # REGIÓN 4: GESTIÓN DE WEBSOCKETS
     # =========================================================================
     async def websocket_handler(self, request):
-        """Maneja la conexión persistente con el overlay."""
         ws = web.WebSocketResponse()
         await ws.prepare(request)
         self.websockets.add(ws)
@@ -162,38 +143,24 @@ class OverlayServerWorker(QThread):
             self.websockets.discard(ws)
         return ws
 
-    async def _broadcast(self, action: str, payload: Dict[str, Any]):
-        """Envía JSON a todos los clientes conectados."""
+    async def _broadcast(self, action: str, payload: Dict[str, Any] = None):
         if not self.websockets: return
-        data = {"action": action}
-        if payload: data.update(payload)
 
-        active_sockets = list(self.websockets)
-        
-        for ws in active_sockets:
-            try:
-                await ws.send_json(data)
-            except Exception:
-                self.websockets.discard(ws)
+        data = {"action": action} | (payload or {})
+
+        await asyncio.gather(
+            *(ws.send_json(data) for ws in self.websockets if not ws.closed),
+            return_exceptions=True
+        )
 
     # =========================================================================
     # REGIÓN 5: UTILIDADES DE RUTAS
     # =========================================================================
-    def _get_asset_path(self, filename: str) -> str:
-        """
-        Resuelve rutas de archivos estáticos. 
-        """
+    def _get_asset_path(self, filename: str) -> Path:
+        """Resuelve rutas estáticas usando pathlib (mucho más limpio)."""
         if hasattr(sys, '_MEIPASS'): 
-            base_dir = os.path.join(sys._MEIPASS, "assets")
-        else:         
-            # 1. Obtenemos ruta del archivo actual (.../backend/workers/overlay_worker.py)
-            current_file = os.path.abspath(__file__)           
-            # 2. Subimos a 'workers'
-            workers_dir = os.path.dirname(current_file)           
-            # 3. Subimos a 'backend'
-            backend_dir = os.path.dirname(workers_dir)           
-            # 4. Subimos a 'Raíz del Proyecto'
-            root_dir = os.path.dirname(backend_dir)
-            base_dir = os.path.join(root_dir, "assets")
+            base_dir = Path(sys._MEIPASS) / "assets"
+        else:
+            base_dir = Path(__file__).resolve().parent.parent.parent / "assets"
 
-        return os.path.join(base_dir, filename) if filename else base_dir
+        return base_dir / filename if filename else base_dir

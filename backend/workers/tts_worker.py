@@ -1,10 +1,22 @@
 # backend/workers/tts_worker.py
 
+import os
+import warnings
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
+warnings.filterwarnings("ignore", category=UserWarning, module="pygame.pkgdata")
+
 import queue
 import re
-import pyttsx3
-from PyQt6.QtCore import QThread, pyqtSignal
+import time
+import asyncio
+import io 
+from contextlib import suppress
 
+import pyttsx3
+import edge_tts
+import pygame
+
+from PyQt6.QtCore import QThread, pyqtSignal
 from backend.utils.logger_text import LoggerText
 
 class TTSWorker(QThread):
@@ -15,14 +27,20 @@ class TTSWorker(QThread):
         self.queue = queue.Queue()
         self.is_running = True
         
-        # Referencia al motor actual para poder detenerlo
-        self.current_engine = None 
-        
-        # Configuración por defecto
-        self.selected_voice_id = None
-        self.rate = 175
+        # --- ESTADO GENERAL ---
+        self.engine_type = "edge-tts"
         self.volume = 1.0 
         
+        # --- CONFIG PYTTSX3 ---
+        self.current_engine = None 
+        self.selected_voice_id = None
+        self.rate = 175
+        
+        # --- CONFIG EDGE-TTS ---
+        self.edge_voice = "es-MX-JorgeNeural"
+        with suppress(Exception):
+            pygame.mixer.init()
+
         self.re_html = re.compile(r'<[^>]+>')
         self.re_url = re.compile(r'http\S+|www\.\S+')
 
@@ -30,31 +48,33 @@ class TTSWorker(QThread):
     # CONTROL Y CONFIGURACIÓN
     # ==========================================
     def add_message(self, text: str):
-        clean_text = self._clean_text(text)
-        if clean_text: 
+        if clean_text := self._clean_text(text): 
             self.queue.put(clean_text)
 
-    def update_config(self, vid, rate, vol):
+    def update_config(self, vid, rate, vol, engine_type="edge-tts", edge_voice="es-MX-JorgeNeural"):
         self.selected_voice_id = vid
         self.rate = int(rate)
         self.volume = float(vol)
+        self.engine_type = engine_type
+        self.edge_voice = edge_voice
 
     def stop(self):
         self.is_running = False
-        self.immediate_stop() # Aseguramos que se calle al cerrar
-        self.wait()
+        self.immediate_stop()
+        self.quit()
+        self.wait(1000)
 
     def immediate_stop(self):
-        """Vacía la cola y fuerza la detención del audio actual."""
-        # 1. Vaciar la cola de mensajes pendientes (Thread-safe)
         with self.queue.mutex:
             self.queue.queue.clear()           
-        # 2. Detener el motor si está hablando
+            
         if self.current_engine:
-            try:
+            with suppress(Exception):
                 self.current_engine.stop()
-            except Exception as e:
-                self.error_signal.emit(LoggerText.error(f"TTS Stop Error: {e}"))
+                
+        with suppress(Exception):
+            if pygame.mixer.music.get_busy():
+                pygame.mixer.music.stop()
 
     # ==========================================
     # LOOP PRINCIPAL
@@ -68,24 +88,65 @@ class TTSWorker(QThread):
             except queue.Empty:
                 continue
             except Exception as e:
-                self.error_signal.emit(LoggerText.error(f"TTS Error General: {e}"))
+                self.error_signal.emit(LoggerText.error(f"TTS Error: {e}"))
 
     # ==========================================
-    # PROCESAMIENTO INTERNO
+    # PROCESAMIENTO INTERNO (ENRUTADOR)
     # ==========================================
     def _clean_text(self, text: str) -> str:
-        text = self.re_html.sub('', text)
-        text = self.re_url.sub('un enlace', text)
-        return text.strip()
+        text_no_html = self.re_html.sub('', text)
+        return self.re_url.sub('un enlace', text_no_html).strip()
 
     def _speak(self, text: str):
+        if self.engine_type == "edge-tts":
+            self._speak_edge(text)
+        else:
+            self._speak_pyttsx3(text)
+
+    def _speak_edge(self, text: str):
         try:
-            self.current_engine = pyttsx3.init()
+            audio_bytes = asyncio.run(self._get_edge_bytes(text))
             
+            if not audio_bytes:
+                raise Exception("No se generó audio")
+
+            audio_stream = io.BytesIO(audio_bytes)
+
+            pygame.mixer.music.load(audio_stream)
+            pygame.mixer.music.set_volume(self.volume)
+            pygame.mixer.music.play()
+
+            while pygame.mixer.music.get_busy() and self.is_running:
+                time.sleep(0.05)
+                
+        except Exception as e:
+            self.error_signal.emit(LoggerText.error(f"Edge-TTS falló, usando voz local: {e}"))
+            self._speak_pyttsx3(text)
+            
+        finally:
+            with suppress(Exception):
+                pygame.mixer.music.unload()
+
+    async def _get_edge_bytes(self, text: str) -> bytes:
+        """Descarga el audio pedacito por pedacito en RAM sin tocar el disco duro."""
+        percent = int((self.rate - 175) / 1.5)
+        percent = max(-50, min(80, percent)) 
+        rate_str = f"{percent:+d}%"
+        communicate = edge_tts.Communicate(text, self.edge_voice, rate=rate_str)
+        audio_data = bytearray()
+        
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                audio_data.extend(chunk["data"])
+                
+        return bytes(audio_data)
+
+    def _speak_pyttsx3(self, text: str):
+        with suppress(Exception):
+            self.current_engine = pyttsx3.init()
             if self.selected_voice_id:
-                try: 
+                with suppress(Exception): 
                     self.current_engine.setProperty('voice', self.selected_voice_id)
-                except: pass
             
             self.current_engine.setProperty('rate', self.rate)
             self.current_engine.setProperty('volume', self.volume)
@@ -93,12 +154,8 @@ class TTSWorker(QThread):
             self.current_engine.say(text)
             self.current_engine.runAndWait()
             self.current_engine.stop()
-            
-        except Exception as e:
-            pass 
-        finally:
+                
+        with suppress(Exception):
             if self.current_engine:
-                try:
-                    del self.current_engine
-                except: pass
-                self.current_engine = None
+                del self.current_engine
+        self.current_engine = None

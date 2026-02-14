@@ -1,8 +1,9 @@
 # backend/workers/kick_worker.py
 
 import time
-import cloudscraper
 from typing import Dict, Any
+from contextlib import suppress
+import cloudscraper
 from PyQt6.QtCore import QThread, pyqtSignal
 
 # ==========================================
@@ -15,10 +16,7 @@ DEFAULT_MONITOR_INTERVAL = 30
 # WORKER 1: API CHECKER (Búsqueda inicial de un solo uso)
 # =========================================================================
 class KickApiWorker(QThread):
-    """
-    Worker efímero. Realiza una única consulta HTTP para validar
-    """    
-    # Señal: (Exito, Mensaje, Slug, ChatID, UsernameReal, Followers, ProfilePic)
+    """Worker efímero. Realiza una única consulta HTTP para validar."""    
     finished = pyqtSignal(bool, str, str, str, str, int, str)
 
     def __init__(self, username: str):
@@ -28,12 +26,10 @@ class KickApiWorker(QThread):
     def run(self):
         scraper = cloudscraper.create_scraper()
         try:
-            url = f"{KICK_API_BASE}/{self.username}"
-            resp = scraper.get(url)
+            resp = scraper.get(f"{KICK_API_BASE}/{self.username}")
             
             if resp.status_code == 200:
-                data = resp.json()
-                self._process_success(data)
+                self._process_success(resp.json())
             else:
                 self.finished.emit(False, f"Error {resp.status_code}: Usuario no encontrado", "", "", "", 0, "")
                 
@@ -41,28 +37,22 @@ class KickApiWorker(QThread):
             self.finished.emit(False, f"Error de Conexión: {str(e)}", "", "", "", 0, "")
 
     def _process_success(self, data: Dict[str, Any]):
-        """Extrae los datos del JSON de forma segura."""
+        """Extrae los datos del JSON de forma segura y directa."""
         chat_id = str(data.get('chatroom', {}).get('id', ''))
         slug = data.get('slug', '')
         
         user_data = data.get('user', {})
         real_username = user_data.get('username', self.username)
         profile_pic = user_data.get('profile_pic', '')
-        
         followers = data.get('followersCount', 0)
         
         self.finished.emit(True, "Encontrado", slug, chat_id, real_username, followers, profile_pic)
-
 
 # =========================================================================
 # WORKER 2: MONITOR DE SEGUIDORES (Proceso en segundo plano)
 # =========================================================================
 class FollowMonitorWorker(QThread):
-    """
-    Worker persistente. Consulta periódicamente la API de Kick para
-    detectar cambios en el contador de seguidores.
-    """ 
-    # Señales UI
+    """Worker persistente que detecta cambios en el contador de seguidores.""" 
     new_follower = pyqtSignal(int, int, str)
     error_signal = pyqtSignal(str)
 
@@ -80,10 +70,9 @@ class FollowMonitorWorker(QThread):
     def run(self):
         """Ciclo de vida del hilo."""
         while self.is_running:
-            try:
+            with suppress(Exception):
                 self._check_followers()
-            except Exception as e:
-                self.error_signal.emit(f"Error Monitor: {e}")
+                
             for _ in range(self.interval):
                 if not self.is_running: break
                 time.sleep(1)
@@ -91,26 +80,24 @@ class FollowMonitorWorker(QThread):
     def stop(self):
         """Señal para detener el bucle de forma segura."""
         self.is_running = False
-        self.wait()
+        self.quit()
+        self.wait(1000)
 
     # =========================================================================
     # REGIÓN 2: LÓGICA DE API (PRIVADA)
     # =========================================================================
     def _check_followers(self):
         """Consulta el contador actual y compara con el historial."""
-        url = f"{KICK_API_BASE}/{self.username}"
-        resp = self.scraper.get(url)
+        resp = self.scraper.get(f"{KICK_API_BASE}/{self.username}")
         
-        if resp.status_code != 200:
-            return
+        if resp.status_code != 200: return
 
-        data = resp.json()
-        current_count = data.get('followersCount', 0)        
-        # Caso A: Primera ejecución (Inicialización)
+        current_count = resp.json().get('followersCount', 0)        
+        
         if self.last_count == -1:
             self.last_count = current_count
             return
-        # Caso B: Cambio detectado (Nuevo seguidor)
+            
         if current_count > self.last_count:
             diff = current_count - self.last_count
             new_name = self._fetch_latest_follower_name()
@@ -120,16 +107,11 @@ class FollowMonitorWorker(QThread):
 
     def _fetch_latest_follower_name(self) -> str:
         """Obtiene el nombre del seguidor más reciente desde la lista."""
-        try:
-            # Endpoint específico para la lista de seguidores
-            url_list = f"{KICK_API_BASE}/{self.username}/followers"
-            resp = self.scraper.get(url_list)            
+        with suppress(Exception):
+            resp = self.scraper.get(f"{KICK_API_BASE}/{self.username}/followers")            
             if resp.status_code == 200:
-                data = resp.json()
-                if data and 'followers' in data:
-                    items = data['followers']
-                    if items and len(items) > 0:
-                        return items[0].get('username', 'Nuevo Seguidor')
-        except:
-            pass           
+                followers = resp.json().get('followers', [])
+                if followers:
+                    return followers[0].get('username', 'Nuevo Seguidor')
+                    
         return "Nuevo Seguidor"

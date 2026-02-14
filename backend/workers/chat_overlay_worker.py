@@ -1,13 +1,13 @@
 # backend/workers/chat_overlay_worker.py
 
-import os
 import json
 import asyncio
+from pathlib import Path
 from aiohttp import web, WSMsgType
 from PyQt6.QtCore import QObject, pyqtSignal, QThread
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-HTML_CHAT_PATH = os.path.join(BASE_DIR, "overlays", "chat_overlay.html")
+BASE_DIR = Path(__file__).resolve().parent.parent
+HTML_CHAT_PATH = BASE_DIR / "overlays" / "chat_overlay.html"
 
 class ChatOverlayWorker(QObject):
     service_started = pyqtSignal(str)
@@ -27,7 +27,6 @@ class ChatOverlayWorker(QObject):
         self.loop = None
         self.thread = None
         
-        # --- NUEVO: Memoria para guardar la última configuración ---
         self.latest_config = {} 
 
     def start(self):
@@ -60,13 +59,16 @@ class ChatOverlayWorker(QObject):
         if self.runner: await self.runner.cleanup()
 
     def stop(self):
-        if self.loop: self.loop.call_soon_threadsafe(self.loop.stop)
-        if self.thread: self.thread.quit(); self.thread.wait()
+        if self.loop:
+             self.loop.call_soon_threadsafe(self.loop.stop)
+        if self.thread:
+             self.thread.quit()
+             self.thread.wait(1000)
 
     async def chat_overlay_handler(self, request):
         try:
-            with open(HTML_CHAT_PATH, 'r', encoding='utf-8') as f:
-                return web.Response(text=f.read(), content_type='text/html')
+            html_content = HTML_CHAT_PATH.read_text(encoding='utf-8')
+            return web.Response(text=html_content, content_type='text/html')
         except FileNotFoundError:
             return web.Response(text=f"Error: No se encontró el archivo {HTML_CHAT_PATH}", status=404)
 
@@ -75,14 +77,11 @@ class ChatOverlayWorker(QObject):
         await ws.prepare(request)
         self.clients.add(ws)
         
-        # --- NUEVO: Si OBS se recarga, le enviamos la configuración al instante ---
         if self.latest_config:
-            payload = {
-                "type": "update_chat_styles",
+            await ws.send_str(json.dumps({
+                "type": "update_chat_styles", 
                 "payload": self.latest_config
-            }
-            await ws.send_str(json.dumps(payload))
-        # -------------------------------------------------------------------------
+            }))
             
         try:
             async for msg in ws:
@@ -95,8 +94,11 @@ class ChatOverlayWorker(QObject):
     async def broadcast_data(self, data_dict):
         if not self.clients: return
         message = json.dumps(data_dict)
-        tasks = [asyncio.create_task(ws.send_str(message)) for ws in self.clients if not ws.closed]
-        if tasks: await asyncio.wait(tasks)
+
+        await asyncio.gather(
+            *(ws.send_str(message) for ws in self.clients if not ws.closed), 
+            return_exceptions=True
+        )
 
     def send_chat_message_to_overlay(self, sender, content, badges=None, user_color=None, timestamp=""):
         if not self.loop: return
@@ -111,12 +113,8 @@ class ChatOverlayWorker(QObject):
 
     def update_chat_styles(self, style_dict):
         if not self.loop: return
+
+        self.latest_config |= style_dict
         
-        # --- NUEVO: Actualizar la memoria con la última configuración ---
-        self.latest_config.update(style_dict)
-        
-        payload = {
-            "type": "update_chat_styles",
-            "payload": style_dict
-        }
+        payload = {"type": "update_chat_styles", "payload": style_dict}
         asyncio.run_coroutine_threadsafe(self.broadcast_data(payload), self.loop)

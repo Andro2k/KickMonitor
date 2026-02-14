@@ -80,10 +80,13 @@
         @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
 
         /* COMPONENTES INTERNOS */
-        .timestamp { font-size: 0.8em; color: #aaa; margin-right: 5px; opacity: 0.8; }
+        .timestamp { font-size: 0.85em; color: var(--text-color); margin-right: 5px; opacity: 0.9; }
         .username { font-weight: bold; margin-right: 3px; color: var(--user-color, var(--username-color)); }
-        .separator { margin-right: 5px; opacity: 0.7; }
-        .message-content { line-height: 1.4; }
+        .separator { margin-right: 5px; opacity: 0.7; color: var(--text-color); }
+        .message-content { line-height: 1.4; color: var(--text-color); }
+        
+        /* NUEVO: Tamaño y alineación de los Emotes */
+        .emote { height: 28px; vertical-align: middle; margin: 0 2px; }
     </style>
 </head>
 <body>
@@ -91,7 +94,7 @@
 
     <script>
         const chatContainer = document.getElementById('chat-container');
-        const MAX_MESSAGES = 50; // Reducido un poco para modo horizontal
+        const MAX_MESSAGES = 50;
         let socket;
 
         let currentConfig = {
@@ -101,6 +104,20 @@
             hide_old: false,
             hide_time: 10
         };
+
+        // Función para convertir texto en Emotes (con seguridad Anti-Hackers XSS)
+        function parseEmotes(rawText) {
+            // 1. Escapamos el texto HTML por seguridad (evita inyección de código)
+            let safeText = document.createElement('div');
+            safeText.textContent = rawText;
+            let htmlText = safeText.innerHTML;
+
+            // 2. Buscamos el patrón de Kick: [emote:ID:Nombre] y lo volvemos imagen
+            const kickEmoteRegex = /\[emote:(\d+):([^\]]+)\]/g;
+            htmlText = htmlText.replace(kickEmoteRegex, '<img src="https://files.kick.com/emotes/$1/fullsize" class="emote" alt="$2" title="$2">');
+            
+            return htmlText;
+        }
 
         function connect() {
             socket = new WebSocket('ws://localhost:6001/ws');
@@ -140,13 +157,10 @@
 
             const cSpan = document.createElement('span');
             cSpan.className = 'message-content';
-            cSpan.textContent = msgData.content;
+            cSpan.innerHTML = parseEmotes(msgData.content); // <--- LÍNEA ACTUALIZADA CON EMOTES
             msgDiv.appendChild(cSpan);
 
             chatContainer.appendChild(msgDiv);
-            
-            // --- ¡NUEVO! SCROLL INTELIGENTE ---
-            // Si es horizontal, hacemos scroll a lo ancho. Si es vertical, a lo alto.
             if (currentConfig.theme === 'horizontal') {
                 chatContainer.scrollLeft = chatContainer.scrollWidth;
             } else {
@@ -182,7 +196,6 @@
                 }
             }
 
-            // Cambiar dinámicamente el layout a horizontal si el tema lo requiere
             if (currentConfig.theme === 'horizontal') {
                 chatContainer.classList.add('layout-horizontal');
             } else {

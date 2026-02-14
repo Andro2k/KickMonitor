@@ -2,6 +2,7 @@
 
 from datetime import datetime
 import os
+import re
 from typing import Optional
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer, QThread
 
@@ -28,9 +29,8 @@ from backend.handlers.triggers_handler import TriggerHandler
 from frontend.dialogs.update_modal import UpdateModal
 
 class MainController(QObject):
-    """
-    Controlador Principal (Facade Pattern).
-    """
+    """Controlador Principal (Facade Pattern)."""
+    
     # --- SEÑALES UI ---
     log_signal = pyqtSignal(str)
     chat_signal = pyqtSignal(str, str, str)
@@ -58,7 +58,6 @@ class MainController(QObject):
         self.chat_handler = ChatHandler(self.db)
         self.music_handler = MusicHandler(self.db, self.spotify) 
         self.game_handler = GameHandler(self.db, self.casino_system)
-        self.alert_handler = TriggerHandler(self.db, self.overlay_server)
         self.trigger_handler = TriggerHandler(self.db, self.overlay_server)
         self.antibot = AntibotHandler(self.db)
         
@@ -69,25 +68,22 @@ class MainController(QObject):
         self.tts_enabled = False
         self.command_only = False       
         
-        # 5. Configuración
+        # 5. Configuración y Timers
         self._setup_timers()
         self.debug_enabled = self.db.get_bool("debug_mode")
         LoggerText.enabled_debug = self.debug_enabled
-        
-        # 6. Registro de Logs (Solo la señal principal)
         self.log_signal.connect(self._write_log_to_file)
         
-        # 7. Actualizaciones
+        # 6. Actualizaciones
         self._manual_check = False
         self._update_found = False
         self.check_updates(manual=False)
     
     def _setup_timers(self):
-        # Timer Puntos: Distribuye puntos cada minuto
         self.points_timer = QTimer()
         self.points_timer.timeout.connect(self.chat_handler.distribute_periodic_points)
         self.points_timer.start(60000)
-        # Timer Automatización: Mensajes automáticos cada 60s
+
         self.msg_timer = QTimer()
         self.msg_timer.timeout.connect(self._check_timers_execution)
         self.msg_timer.start(60000)
@@ -96,135 +92,105 @@ class MainController(QObject):
     # REGIÓN 1: PIPELINE DE PROCESAMIENTO DE CHAT
     # =========================================================================
     def on_chat_received(self, user, content, badges, timestamp):
-        """
-        Recibe datos ya limpios desde KickBot.
-        """
+        """Recibe datos limpios y los procesa a través de la cadena de responsabilidad."""
         msg_lower = content.strip().lower()
-        # 0. ANTIBOT
-        if self.antibot.check_user(user, self._ban_user, self.emit_log):
-            return
-        if self.chat_handler.is_bot(user):
+        
+        # 0. ANTIBOT Y FILTROS BASE
+        if self.antibot.check_user(user, self._ban_user, self.emit_log) or \
+           self.chat_handler.is_bot(user) or \
+           self.chat_handler.should_ignore_user(user):
             self._update_ui_chat(timestamp, user, content)
             return
-        # 1. Filtros de seguridad
-        if self.chat_handler.should_ignore_user(user): 
-            self._update_ui_chat(timestamp, user, content)
-            return           
-        # 2. Economía
+            
+        # 1. ECONOMÍA
         self.chat_handler.process_points(user, msg_lower, badges)
-        # 3. Delegación a Handlers (Cadena de Responsabilidad)
-        # Música
-        if self.music_handler.handle_command(user, content, msg_lower, self.send_msg, self.emit_log):
-            self._finalize_message(timestamp, user, content)
-            return           
-        # Juegos
-        if self.game_handler.handle_command(user, msg_lower, self.send_msg, self.gamble_result_signal.emit):
-            self._finalize_message(timestamp, user, content)
+        
+        # 2. EVALUACIÓN PEREZOSA (Lazy Evaluation) DE COMANDOS
+        # En vez de múltiples IFs, evaluamos una lista hasta que uno retorne True
+        command_handlers = [
+            lambda: self.music_handler.handle_command(user, content, msg_lower, self.send_msg, self.emit_log),
+            lambda: self.game_handler.handle_command(user, msg_lower, self.send_msg, self.gamble_result_signal.emit),
+            lambda: self._handle_custom_responses(user, msg_lower),
+            lambda: self._handle_points_query(user, msg_lower)
+        ]
+        
+        if any(handler() for handler in command_handlers):
+            self._update_ui_chat(timestamp, user, content)
             return
-        # Comandos Custom
-        if self._handle_custom_responses(user, msg_lower):
-            self._finalize_message(timestamp, user, content)
-            return
-        # Consulta Puntos
-        if self._handle_points_query(user, msg_lower):
-            self._finalize_message(timestamp, user, content)
-            return
-        # 4. Procesamiento Final
+            
+        # 3. PROCESAMIENTO MULTIMEDIA (TTS y Overlay)
         if self.tts_enabled: 
             self._process_tts(user, content)
 
-        # --- NUEVO: FILTRADO INTELIGENTE PARA EL OVERLAY (OBS) ---
-        send_to_overlay = True
-        
-        # A. Ignorar bots si está activo
-        if self.db.get_bool("chat_hide_bots") and self.chat_handler.is_bot(user): 
-            send_to_overlay = False
-            
-        # B. Ignorar comandos si está activo
-        if self.db.get_bool("chat_hide_cmds") and content.strip().startswith("!"): 
-            send_to_overlay = False
-            
-        # C. Ignorar lista negra de usuarios
-        ignored_users_str = self.db.get("chat_ignored_users")
-        if ignored_users_str:
-            ignored_list = [u.strip().lower() for u in ignored_users_str.split(",") if u.strip()]
-            if user.lower() in ignored_list: 
-                send_to_overlay = False
-                
-        # Enviar si pasó los filtros
-        if send_to_overlay:
-            streamer_name = self.db.get("kick_username") or ""
-            is_streamer = user.lower() == streamer_name.lower()
-            user_color = "#53fc18" if is_streamer else "#ffffff"
+        if self._should_send_to_overlay(user, content):
+            is_streamer = user.lower() == (self.db.get("kick_username") or "").lower()
             
             self.chat_overlay.send_chat_message_to_overlay(
-                sender=user,
-                content=content,
-                badges=badges,
-                user_color=user_color,
+                sender=user, content=content, badges=badges,
+                user_color="#53fc18" if is_streamer else "#ffffff",
                 timestamp=timestamp
             )
-        # ---------------------------------------------------------
             
         self.game_handler.analyze_outcome(user, content, self.gamble_result_signal.emit)
         self._update_ui_chat(timestamp, user, content)
 
-    def _ban_user(self, username: str):
-        """Callback que ejecuta el baneo real a través del worker."""
-        if self.worker:
-            # Opción A: Si el worker tiene método específico (recomendado)
-            if hasattr(self.worker, 'ban_user'):
-                self.worker.ban_user(username)
-            # Opción B: Fallback vía comando de chat (si el bot es mod)
-            else:
-                self.worker.send_chat_message(f"/ban {username}")
+    def _should_send_to_overlay(self, user, content) -> bool:
+        """Filtro inteligente para enviar mensajes a OBS."""
+        if self.db.get_bool("chat_hide_bots") and self.chat_handler.is_bot(user): return False
+        if self.db.get_bool("chat_hide_cmds") and content.strip().startswith("!"): return False
+        
+        # Búsqueda O(1) usando Set Comprehension
+        ignored_users = self.db.get("chat_ignored_users") or ""
+        ignored_set = {u.strip().lower() for u in ignored_users.split(",") if u.strip()}
+        
+        return user.lower() not in ignored_set
 
-    def _finalize_message(self, timestamp, user, content):
-        """Actualiza la UI después de procesar un comando exitoso."""
-        self._update_ui_chat(timestamp, user, content)
+    def _ban_user(self, username: str):
+        if not self.worker: return
+        if hasattr(self.worker, 'ban_user'):
+            self.worker.ban_user(username)
+        else:
+            self.worker.send_chat_message(f"/ban {username}")
 
     def _update_ui_chat(self, timestamp, user, content):
-        formatted = self.chat_handler.format_for_ui(content)
-        self.chat_signal.emit(timestamp, user, formatted)
+        self.chat_signal.emit(timestamp, user, self.chat_handler.format_for_ui(content))
 
     # =========================================================================
     # REGIÓN 2: LÓGICA AUXILIAR DE CHAT
     # =========================================================================
     def _handle_custom_responses(self, user, msg_lower) -> bool:
-        parts = msg_lower.split(" ", 1) 
-        trigger = parts[0]
+        trigger, *rest = msg_lower.split(" ", 1)
+        args = rest[0] if rest else ""
+        
         can_exec, message = self.cmd_service.can_execute(trigger)  
-        if not can_exec and message:
+        if not message: return False
+        
+        if not can_exec:
             self.send_msg(f"@{user} {message}")
             return True           
-        # Caso: Ejecución permitida
-        if can_exec and message:
-            args = parts[1] if len(parts) > 1 else ""
-            extra_context = {"song": self.music_handler.get_current_song_info()}
-            final_msg = self.chat_handler.format_custom_message(message, user, args, extra_context)
-            self.send_msg(final_msg)
-            self.emit_log(LoggerText.info(f"Comando ejecutado: {trigger}"))
-            return True
-        return False
+            
+        extra_context = {"song": self.music_handler.get_current_song_info()}
+        self.send_msg(self.chat_handler.format_custom_message(message, user, args, extra_context))
+        self.emit_log(LoggerText.info(f"Comando ejecutado: {trigger}"))
+        return True
 
     def _handle_points_query(self, user, msg_lower) -> bool:
         cmd = (self.db.get("points_command") or "!puntos").lower()
-        if msg_lower.split(" ")[0] == cmd:
-            pts = self.db.get_points(user)
-            name = self.db.get('points_name') or 'Puntos'
-            self.send_msg(f"@{user} tienes {pts} {name}")
+        if msg_lower.startswith(cmd):
+            self.send_msg(f"@{user} tienes {self.db.get_points(user)} {self.db.get('points_name') or 'Puntos'}")
             return True
         return False
 
     def _process_tts(self, user, content):
         cmd = (self.db.get("tts_command") or "!voz").lower().strip()
-        final_text = ""       
-        if self.command_only:
-            if content.lower().startswith(cmd):
-                raw = content[len(cmd):]
-                final_text = self.chat_handler.clean_for_tts(raw)
-        elif not content.startswith("!"):
-            final_text = self.chat_handler.clean_for_tts(content)           
+        
+        if self.command_only and content.lower().startswith(cmd):
+            final_text = self.chat_handler.clean_for_tts(content[len(cmd):])
+        elif not self.command_only and not content.startswith("!"):
+            final_text = self.chat_handler.clean_for_tts(content)
+        else:
+            return
+            
         if final_text: 
             self.tts.add_message(f"{user} dice: {final_text}")
 
@@ -239,30 +205,22 @@ class MainController(QObject):
         self.spotify_thread.start()
 
     def _init_tts(self):
-        self.tts = TTSWorker()
-        self.tts.start()
+        self.tts = TTSWorker(); self.tts.start()
 
     def _init_overlay(self):
         self.overlay_server = OverlayServerWorker()
-        self.overlay_server.log_signal.connect(self.emit_log)
-        self.overlay_server.start()
+        self.overlay_server.log_signal.connect(self.emit_log); self.overlay_server.start()
         
     def _init_chat_overlay(self):
         self.chat_overlay = ChatOverlayWorker(port=6001)
-        self.chat_overlay.error_occurred.connect(self.emit_log)
-        self.chat_overlay.start()
+        self.chat_overlay.error_occurred.connect(self.emit_log); self.chat_overlay.start()
 
     def start_bot(self):
-        """Inicia la conexión principal con Kick."""
         if self.worker: self.stop_bot()      
-        config = { 
-            "client_id": self.db.get("client_id"), 
-            "client_secret": self.db.get("client_secret"), 
-            "chatroom_id": self.db.get("chatroom_id"), 
-            "kick_username": self.db.get("kick_username"), 
-            "redirect_uri": self.db.get("redirect_uri") 
-        }        
-        if not all([config["client_id"], config["client_secret"]]):
+        
+        config = {key: self.db.get(key) for key in ["client_id", "client_secret", "chatroom_id", "kick_username", "redirect_uri"]}
+        
+        if not config["client_id"] or not config["client_secret"]:
             self.toast_signal.emit("Error", "Faltan Client ID / Secret", "status_error")
             self.connection_changed.emit(False)
             return
@@ -276,59 +234,53 @@ class MainController(QObject):
         self.worker.disconnected_signal.connect(self.on_disconnected)
         self.worker.user_info_signal.connect(lambda u, f, p: (self.user_info_signal.emit(u, f, p), self.force_user_refresh_ui()))
         self.worker.username_required.connect(self.username_needed.emit)
-        
         self.worker.start()
+        
         if not self.redemption_worker:
             self.redemption_worker = RedemptionWorker(self.db)
             self.redemption_worker.log_signal.connect(self.emit_log)
             self.redemption_worker.redemption_detected.connect(self.on_redemption_received)
             self.redemption_worker.start()
 
-        if config["kick_username"]: 
-            self._start_monitor(config["kick_username"])
+        if config["kick_username"]: self._start_monitor(config["kick_username"])
             
         self.connection_changed.emit(True)
         self.toast_signal.emit("Conectado", "Bot en línea y escuchando.", "status_success")
 
     def stop_bot(self):
-        """Detiene la conexión de forma segura."""
-        if self.worker: 
-            self.safe_disconnect(self.worker.chat_received)
-            self.worker.stop()
-            if not self.worker.wait(500): 
-                self.emit_log(LoggerText.warning("Timeout: Forzando cierre de hilos."))
-            self.worker = None             
-        if self.monitor_worker: 
-            self.monitor_worker.stop()
-            self.monitor_worker.wait(500)
-            self.monitor_worker = None           
-        if self.redemption_worker:
-            self.redemption_worker.stop()
-            self.redemption_worker.wait()
-            self.redemption_worker = None 
+        """Detiene dinámicamente todos los workers de red (DRY Pattern)."""
+        workers_to_stop = ['worker', 'monitor_worker', 'redemption_worker']
+        
+        for w_attr in workers_to_stop:
+            w_instance = getattr(self, w_attr, None)
+            if w_instance:
+                if w_attr == 'worker': self.safe_disconnect(w_instance.chat_received)
+                w_instance.stop()
+                if not w_instance.wait(500) and w_attr == 'worker': 
+                    self.emit_log(LoggerText.warning("Timeout: Forzando cierre de hilos."))
+                setattr(self, w_attr, None)
+                
         self.status_signal.emit("Desconectado")
         self.connection_changed.emit(False)
         self.toast_signal.emit("Sistema", "Desconectado", "status_warning")
 
     def shutdown(self):
-        """Cierre total de la aplicación (Cleanup)."""
         self.stop_bot()
-        if self.tts: self.tts.stop()
-        if self.overlay_server: self.overlay_server.stop()
-        if self.spotify_thread.isRunning():
+        for server in filter(None, [self.tts, self.overlay_server, self.chat_overlay]): 
+            server.stop()
+
+        if hasattr(self, 'spotify_thread') and self.spotify_thread.isRunning():
             self.spotify.sig_do_disconnect.emit()
             self.spotify_thread.quit()
-            self.spotify_thread.wait()
+            self.spotify_thread.wait(1000)
 
     def on_disconnected(self): 
-        if self.worker: 
-            self.worker.deleteLater()
-            self.worker = None
+        if self.worker: self.worker.deleteLater(); self.worker = None
         self.status_signal.emit("Desconectado")
         self.connection_changed.emit(False)
 
     # =========================================================================
-    # REGIÓN 4: UTILIDADES Y SETTERS
+    # REGIÓN 4: UTILIDADES Y EVENTOS EXTERNOS
     # =========================================================================
     def set_manual_username(self, username):
         self.db.set("kick_username", username)
@@ -336,23 +288,19 @@ class MainController(QObject):
         QTimer.singleShot(500, self.start_bot)
 
     def _start_monitor(self, username):
-        if self.monitor_worker is None:
+        if not self.monitor_worker:
             self.monitor_worker = FollowMonitorWorker(username)
             self.monitor_worker.new_follower.connect(self.on_new_follower)
             self.monitor_worker.start()
 
     def on_new_follower(self, count, name):
-        # 1. Notificación Visual
         self.toast_signal.emit("¡NUEVO!", f"{name} (+{count})", "status_success")
         self.emit_log(LoggerText.success(f"NUEVO SEGUIDOR: {name}"))
-        # 2. Voz
-        if self.tts_enabled: 
-            self.tts.add_message(f"Gracias {name} por seguirme.")
-        # 3. Chat Alerta
+        if self.tts_enabled: self.tts.add_message(f"Gracias {name} por seguirme.")
+        
         msg_tpl, is_active = self.db.get_text_alert("follow")
         if is_active and msg_tpl:
-            final_msg = msg_tpl.replace("{user}", name).replace("{count}", str(count))
-            self.send_msg(final_msg)
+            self.send_msg(msg_tpl.replace("{user}", name).replace("{count}", str(count)))
 
     def force_user_refresh_ui(self):
         username = self.db.get("kick_username")
@@ -364,11 +312,10 @@ class MainController(QObject):
         if self.worker: 
             self.stop_bot()
             self.toast_signal.emit("Reinicio", "Cambio usuario detectado", "status_warning")
+            
         username = self.db.get("kick_username")
-        if username: 
-            data = self.db.get_kick_user(username)
-            if data: 
-                self.user_info_signal.emit(data["username"], data["followers"], data["profile_pic"])
+        if username and (data := self.db.get_kick_user(username)):
+            self.user_info_signal.emit(data["username"], data["followers"], data["profile_pic"])
         else:
             self.user_info_signal.emit("Streamer", 0, "")
 
@@ -384,35 +331,27 @@ class MainController(QObject):
     def set_tts_enabled(self, enabled): 
         self.tts_enabled = enabled
         if not enabled and self.tts: 
-            self.tts.immediate_stop()
-            self.emit_log(LoggerText.info("Sistema TTS: Desactivado"))
+            self.tts.immediate_stop(); self.emit_log(LoggerText.info("Sistema TTS: Desactivado"))
     
     def set_command_only(self, enabled): self.command_only = enabled
 
     def _check_timers_execution(self):
-        """Ejecuta mensajes programados (Timers)."""
         if not self.worker: return
         import time
         now = time.time()
-        due_list = self.db.get_due_timers(now)
-        
-        for name, msg in due_list:
+        for name, msg in self.db.get_due_timers(now):
             if msg:
                 self.send_msg(msg)
-                self.emit_log(LoggerText.system(f"Timer automático ejecutado: '{name}'"))
+                self.emit_log(LoggerText.system(f"Timer automático: '{name}'"))
                 self.db.update_timer_run(name, now)
+
     # =========================================================================
     # REGIÓN 5: ACTUALIZACIONES
     # =========================================================================
     def check_updates(self, manual=False):
-        """
-        Inicia el worker de comprobación.
-        """
         self._manual_check = manual
         self._update_found = False
-
-        if manual:
-            self.toast_signal.emit("Sistema", "Buscando actualizaciones.", "info")
+        if manual: self.toast_signal.emit("Sistema", "Buscando actualizaciones.", "info")
 
         self.updater = UpdateCheckerWorker()
         self.updater.update_available.connect(self.ask_user_to_update)
@@ -420,90 +359,49 @@ class MainController(QObject):
         self.updater.start()
 
     def ask_user_to_update(self, new_ver, url, notes):
-        """Callback cuando SE ENCUENTRA una actualización."""
         self._update_found = True
-        # Si es manual o automático, mostramos el modal igual
-        modal = UpdateModal(new_ver, notes, parent=None) 
-        
-        if modal.exec():
+        if UpdateModal(new_ver, notes, parent=None).exec():
             self.toast_signal.emit("Sistema", "Descargando actualización.", "status_success")
             self.start_download(url)
         else:
-            self.emit_log(LoggerText.system("El usuario pospuso la actualización."))
+            self.emit_log(LoggerText.system("Usuario pospuso actualización."))
 
     def _on_check_finished(self):
-        """Se ejecuta siempre que el worker termina de buscar."""
-
         if self._manual_check and not self._update_found:
             self.toast_signal.emit("Sistema", "Ya tienes la última versión.", "status_success")
-        
-        # Limpieza
         self._manual_check = False
         try: self.updater.deleteLater()
         except: pass
 
     def start_download(self, url):
         self.downloader = UpdateDownloaderWorker(url)
-        self.downloader.progress.connect(self._on_update_progress)
+        self.downloader.progress.connect(lambda p: self.emit_log(LoggerText.system(f"Descargando: {p}%")) if p % 10 == 0 else None)
         self.downloader.error.connect(lambda e: self.toast_signal.emit("Error Update", str(e), "status_error"))
         self.downloader.start()
-
-    def _on_update_progress(self, percent):
-        if percent % 10 == 0:
-            self.emit_log(LoggerText.system(f"Descargando actualización: {percent}%"))
 
     # =========================================================================
     # REGIÓN 6: LOGS & DEBUG
     # =========================================================================
     def _write_log_to_file(self, html_msg: str):
-        """
-        Escribe el log en un archivo de texto plano, limpiando las etiquetas HTML.
-        """
         try:
-            clean_msg = html_msg.replace("<b>", "").replace("</b>", "")
-            if "<span" in clean_msg:
-                import re
-                clean_msg = re.sub(r'<[^>]+>', '', clean_msg)
-
+            clean_msg = re.sub(r'<[^>]+>', '', html_msg)
             date_str = datetime.now().strftime("%Y-%m-%d")
-            log_file = os.path.join(get_cache_path(), f"log_{date_str}.log")
-
-            with open(log_file, "a", encoding="utf-8") as f:
+            with open(os.path.join(get_cache_path(), f"log_{date_str}.log"), "a", encoding="utf-8") as f:
                 f.write(f"{clean_msg}\n")
-                
-        except Exception as e:
-            self.emit_log(LoggerText.debug(f"Error crítico de disco: {e}"))
+        except: pass
 
     def set_debug_mode(self, enabled: bool):
-        """Sincroniza el estado global de la clase Log."""
         self.debug_enabled = enabled
         self.db.set("debug_mode", enabled)
         LoggerText.enabled_debug = enabled 
-        
-        status = "ACTIVADO" if enabled else "DESACTIVADO"
-        self.emit_log(LoggerText.system(f"Modo Depuración: {status}"))
-
-    def emit_log(self, text):
-        """Emite logs a la UI, ignorando los None (Debug desactivado)."""
-        if text:
-            self.log_signal.emit(text)
+        self.emit_log(LoggerText.system(f"Modo Depuración: {'ACTIVADO' if enabled else 'DESACTIVADO'}"))
 
     # =========================================================================
-    # NUEVO MÉTODO: MANEJADOR DE CANJES
+    # REGIÓN 7: REDEMPTIONS
     # =========================================================================
     def on_redemption_received(self, user, reward_title, user_input):
-        """
-        Recibe el canje limpio del Worker y lo pasa al Handler.
-        """
-        found = self.trigger_handler.handle_redemption(
-            user, 
-            reward_title, 
-            user_input, 
-            self.emit_log
-        )
-        
+        found = self.trigger_handler.handle_redemption(user, reward_title, user_input, self.emit_log)
         if found:
             self.emit_log(LoggerText.success(f"Trigger disparado: {reward_title}"))
         else:
             self.emit_log(LoggerText.info(f"Canje sin acción: {reward_title}"))
-            pass

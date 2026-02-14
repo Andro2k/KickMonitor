@@ -2,6 +2,7 @@
 
 import os
 from typing import List, Optional, Any, Dict
+from contextlib import suppress
 from PyQt6.QtCore import QMutexLocker 
 
 # --- INFRAESTRUCTURA ---
@@ -32,7 +33,6 @@ class DBHandler:
             vod_enabled INTEGER DEFAULT 0, subscription_enabled INTEGER DEFAULT 0, 
             verified INTEGER DEFAULT 0, can_host INTEGER DEFAULT 0, bio TEXT DEFAULT ''
         """,
-        # --- TABLA TRIGGERS ACTUALIZADA CON COLOR Y DESCRIPCION ---
         "triggers": """
             command TEXT PRIMARY KEY, filename TEXT, type TEXT, 
             duration INTEGER DEFAULT 0, scale REAL DEFAULT 1.0, 
@@ -46,9 +46,7 @@ class DBHandler:
             is_paused INTEGER DEFAULT 0, is_muted INTEGER DEFAULT 0,
             role TEXT DEFAULT ''
         """,
-        "custom_commands": """
-            trigger TEXT PRIMARY KEY, response TEXT, is_active INTEGER DEFAULT 1, cooldown INTEGER DEFAULT 5
-        """,
+        "custom_commands": "trigger TEXT PRIMARY KEY, response TEXT, is_active INTEGER DEFAULT 1, cooldown INTEGER DEFAULT 5",
         "gamble_history": """
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -76,7 +74,7 @@ class DBHandler:
     # =========================================================================
     def __init__(self, db_name: str = "kick_data.db"):
         self.conn_handler = DatabaseConnection(db_name)     
-        # Inicialización de Repositorios
+        
         self.settings = SettingsRepository(self.conn_handler)
         self.users = UsersRepository(self.conn_handler)
         self.economy = EconomyRepository(self.conn_handler)
@@ -84,7 +82,6 @@ class DBHandler:
         self.commands = ChatCommandsRepository(self.conn_handler)
         self.automations = AutomationsRepository(self.conn_handler)       
         
-        # Bootstrap
         self._init_db()
         self._run_migrations()
 
@@ -94,10 +91,11 @@ class DBHandler:
             try:
                 for table, schema in self.TABLE_SCHEMAS.items():
                     self.conn_handler.conn.execute(f"CREATE TABLE IF NOT EXISTS {table} ({schema})")                
-                for k, v in self.DEFAULT_SETTINGS.items():
-                    self.conn_handler.conn.execute(
-                        "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (k, v)
-                    )
+                
+                self.conn_handler.conn.executemany(
+                    "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", 
+                    self.DEFAULT_SETTINGS.items()
+                )
                 self.conn_handler.conn.commit()
             except Exception as e:
                 print(f"[DB_DEBUG] Error Init: {e}")
@@ -114,16 +112,11 @@ class DBHandler:
             "triggers": [
                 ("duration", "INTEGER DEFAULT 0"), ("scale", "REAL DEFAULT 1.0"),
                 ("is_active", "INTEGER DEFAULT 1"), ("cost", "INTEGER DEFAULT 0"),
-                ("volume", "INTEGER DEFAULT 100"),
-                ("pos_x", "INTEGER DEFAULT 0"), 
-                ("pos_y", "INTEGER DEFAULT 0"),
-                ("color", "TEXT DEFAULT '#53fc18'"),
+                ("volume", "INTEGER DEFAULT 100"), ("pos_x", "INTEGER DEFAULT 0"), 
+                ("pos_y", "INTEGER DEFAULT 0"), ("color", "TEXT DEFAULT '#53fc18'"),
                 ("description", "TEXT DEFAULT 'Trigger KickMonitor'")
             ],
-            "data_users": [
-                ("is_paused", "INTEGER DEFAULT 0"), ("is_muted", "INTEGER DEFAULT 0"),
-                ("role", "TEXT DEFAULT ''")
-            ],
+            "data_users": [("is_paused", "INTEGER DEFAULT 0"), ("is_muted", "INTEGER DEFAULT 0"), ("role", "TEXT DEFAULT ''")],
             "custom_commands": [("cooldown", "INTEGER DEFAULT 5")],
             "timers": [("interval", "INTEGER DEFAULT 15"), ("last_run", "REAL DEFAULT 0")]
         }
@@ -134,9 +127,11 @@ class DBHandler:
                 try:
                     cursor.execute(f"PRAGMA table_info({table})")
                     existing_cols = {row['name'] for row in cursor.fetchall()}                  
-                    for col_name, col_def in cols:
-                        if col_name not in existing_cols:
-                            cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_def}")
+                    missing_cols = [col for col in cols if col[0] not in existing_cols]
+                    
+                    for col_name, col_def in missing_cols:
+                        cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_def}")
+                        
                 except Exception as e:
                     print(f"[DB_DEBUG] Error migrando {table}: {e}")
             self.conn_handler.conn.commit()
@@ -144,13 +139,14 @@ class DBHandler:
     # =========================================================================
     # REGIÓN 3: FACHADA - CONFIGURACIÓN (SETTINGS)
     # =========================================================================
-    def get(self, key: str, default: str = "") -> str: 
-        return self.settings.get(key, default)
+    def get(self, key: str, default: str = "") -> str: return self.settings.get(key, default)
     def set(self, key: str, val: Any): self.settings.set(key, val)       
     def get_bool(self, key: str) -> bool: return self.settings.get(key) == "1"       
+    
     def get_int(self, key: str, default: int = 0) -> int: 
-        try: return int(self.settings.get(key, str(default)))
-        except: return default
+        with suppress(ValueError, TypeError):
+            return int(self.settings.get(key, str(default)))
+        return default
 
     # =========================================================================
     # REGIÓN 4: FACHADA - USUARIOS KICK
@@ -169,38 +165,29 @@ class DBHandler:
     
     def get_all_points(self) -> List: return self.economy.get_all_users_points()
     def delete_user_points(self, user: str): return self.economy.delete_user(user)
+    def add_points_to_active_users(self, amount: int, minutes: int = 10): return self.economy.add_points_periodic(amount, minutes)
     
-    def add_points_to_active_users(self, amount: int, minutes: int = 10):
-        return self.economy.add_points_periodic(amount, minutes)
-    
-    # --- Gestión de Estado de Usuario ---
     def set_user_paused(self, user: str, paused: bool): return self.economy.set_paused(user, paused)
     def set_user_muted(self, user: str, muted: bool): return self.economy.set_muted(user, muted)
     def is_muted(self, user: str) -> bool: return self.economy.is_muted(user)
     def update_user_role(self, user: str, role: str): return self.economy.update_role(user, role)
     
-    # --- Historial de Juegos ---
-    def add_gamble_entry(self, user, game, res, profit, win):
-        return self.economy.add_gamble_entry(user, game, res, profit, win)
-    
+    def add_gamble_entry(self, user, game, res, profit, win): return self.economy.add_gamble_entry(user, game, res, profit, win)
     def get_gamble_history(self, limit=50): return self.economy.get_gamble_history(limit)
     def clear_gamble_history(self): return self.economy.clear_gamble_history()
 
     # =========================================================================
     # REGIÓN 6: FACHADA - CARACTERÍSTICAS (COMMANDS, OVERLAY, ALERTS)
     # =========================================================================
-    # --- Triggers Multimedia (ACTUALIZADO CON COLOR Y DESCRIPCION) ---
     def set_trigger(self, cmd, file, ftype, dur=0, sc=1.0, act=1, cost=0, vol=100, pos_x=0, pos_y=0, color="#53fc18", description="Trigger KickMonitor"):
         return self.triggers.save_trigger(cmd, file, ftype, dur, sc, act, cost, vol, pos_x, pos_y, color, description)
-    def update_active_state(self, filename: str, is_active: bool):
-        return self.triggers.update_active_state(filename, is_active)    
+    def update_active_state(self, filename: str, is_active: bool): return self.triggers.update_active_state(filename, is_active)    
     def get_trigger_file(self, cmd: str): return self.triggers.get_trigger(cmd)
     def delete_triggers_by_filename(self, fname: str): return self.triggers.delete_triggers_by_filename(fname)
     def get_all_triggers(self) -> Dict: return self.triggers.get_all()
     def clear_all_triggers(self): return self.triggers.clear_all()
     def get_active_shop_items(self) -> List: return self.triggers.get_shop_items()
 
-    # --- Comandos de Chat ---
     def add_command(self, trig, resp, cd=5): return self.commands.add_command(trig, resp, cd)
     def get_custom_response(self, trig: str) -> Optional[str]: return self.commands.get_response(trig)
     def get_command_details(self, trig: str): return self.commands.get_details(trig)
@@ -208,7 +195,6 @@ class DBHandler:
     def delete_command(self, trig: str): return self.commands.delete(trig)
     def toggle_command_active(self, trig: str, active: bool): return self.commands.toggle_active(trig, active)
 
-    # --- Automatizaciones (Timers & Alertas) ---
     def set_text_alert(self, type, msg, active): return self.automations.set_text_alert(type, msg, active)
     def get_text_alert(self, type): return self.automations.get_text_alert(type)
     
@@ -224,13 +210,14 @@ class DBHandler:
         return os.path.abspath(self.conn_handler.db_path)
 
     def factory_reset_user(self):
+        # Usamos una lista de tuplas para enviarla directo al executemany()
         keys_to_wipe = [
-            "kick_username", "chatroom_id", "client_id", "client_secret", 
-            "spotify_client_id", "spotify_secret", "spotify_enabled"
+            ("kick_username",), ("chatroom_id",), ("client_id",), ("client_secret",), 
+            ("spotify_client_id",), ("spotify_secret",), ("spotify_enabled",)
         ]
         with QMutexLocker(self.conn_handler.mutex):
-            for key in keys_to_wipe:
-                self.conn_handler.conn.execute("UPDATE settings SET value='' WHERE key=?", (key,))
+            # Eliminamos el ciclo for, ejecutamos todas las sentencias a nivel de C (C++)
+            self.conn_handler.conn.executemany("UPDATE settings SET value='' WHERE key=?", keys_to_wipe)
             self.conn_handler.conn.execute("DELETE FROM kick_streamer")
             self.conn_handler.conn.commit()
 

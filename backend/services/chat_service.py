@@ -2,46 +2,50 @@
 
 from typing import List, Dict, Any
 import pyttsx3
-
 from backend.utils.logger_text import LoggerText
 
 class ChatService:
-    """
-    Servicio de Configuración del Chat y TTS (Text-to-Speech).
-    """
-    
     def __init__(self, db_handler, tts_worker):
         self.db = db_handler
         self.tts = tts_worker
 
     # =========================================================================
-    # REGIÓN 1: SISTEMA Y DISCOVERY (VOCES)
+    # REGIÓN 1: SISTEMA Y DISCOVERY (VOCES HÍBRIDAS)
     # =========================================================================
     def get_available_voices(self) -> List[Dict[str, str]]:
-        """
-        Escanea las voces instaladas en el sistema operativo.
-        """
-        voices_list = []
+        # 1. Añadimos las mejores voces IA de Edge-TTS (Premium)
+        voices_list = [
+            {"id": "es-MX-JorgeNeural", "name": "IA - Jorge (México)", "engine": "edge-tts"},
+            {"id": "es-MX-DaliaNeural", "name": "IA - Dalia (México)", "engine": "edge-tts"},
+            {"id": "es-ES-AlvaroNeural", "name": "IA - Álvaro (España)", "engine": "edge-tts"},
+            {"id": "es-ES-ElviraNeural", "name": "IA - Elvira (España)", "engine": "edge-tts"},
+            {"id": "es-CO-GonzaloNeural", "name": "IA - Gonzalo (Colombia)", "engine": "edge-tts"},
+            {"id": "es-AR-TomasNeural", "name": "IA - Tomás (Argentina)", "engine": "edge-tts"}
+        ]
+        
+        # 2. Escaneamos y añadimos las voces Locales Clásicas (Fallback)
         try:
             engine = pyttsx3.init()
-            voices = engine.getProperty('voices')
-            for v in voices:
+            for v in engine.getProperty('voices'):
                 voices_list.append({
                     "id": str(v.id), 
-                    "name": str(v.name)
+                    "name": f"Local - {str(v.name)}",
+                    "engine": "pyttsx3"
                 })
             del engine
         except Exception as e:
-            print(f"[DEBUG_TTS] Error al cargar voces: {e}")
+            print(f"[DEBUG_TTS] Error al cargar voces locales: {e}")
+            
         return voices_list
 
     # =========================================================================
     # REGIÓN 2: LECTURA DE CONFIGURACIÓN
     # =========================================================================
     def get_tts_settings(self) -> Dict[str, Any]:
-        """Recupera el estado actual del TTS desde la base de datos."""
         return {
-            "voice_id": self.db.get("voice_id"),
+            "voice_id": self.db.get("voice_id"), # ID de Windows SAPI5
+            "edge_voice": self.db.get("edge_voice", "es-MX-JorgeNeural"), # ID de IA
+            "engine_type": self.db.get("tts_engine", "edge-tts"), # Qué motor usar
             "rate": self.db.get_int("voice_rate", 175),
             "volume": self.db.get_int("voice_vol", 100),
             "command": self.db.get("tts_command") or "!voz",
@@ -51,23 +55,32 @@ class ChatService:
     # =========================================================================
     # REGIÓN 3: PERSISTENCIA Y ACTUALIZACIÓN EN TIEMPO REAL
     # =========================================================================
-    def save_tts_config(self, voice_id: str, rate: int, volume: int):
-        """
-        Guarda en DB y actualiza el worker activo inmediatamente.
-        """
-        self.db.set("voice_id", voice_id)
+    def save_tts_config(self, voice_data: dict, rate: int, volume: int):
+        engine = voice_data["engine"]
+        vid = voice_data["id"]
+
+        # Guardamos el motor elegido
+        self.db.set("tts_engine", engine)
+        
+        # Guardamos el ID en la variable correcta según su tipo
+        if engine == "edge-tts":
+            self.db.set("edge_voice", vid)
+        else:
+            self.db.set("voice_id", vid)
+
         self.db.set("voice_rate", rate)
         self.db.set("voice_vol", volume)
         
-        # Actualizar el hilo de voz sin reiniciar la app
-        self.tts.update_config(voice_id, rate, volume / 100.0)
+        # Recuperamos la contraparte para que el fallback del worker nunca falle
+        local_id = vid if engine == "pyttsx3" else self.db.get("voice_id")
+        edge_id = vid if engine == "edge-tts" else self.db.get("edge_voice", "es-MX-JorgeNeural")
+
+        # Actualizamos el hilo de voz en vivo
+        self.tts.update_config(local_id, rate, volume / 100.0, engine, edge_id)
 
     def save_tts_command(self, command: str):
-        """Configura el comando disparador (ej: !voz)."""
         clean_cmd = command.strip().lower()
-        if not clean_cmd: 
-            clean_cmd = "!voz"
-        self.db.set("tts_command", clean_cmd)
+        self.db.set("tts_command", clean_cmd if clean_cmd else "!voz")
 
     def set_filter_enabled(self, enabled: bool):
         self.db.set('filter_enabled', enabled)

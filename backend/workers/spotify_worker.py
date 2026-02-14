@@ -1,10 +1,11 @@
 # backend/workers/spotify_worker.py
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
-import os
 from urllib.parse import urlparse, parse_qs
 from typing import Optional, Dict
-import os
+from contextlib import suppress
+from pathlib import Path
+
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer, QThread, QUrl
 from PyQt6.QtGui import QDesktopServices
 import spotipy
@@ -26,17 +27,14 @@ POLL_INTERVAL_MS = 3000
 class SpotifyAuthHandler(BaseHTTPRequestHandler):
     """Maneja el callback de Spotify (ej: http://localhost:8888/?code=...)"""   
     def do_GET(self):
-        query = urlparse(self.path).query
-        params = parse_qs(query)  
-        # Caso A: Éxito
+        params = parse_qs(urlparse(self.path).query)  
+        
         if "code" in params:
             self.server.auth_code = params["code"][0]
             self._respond(AuthTemplates.SUCCESS)          
-        # Caso B: Error o Cancelación
         elif "error" in params:
             self.server.error_msg = params["error"][0]
             self._respond(AuthTemplates.ERROR)            
-        # Caso C: Ruido
         else:
             self.send_error(400, "Solicitud inválida")
 
@@ -55,50 +53,56 @@ class SpotifyLoginThread(QThread):
         super().__init__()
         self.port = port
         self.server: Optional[HTTPServer] = None
+        self._is_running = True
 
     def run(self):
         try:
             self.server = HTTPServer(('127.0.0.1', self.port), SpotifyAuthHandler)
             self.server.auth_code = None
             self.server.error_msg = None
-            # Bloquea el hilo hasta recibir 1 petición (handle_request)
-            self.server.handle_request() 
+
+            self.server.timeout = 1.0 
+
+            while self._is_running and not self.server.auth_code and not self.server.error_msg:
+                self.server.handle_request() 
             
-            if getattr(self.server, 'auth_code', None):
+            if self.server.auth_code:
                 self.code_received.emit(self.server.auth_code)
-            elif getattr(self.server, 'error_msg', None):
+            elif self.server.error_msg:
                 self.error_received.emit(self.server.error_msg)
                 
         except Exception as e:
             self.error_received.emit(f"Server Error: {str(e)}")
         finally:
-            if self.server: 
-                self.server.server_close()
+            if self.server: self.server.server_close()
+
+    def stop(self):
+        """TRUCO 3: Detención segura de hilos"""
+        self._is_running = False
+        self.quit()
+        self.wait(1000)
 
 # =========================================================================
 # REGIÓN 2: WORKER PRINCIPAL (LÓGICA DE NEGOCIO)
 # =========================================================================
 class SpotifyWorker(QObject):
-    # --- SEÑALES ---
     track_changed = pyqtSignal(str, str, str, int, int, bool)
     status_msg = pyqtSignal(str)                              
-    # --- SLOTS DE CONTROL ---
     sig_do_auth = pyqtSignal()
     sig_do_disconnect = pyqtSignal()
 
     def __init__(self, db_handler):
         super().__init__()
         self.db = db_handler
-        # Estado
         self.sp: Optional[spotipy.Spotify] = None
         self.auth_manager: Optional[SpotifyOAuth] = None
         self.is_active = False
         self.login_thread: Optional[SpotifyLoginThread] = None
-        # Timer de Monitoreo
+        
         self.timer = QTimer()
         self.timer.setInterval(POLL_INTERVAL_MS)
         self.timer.timeout.connect(self._poll_current_song)
-        # Conectar señales internas
+        
         self.sig_do_auth.connect(self.authenticate)
         self.sig_do_disconnect.connect(self.disconnect)
 
@@ -114,27 +118,17 @@ class SpotifyWorker(QObject):
             self.status_msg.emit(LoggerText.error("Faltan credenciales de Spotify en Ajustes."))
             return
 
-        # DEFINIR RUTA DEL CACHE EN APPDATA
-        cache_folder = get_cache_path()
-        cache_path = os.path.join(cache_folder, ".spotify_cache")
+        cache_path = str(Path(get_cache_path()) / ".spotify_cache")
 
         try:
-            cache_path = os.path.join(get_cache_path(), ".spotify_cache")
             self.auth_manager = SpotifyOAuth(
-                client_id=cid, 
-                client_secret=secret, 
-                redirect_uri=uri, 
-                scope=SPOTIFY_SCOPES, 
-                open_browser=False,
-                cache_path=cache_path 
+                client_id=cid, client_secret=secret, redirect_uri=uri, 
+                scope=SPOTIFY_SCOPES, open_browser=False, cache_path=cache_path 
             )
-            # 1. Intentar sesión guardada
-            token_info = self.auth_manager.get_cached_token()
-            if token_info:
+            if self.auth_manager.get_cached_token():
                 self.status_msg.emit(LoggerText.info("Recuperando sesión guardada."))
                 self._init_client()
             else:
-                # 2. Iniciar flujo OAuth nuevo
                 self._start_browser_flow(uri)
                 
         except Exception as e:
@@ -145,14 +139,13 @@ class SpotifyWorker(QObject):
         try:
             parsed = urlparse(uri)
             port = parsed.port if parsed.port else DEFAULT_PORT
-            # Iniciar servidor en hilo fondo
+            
             self.login_thread = SpotifyLoginThread(port)
             self.login_thread.code_received.connect(self._finish_browser_flow)
             self.login_thread.error_received.connect(self._on_auth_error)
             self.login_thread.start()
-            # Abrir navegador del usuario
-            auth_url = self.auth_manager.get_authorize_url()
-            QDesktopServices.openUrl(QUrl(auth_url))
+            
+            QDesktopServices.openUrl(QUrl(self.auth_manager.get_authorize_url()))
             self.status_msg.emit(LoggerText.warning("Esperando autorización en el navegador."))
             
         except Exception as e:
@@ -175,9 +168,8 @@ class SpotifyWorker(QObject):
             user = self.sp.current_user()
             
             self.is_active = True
-            self.status_msg.emit(LoggerText.success(f"Spotify Vinculado: {user['display_name']}"))
+            self.status_msg.emit(LoggerText.success(f"Spotify Vinculado: {user.get('display_name', 'Usuario')}"))
             
-            # Arrancar ciclo de polling
             self.timer.start()
             self._poll_current_song()
             
@@ -191,6 +183,9 @@ class SpotifyWorker(QObject):
         self.track_changed.emit("Spotify Desconectado", "", "", 0, 100, False)
         self.status_msg.emit(LoggerText.info("Spotify: Sesión cerrada."))
 
+        if self.login_thread: 
+            self.login_thread.stop()
+
     # =========================================================================
     # REGIÓN 4: MONITOREO (POLLING)
     # =========================================================================
@@ -198,7 +193,6 @@ class SpotifyWorker(QObject):
         if not self.sp: return
         try:
             current = self.sp.current_playback()
-            
             if not current:
                 self.track_changed.emit("No reproduciendo", "", "", 0, 100, False)
                 return
@@ -214,35 +208,30 @@ class SpotifyWorker(QObject):
 
     def _parse_track_data(self, playback_json: Dict) -> Optional[Dict]:
         """Extrae datos limpios del JSON crudo de Spotify."""
-        if not playback_json or not playback_json.get('item'): 
-            return None
+        track = (playback_json or {}).get('item')
+        if not track: return None
             
-        track = playback_json['item']
-        try:
-            artists = ", ".join([a['name'] for a in track.get('artists', [])])
+        with suppress(Exception):
+            artists = ", ".join([a.get('name', '') for a in track.get('artists', [])])
             images = track.get('album', {}).get('images', [])
-            art_url = images[0]['url'] if images else ""
             
             return {
                 'title': track.get('name', 'Desconocido'),
                 'artist': artists,
-                'art': art_url,
+                'art': images[0]['url'] if images else "",
                 'progress': playback_json.get('progress_ms', 0),
-                'duration': track.get('duration_ms', 100) or 100, # Evitar div/0
+                'duration': track.get('duration_ms') or 100, 
                 'is_playing': playback_json.get('is_playing', False)
             }
-        except Exception: 
-            return None
+        return None
 
     def get_current_track_text(self) -> str:
         """Devuelve string formateado para uso en chat (Comando !song)."""
         if not self.sp: return "Spotify no conectado."
-        try:
-            current = self.sp.current_playback()
-            data = self._parse_track_data(current)
+        with suppress(Exception):
+            data = self._parse_track_data(self.sp.current_playback())
             if data and data['is_playing']:
                 return f"🎵 Sonando: {data['title']} - {data['artist']}"
-        except: pass
         return "🔇 No está sonando nada ahora mismo."
 
     # =========================================================================
@@ -251,43 +240,30 @@ class SpotifyWorker(QObject):
     def add_to_queue(self, query: str) -> Optional[str]:
         if not self.sp: return None
         try:
-            results = self.sp.search(q=query, limit=1, type='track')
-            items = results.get('tracks', {}).get('items', [])
+            items = self.sp.search(q=query, limit=1, type='track').get('tracks', {}).get('items', [])
             if items:
                 track = items[0]
                 self.sp.add_to_queue(track['uri'])
-                return f"{track['name']} - {track['artists'][0]['name']}"
+                return f"{track.get('name')} - {track['artists'][0]['name']}"
         except Exception as e:
             self.status_msg.emit(LoggerText.warning(f"Error añadiendo a cola: {e}"))
         return None
-    
+
     def next_track(self):
-        if self.sp: 
-            try: self.sp.next_track()
-            except: pass
+        with suppress(Exception): self.sp.next_track()
     
     def prev_track(self):
-        if self.sp: 
-            try: self.sp.previous_track()
-            except: pass
+        with suppress(Exception): self.sp.previous_track()
 
     def play_pause(self):
-        if not self.sp: return
-        try:
+        with suppress(Exception):
             cur = self.sp.current_playback()
-            if cur and cur.get('is_playing'): 
-                self.sp.pause_playback()
-            else: 
-                self.sp.start_playback()
-        except Exception:
-            self.status_msg.emit(LoggerText.warning("No se puede controlar reproducción (¿Dispositivo activo?)."))
+            self.sp.pause_playback() if cur and cur.get('is_playing') else self.sp.start_playback()
 
 # =========================================================================
 # REGIÓN 6: RECURSOS ESTÁTICOS (HTML TEMPLATES)
 # =========================================================================
 class AuthTemplates:
-    """Plantillas HTML para las respuestas del servidor local."""
-    # CSS común para no repetir
     _CSS = """
         body { background-color: #0b0e0f; color: white; font-family: sans-serif; display: flex; 
                justify-content: center; align-items: center; height: 100vh; margin: 0; }
@@ -296,7 +272,6 @@ class AuthTemplates:
         .btn { background-color: #1DB954; color: black; border: none; padding: 12px 30px; 
                border-radius: 50px; font-weight: bold; cursor: pointer; margin-top: 20px;}
     """
-
     SUCCESS = f"""
     <!DOCTYPE html><html><head><title>Conectado</title><style>{_CSS}</style></head>
     <body>
@@ -311,7 +286,6 @@ class AuthTemplates:
         </div>
     </body></html>
     """
-
     ERROR = f"""
     <!DOCTYPE html><html><head><title>Error</title><style>{_CSS}</style></head>
     <body>

@@ -2,17 +2,15 @@
 
 import sqlite3
 import os
+from contextlib import suppress
 from PyQt6.QtCore import QMutex, QMutexLocker
 from backend.utils.paths import get_config_path
 
 class DatabaseConnection:
     def __init__(self, db_name="kick_data.db"):
-        
-        base_path = get_config_path()
-        self.db_path = os.path.join(base_path, db_name)
+        self.db_path = os.path.join(get_config_path(), db_name)
         self.mutex = QMutex()
         
-        # Conexión Segura
         try:
             self.conn = sqlite3.connect(self.db_path, check_same_thread=False, timeout=30)
             self.conn.row_factory = sqlite3.Row 
@@ -22,31 +20,30 @@ class DatabaseConnection:
             self.conn = sqlite3.connect(":memory:", check_same_thread=False)
 
     def _init_wal(self):
-        with QMutexLocker(self.mutex):
-            try:
-                self.conn.execute("PRAGMA journal_mode=WAL;")
-                self.conn.commit()
-            except: pass
+        with QMutexLocker(self.mutex), suppress(Exception):
+            self.conn.execute("PRAGMA journal_mode=WAL;")
+            self.conn.commit()
 
     def execute_query(self, sql, params=()):
         with QMutexLocker(self.mutex):
             try:
-                c = self.conn.cursor(); c.execute(sql, params); self.conn.commit()
+                # TRUCO 2: sqlite3 permite ejecutar directo desde la conexión sin crear un cursor manual
+                self.conn.execute(sql, params)
+                self.conn.commit()
                 return True
-            except: return False
+            except Exception: 
+                return False
 
     def fetch_one(self, sql, params=()):
-        with QMutexLocker(self.mutex):
-            try:
-                c = self.conn.cursor(); c.execute(sql, params); return c.fetchone()
-            except: return None
+        with QMutexLocker(self.mutex), suppress(Exception):
+            return self.conn.execute(sql, params).fetchone()
+        return None
 
     def fetch_all(self, sql, params=()):
-        with QMutexLocker(self.mutex):
-            try:
-                c = self.conn.cursor(); c.execute(sql, params); return c.fetchall()
-            except: return []
+        with QMutexLocker(self.mutex), suppress(Exception):
+            return self.conn.execute(sql, params).fetchall()
+        return []
 
     def close(self):
-        try: self.conn.close()
-        except: pass
+        with suppress(Exception):
+            self.conn.close()
