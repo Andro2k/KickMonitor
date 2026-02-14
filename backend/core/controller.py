@@ -17,7 +17,7 @@ from backend.workers.spotify_worker import SpotifyWorker
 from backend.workers.tts_worker import TTSWorker   
 from backend.workers.update_worker import UpdateCheckerWorker, UpdateDownloaderWorker
 from backend.workers.kick_worker import FollowMonitorWorker
-
+from backend.workers.chat_overlay_worker import ChatOverlayWorker
 # --- LÓGICA DE NEGOCIO (SERVICIOS Y HANDLERS) ---
 from backend.game.casino import CasinoSystem
 from backend.services.commands_service import CommandsService
@@ -51,7 +51,8 @@ class MainController(QObject):
         # 2. Inicialización de Workers
         self._init_spotify()
         self._init_tts()
-        self._init_overlay()        
+        self._init_overlay()
+        self._init_chat_overlay()     
         
         # 3. Handlers de Lógica
         self.chat_handler = ChatHandler(self.db)
@@ -131,6 +132,39 @@ class MainController(QObject):
         # 4. Procesamiento Final
         if self.tts_enabled: 
             self._process_tts(user, content)
+
+        # --- NUEVO: FILTRADO INTELIGENTE PARA EL OVERLAY (OBS) ---
+        send_to_overlay = True
+        
+        # A. Ignorar bots si está activo
+        if self.db.get_bool("chat_hide_bots") and self.chat_handler.is_bot(user): 
+            send_to_overlay = False
+            
+        # B. Ignorar comandos si está activo
+        if self.db.get_bool("chat_hide_cmds") and content.strip().startswith("!"): 
+            send_to_overlay = False
+            
+        # C. Ignorar lista negra de usuarios
+        ignored_users_str = self.db.get("chat_ignored_users")
+        if ignored_users_str:
+            ignored_list = [u.strip().lower() for u in ignored_users_str.split(",") if u.strip()]
+            if user.lower() in ignored_list: 
+                send_to_overlay = False
+                
+        # Enviar si pasó los filtros
+        if send_to_overlay:
+            streamer_name = self.db.get("kick_username") or ""
+            is_streamer = user.lower() == streamer_name.lower()
+            user_color = "#53fc18" if is_streamer else "#ffffff"
+            
+            self.chat_overlay.send_chat_message_to_overlay(
+                sender=user,
+                content=content,
+                badges=badges,
+                user_color=user_color,
+                timestamp=timestamp
+            )
+        # ---------------------------------------------------------
             
         self.game_handler.analyze_outcome(user, content, self.gamble_result_signal.emit)
         self._update_ui_chat(timestamp, user, content)
@@ -212,6 +246,11 @@ class MainController(QObject):
         self.overlay_server = OverlayServerWorker()
         self.overlay_server.log_signal.connect(self.emit_log)
         self.overlay_server.start()
+        
+    def _init_chat_overlay(self):
+        self.chat_overlay = ChatOverlayWorker(port=6001)
+        self.chat_overlay.error_occurred.connect(self.emit_log)
+        self.chat_overlay.start()
 
     def start_bot(self):
         """Inicia la conexión principal con Kick."""

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Kick Chat Pro Overlay</title>
+    <style>
+        :root {
+            --bg-color: transparent;
+            --msg-bg-color: rgba(0, 0, 0, 0.5);
+            --text-color: #ffffff;
+            --username-color: #53fc18;
+            --font-size: 16px;
+            --font-family: 'Arial', sans-serif;
+            --msg-spacing: 8px;
+            --border-radius: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html {
+            height: 100%; width: 100%; overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: var(--font-family);
+        }
+
+        /* CONTENEDOR PRINCIPAL (Vertical por defecto) */
+        #chat-container {
+            height: 100%; width: 100%;
+            display: flex; flex-direction: column; justify-content: flex-end;
+            padding: 10px; 
+            overflow: hidden; 
+            scroll-behavior: smooth; /* Movimiento fluido */
+        }
+
+        /* MODO HORIZONTAL (Tira continua) */
+        #chat-container.layout-horizontal {
+            flex-direction: row;
+            flex-wrap: nowrap; /* ¡Clave! Obliga a que sea una sola línea infinita */
+            align-items: center; /* Centra los mensajes verticalmente */
+            justify-content: flex-start;
+        }
+
+        /* DISEÑO BASE */
+        .chat-message {
+            background-color: var(--msg-bg-color);
+            color: var(--text-color);
+            font-size: var(--font-size);
+            padding: 10px;
+            margin-bottom: var(--msg-spacing);
+            border-radius: var(--border-radius);
+            word-wrap: break-word;
+            flex-shrink: 0; /* Evita que los mensajes se aplasten cuando hay muchos */
+        }
+
+        /* DISEÑOS (Temas) */
+        .theme-transparent {
+            background-color: transparent !important;
+            padding: 0px 5px !important;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+        .theme-neon {
+            border-left: 4px solid var(--user-color, var(--username-color));
+            box-shadow: -6px 0px 15px -4px var(--user-color, var(--username-color));
+        }
+        
+        /* TEMA HORIZONTAL (Estilo Píldora) */
+        .theme-horizontal {
+            padding: 6px 14px;
+            margin-right: var(--msg-spacing); /* Separación a la derecha, no abajo */
+            margin-bottom: 0; /* Anula la separación inferior */
+            border-radius: 30px;
+            display: inline-block;
+            white-space: nowrap; /* ¡Clave! Evita que el texto del mensaje se divida en dos líneas */
+        }
+
+        /* ANIMACIONES */
+        @keyframes fade { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pop { 0% { opacity: 0; transform: scale(0.8); } 70% { transform: scale(1.05); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes slideLeft { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes slideRight { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+        /* COMPONENTES INTERNOS */
+        .timestamp { font-size: 0.8em; color: #aaa; margin-right: 5px; opacity: 0.8; }
+        .username { font-weight: bold; margin-right: 3px; color: var(--user-color, var(--username-color)); }
+        .separator { margin-right: 5px; opacity: 0.7; }
+        .message-content { line-height: 1.4; }
+    </style>
+</head>
+<body>
+    <div id="chat-container"></div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const MAX_MESSAGES = 50; // Reducido un poco para modo horizontal
+        let socket;
+
+        let currentConfig = {
+            animation: 'fade',
+            theme: 'bubble',
+            show_time: false,
+            hide_old: false,
+            hide_time: 10
+        };
+
+        function connect() {
+            socket = new WebSocket('ws://localhost:6001/ws');
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'new_message') addChatMessage(data.payload);
+                else if (data.type === 'update_chat_styles') updateStyles(data.payload);
+            };
+            socket.onclose = () => setTimeout(connect, 3000);
+            socket.onerror = () => socket.close();
+        }
+
+        function addChatMessage(msgData) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `chat-message theme-${currentConfig.theme}`;
+            msgDiv.style.animation = `${currentConfig.animation} 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards`;
+            msgDiv.dataset.createdAt = Date.now();
+            
+            if (msgData.color) msgDiv.style.setProperty('--user-color', msgData.color);
+
+            if (currentConfig.show_time && msgData.timestamp) {
+                const tSpan = document.createElement('span');
+                tSpan.className = 'timestamp';
+                tSpan.textContent = `[${msgData.timestamp}]`;
+                msgDiv.appendChild(tSpan);
+            }
+
+            const uSpan = document.createElement('span');
+            uSpan.className = 'username';
+            uSpan.textContent = msgData.sender;
+            msgDiv.appendChild(uSpan);
+
+            const sepSpan = document.createElement('span');
+            sepSpan.className = 'separator';
+            sepSpan.textContent = ':';
+            msgDiv.appendChild(sepSpan);
+
+            const cSpan = document.createElement('span');
+            cSpan.className = 'message-content';
+            cSpan.textContent = msgData.content;
+            msgDiv.appendChild(cSpan);
+
+            chatContainer.appendChild(msgDiv);
+            
+            // --- ¡NUEVO! SCROLL INTELIGENTE ---
+            // Si es horizontal, hacemos scroll a lo ancho. Si es vertical, a lo alto.
+            if (currentConfig.theme === 'horizontal') {
+                chatContainer.scrollLeft = chatContainer.scrollWidth;
+            } else {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+
+            while (chatContainer.children.length > MAX_MESSAGES) chatContainer.removeChild(chatContainer.firstChild);
+        }
+
+        setInterval(() => {
+            if (!currentConfig.hide_old) return; 
+            const now = Date.now();
+            const timeLimit = currentConfig.hide_time * 1000;
+            const messages = chatContainer.querySelectorAll('.chat-message:not(.fading)');
+            
+            messages.forEach(msg => {
+                const createdAt = parseInt(msg.dataset.createdAt);
+                if (now - createdAt > timeLimit) {
+                    msg.classList.add('fading'); 
+                    msg.style.animation = `fadeOut 0.4s ease-out forwards`;
+                    setTimeout(() => { if (msg.parentNode) msg.parentNode.removeChild(msg); }, 400); 
+                }
+            });
+        }, 1000);
+
+        function updateStyles(payload) {
+            const root = document.documentElement;
+            for (const [key, value] of Object.entries(payload)) {
+                if (key.startsWith('--')) {
+                    root.style.setProperty(key, value);
+                } else {
+                    currentConfig[key] = value; 
+                }
+            }
+
+            // Cambiar dinámicamente el layout a horizontal si el tema lo requiere
+            if (currentConfig.theme === 'horizontal') {
+                chatContainer.classList.add('layout-horizontal');
+            } else {
+                chatContainer.classList.remove('layout-horizontal');
+            }
+        }
+
+        connect();
+    </script>
+</body>
+</html>

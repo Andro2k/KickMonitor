@@ -71,3 +71,32 @@ class ChatService:
 
     def set_filter_enabled(self, enabled: bool):
         self.db.set('filter_enabled', enabled)
+
+    # =========================================================================
+    # REGIÓN 4: CONFIGURACIÓN DEL OVERLAY DEL CHAT (OBS)
+    # =========================================================================
+    def get_chat_overlay_settings(self) -> Dict[str, Any]:
+        """Recupera la configuración visual y de comportamiento para OBS."""
+        return {
+            "font_size": self.db.get_int("chat_font_size", 16),
+            "bg_opacity": self.db.get_int("chat_bg_opacity", 50),
+            "bg_color": self.db.get("chat_bg_color", "#000000"),
+            "text_color": self.db.get("chat_text_color", "#ffffff"),
+            "border_radius": self.db.get_int("chat_border_radius", 8),
+            "spacing": self.db.get_int("chat_spacing", 8),
+            
+            # --- NUEVOS CAMPOS ---
+            "animation": self.db.get("chat_animation") or "fade",
+            "theme": self.db.get("chat_theme") or "bubble",
+            "hide_bots": self.db.get_bool("chat_hide_bots"),
+            "hide_cmds": self.db.get_bool("chat_hide_cmds"),
+            "show_time": self.db.get_bool("chat_show_time"),
+            "hide_old": self.db.get_bool("chat_hide_old"),
+            "hide_time": self.db.get_int("chat_hide_time", 10),
+            "ignored_users": self.db.get("chat_ignored_users") or ""
+        }
+
+    def save_chat_overlay_settings(self, settings: Dict[str, Any]):
+        """Guarda todas las variables visuales y de comportamiento en la BD."""
+        for key, value in settings.items():
+            self.db.set(f"chat_{key}", value)

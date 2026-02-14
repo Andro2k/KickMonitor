@@ -64,7 +64,7 @@ class MainWindow(QMainWindow):
         db = self.controller.db
         # Instanciamos todas las páginas
         self.ui_home = DashboardPage(db, self.controller.spotify)
-        self.ui_chat = ChatPage(db, self.controller.tts) 
+        self.ui_chat = ChatPage(db, self.controller.tts, self.controller.chat_overlay)
         self.ui_cmds = CommandsPage(db)
         self.ui_alerts = AlertsPage(db)
         self.ui_overlay = TriggerPage(self.controller.overlay_server, db)
