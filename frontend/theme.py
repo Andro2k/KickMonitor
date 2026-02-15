@@ -134,60 +134,254 @@ r = Dims.radius
 
 STYLES = {
     # --- CONTENEDORES ---
-    "card": f"QFrame {{ background-color: {c.Black_N2}; border-radius: {r['card']}; }}",
-    "card_large": f"QFrame {{ background-color: {c.Black_N2}; border-radius: 16px; }}",
-    
-    # --- LABELS & INPUTS ---
-    "label_readonly": f"QLabel {{ background: {c.Black_N3}; color: {c.Gray_N1}; font-family: Consolas; border: 1px solid {c.border}; border-radius: {r['input']}; padding: 4px; }}",
-    "input": f"QLineEdit {{ background: {c.Black_N3}; border-radius: {r['input']}; padding: 6px; color: white; }} QLineEdit:focus {{ border: 1px solid {c.Gray_N1}; }}",
-    "input_cmd": f"QLineEdit {{ background: {c.Black_N3}; color: {c.Gray_N1}; font-weight: bold; font-family: Consolas; border-radius: 4px; padding: 6px; border: 1px solid {c.border}; }} QLineEdit:focus {{ border-color: {c.Gray_N1}; }}",
-    "input_readonly": f"QLineEdit {{ background: {c.Black_N3}; color: {c.Gray_N1}; font-family: Consolas; border: 1px solid {c.border}; border-radius: {r['input']}; padding: 4px; }}",
+    "card": f"""
+        QFrame {{
+            background-color: {c.Black_N2}; 
+            border-radius: {r['card']}; 
+        }}
+    """,
+    "card_large": f"""
+        QFrame {{
+            background-color: {c.Black_N2}; 
+            border-radius: 16px; 
+        }}
+    """,
+    # --- LABELS ---
+    "label_readonly": f"""
+        QLabel {{ 
+            background: {c.Black_N3}; color: {c.Gray_N1}; 
+            font-family: Consolas; border: 1px solid {c.border};
+            border-radius: {r['input']}; padding: 4px;
+        }}
+    """,
+    "label_text": f"""
+        QLabel {{font-weight: bold; font-size: 13px; color: white; border: none; background: transparent;}}
+    """,
+    "label_title": f"""
+        QLabel {{ 
+            border:none; font-size: 14px; 
+            font-weight: bold; color: white;
+        }}
+    """,
+    # --- INPUTS ---
+    "input": f"""
+        QLineEdit {{ background: {c.Black_N3}; border-radius: {r['input']}; padding: 6px; color: white; }}
+        QLineEdit:focus {{ border: 1px solid {c.Gray_N1}; }}
+    """,
+    "input_cmd": f"""
+        QLineEdit {{ 
+            background: {c.Black_N3}; color: {c.Gray_N1}; font-weight: bold; font-family: Consolas;
+            border-radius: 4px; padding: 6px; border: 1px solid {c.border};
+        }}
+        QLineEdit:focus {{ border-color: {c.Gray_N1}; }}
+    """,
+    "input_readonly": f"""
+        QLineEdit {{ 
+            background: {c.Black_N3}; color: {c.Gray_N1}; 
+            font-family: Consolas; border: 1px solid {c.border};
+            border-radius: {r['input']}; padding: 4px;
+        }}
+    """,
     
     # --- LOGS Y CONSOLAS ---
-    "text_edit_log": f"QTextEdit {{ background-color: {c.Black_N2}; color: {c.White_N1}; border: 1px solid {c.Black_N2}; padding: 12px; font-family: 'Segoe UI', monospace; font-size: 13px; }}",
-    "text_edit_console": f"QTextEdit {{ background-color: {c.Black_N2}; color: {c.Gray_N1}; font-family: Consolas, monospace; font-size: 12px; padding: 10px; border: none; }}",
-    
-    # --- BOTONES ---
-    "btn_nav": f"QPushButton {{ background-color: {c.Black_N2}; color: {c.White_N1}; padding: 6px 12px; border: 1px solid {c.Black_N2}; border-radius: 6px; font-size: 12px; font-weight: bold; }} QPushButton:hover {{ background-color: {c.Black_N4}; border-color: {c.NeonGreen_Main}; }}",
-    "btn_primary": f"QPushButton {{ background-color: rgba(83, 252, 24, 0.15); border: 1px solid {c.NeonGreen_Main}; color: {c.NeonGreen_Main}; padding: 6px 12px; margin: 2px; border-radius: 6px; font-size: 12px; font-weight: bold; }} QPushButton:hover {{ background-color: {c.Black_N3}; }}",
-    "btn_outlined": f"QPushButton {{ background-color: {c.Black_N3}; color: {c.White_N1}; padding: 6px 12px; margin: 2px; border: 1px solid {c.Gray_Border}; border-radius: 6px; font-size: 12px; font-weight: bold; }} QPushButton:hover {{ border-color: {c.NeonGreen_Main}; color: {c.White_N1}; }}",
-    "btn_danger_outlined": f"QPushButton {{ background-color: rgba(239, 83, 80, 0.2); color: {c.White_N1}; padding: 6px 12px; border: 1px solid {c.status_error}; border-radius: 6px; font-weight: 500; }} QPushButton:hover {{ background-color: {c.status_error}; color: white; }}",
-    "btn_icon_ghost": f"QPushButton {{ background: transparent; border: none; border-radius: 6px; }} QPushButton:hover {{ background-color: {c.White_N2}; }}",
-    "btn_shortcut": f"QPushButton {{ background-color: {c.Black_N4}; border-radius: 10px; border: 1px solid {c.Black_N2}; }} QPushButton:hover {{ background-color: {c.Black_N2}; border-color: {c.NeonGreen_Main}; }}",
-    
-    # Switch Translucido de ON/OFF general (Ej: Auto Connect)
-    "btn_toggle": f"""
-        QPushButton {{ background-color: {c.Black_N3}; border: 1px solid {c.border}; border-radius: 6px; color: {c.White_N1}; padding: 6px 12px; font-weight: 500; }}
-        QPushButton:hover {{ background-color: {c.Black_N4}; border-color: {c.Gray_N1}; }}
-        QPushButton:checked {{ background-color: rgba(83, 252, 24, 0.15); border: 1px solid {c.NeonGreen_Main}; color: {c.NeonGreen_Main}; }}
+    "text_edit_log": f"""
+        QTextEdit {{
+            background-color: {c.Black_N2};
+            color: {c.White_N1};
+            border: 1px solid {c.Black_N2};
+            padding: 12px;
+            font-family: 'Segoe UI', monospace;
+            font-size: 13px;
+        }}
+    """,
+    "text_edit_console": f"""
+         QTextEdit {{
+            background-color: {c.Black_N2}; color: {c.Gray_N1};
+            font-family: Consolas, monospace; font-size: 12px; padding: 10px; border: none;
+        }}
+    """,
+    "textarea": f"""
+        QPlainTextEdit {{
+            background-color: {c.Black_N3};
+            color: {c.White_N1};
+            border: 1px solid {c.border};
+            border-radius: {r['input']};
+            padding: 8px;
+        }}
+        QPlainTextEdit:focus {{
+            border: 1px solid {c.Gray_N1}; 
+        }}
+    """,
+    "text_browser": f"""
+        QTextBrowser {{
+            background-color: {c.Black_N4};
+            color: #DDD;
+            border: 1px solid {c.border};
+            border-radius: {r['input']};
+            padding: 6px;
+            font-size: 12px;
+        }}
     """,
 
-    # --- LISTAS, TABLAS Y COMBOBOX ---
+    # --- BOTONES ---
+    # Botón estándar para barra superior (Importar/Exportar)
+    "btn_nav": f"""
+        QPushButton {{
+            background-color: {c.Black_N2}; color: {c.White_N1};
+            padding: 6px 12px; border: 1px solid {c.Black_N2}; border-radius: 6px; 
+            font-size: 12px; font-weight: bold;
+            
+        }}
+        QPushButton:hover {{ 
+            background-color: {c.Black_N4}; border-color: {c.NeonGreen_Main}; 
+        }}
+    """,
+    # Botón sólido primario (Aplicar, Guardar)
+    "btn_primary": f"""
+        QPushButton {{ 
+            background-color: rgba(83, 252, 24, 0.15); border: 1px solid {c.NeonGreen_Main};
+            color: {c.NeonGreen_Main};
+            padding: 6px 12px; margin: 2px; border-radius: 6px;
+            font-size: 12px; font-weight: bold; 
+        }}
+        QPushButton:hover {{ background-color: {c.Black_N3}; }}
+    """,
+    
+    "btn_primary_disabled": f"""
+        QPushButton {{ 
+            background-color: {c.Black_N4}; border: 1px solid {c.Black_N4};
+            color: {c.Gray_N2};
+            padding: 6px 12px; margin: 2px; border-radius: 6px;
+            font-size: 12px; font-weight: bold; 
+        }}
+    """,
+    # Botón delineado (Configurar, Gestionar)
+    "btn_outlined": f"""
+        QPushButton {{ 
+            background-color: {c.Black_N3}; color: {c.White_N1}; 
+            padding: 6px 12px; margin: 2px; border: 1px solid {c.Gray_Border}; border-radius: 6px;
+            font-size: 12px; font-weight: bold; 
+        }} 
+        QPushButton:hover {{ border-color: {c.NeonGreen_Main}; color: {c.White_N1}; }}
+    """,
+    # Botón "Peligroso" delineado (Desvincular, Borrar todo)
+    "btn_danger_outlined": f"""
+        QPushButton {{
+            background-color: rgba(239, 83, 80, 0.2); color: {c.White_N1};
+            padding: 6px 12px; border: 1px solid {c.status_error}; border-radius: 6px;
+            font-weight: 500;
+        }}
+        QPushButton:hover {{ background-color: {c.status_error}; color: white; }}
+    """,
+    # Botón pequeño de acción (Editar, Borrar en tablas)
+    "btn_icon_ghost": f"""
+        QPushButton {{ background: transparent; border: none; border-radius: 6px; }} 
+        QPushButton:hover {{ background-color: {c.White_N2}; }}
+    """,
+    # Botón grande del Dashboard (Accesos directos)
+    "btn_shortcut": f"""
+        QPushButton {{ 
+            background-color: {c.Black_N4}; 
+            border-radius: 10px; 
+            border: 1px solid {c.Black_N2};
+        }} 
+        QPushButton:hover {{ 
+            background-color: {c.Black_N2}; 
+            border-color: {c.NeonGreen_Main}; 
+        }}
+    """,
+    # Botón verde translucido
+    "btn_toggle": f"""
+        QPushButton {{
+            background-color: {c.Black_N3};
+            border: 1px solid {c.border};
+            border-radius: 6px;
+            color: {c.White_N1};
+            padding: 6px 12px;
+            font-weight: 500;
+        }}
+        QPushButton:hover {{
+            background-color: {c.Black_N4};
+            border-color: {c.Gray_N1};
+        }}
+        /* ESTADO ACTIVO (CHECKED) - Reemplaza tu lógica manual */
+        QPushButton:checked {{
+            background-color: rgba(83, 252, 24, 0.15); 
+            border: 1px solid {c.NeonGreen_Main};
+            color: {c.NeonGreen_Main};
+        }}
+    """,
+
+    # --- LISTAS Y TABLAS ---
+    "list_clean": f"""
+        QListWidget {{ background-color: {c.Black_N2}; outline: none; border-radius: {r['card']}; }}
+        QListWidget::item {{ border-bottom: 1px solid {c.Black_N4}; padding: 6px; }}
+        QListWidget::item:hover {{ background: {c.White_N2}; }}
+        QListWidget::item:selected {{ background: {c.Black_N4}; }}
+    """,
     "table_clean": f"""
-        QTableWidget {{ background-color: {c.Black_N2}; gridline-color: {c.Black_N4}; outline: none; border: none; }}
-        QHeaderView::section {{ background-color: {c.Black_N3}; color: {c.Gray_N1}; border: none; border-bottom: 1px solid {c.border}; padding: 8px; font-weight: bold; text-transform: uppercase; font-size: 11px; }}
+        QTableWidget {{
+            background-color: {c.Black_N2}; gridline-color: {c.Black_N4}; outline: none; border: none;
+        }}
+        QHeaderView::section {{
+            background-color: {c.Black_N3}; color: {c.Gray_N1}; border: none; border-bottom: 1px solid {c.border};
+            padding: 8px; font-weight: bold; text-transform: uppercase; font-size: 11px;
+        }}
         QTableWidget::item {{ padding: 6px; border-bottom: 1px solid {c.Black_N4}; }}
         QTableWidget::item:selected {{ background-color: {c.White_N2}; color: {c.NeonGreen_Main}; }}
     """,
+    
+    # --- COMPLEX WIDGETS ---
     "combobox": f"""
-        QComboBox {{ background-color: {c.Black_N3}; border: 1px solid {c.border}; color: {c.White_N1}; border-radius: 6px; padding: 6px; min-height: 18px; }}
-        QComboBox:hover, QComboBox:focus {{ background-color: {c.Black_N4}; }}
+        QComboBox {{
+            background-color: {c.Black_N3}; border: 1px solid {c.border};
+            color: {c.White_N1}; border-radius: 6px; padding: 6px; min-height: 18px;
+        }}
+        QComboBox:hover, QComboBox:focus {{
+            background-color: {c.Black_N4};
+        }}
+        
         QComboBox::drop-down{{border: none;}}
         QComboBox::down-arrow {{image: url({asset_url("chevron-down.svg")}); margin-right: 4px;}}
         QComboBox::down-arrow::on {{image: url({asset_url("chevron-up.svg")}); margin-right: 4px;}}
-        QComboBox QAbstractItemView {{ background-color: {c.NeonGreen_Dark}; color: {c.Black_N3}; selection-background-color: {c.NeonGreen_Light}; selection-color: {c.Black_N0}; padding: 4px; }}
+
+        QComboBox QAbstractItemView {{
+            background-color: {c.NeonGreen_Dark}; color: {c.Black_N3};
+            selection-background-color: {c.NeonGreen_Light}; selection-color: {c.Black_N0}; padding: 4px;
+        }}
     """,
     "spinbox_modern": f"""
-        QSpinBox, QDoubleSpinBox {{ background-color: {c.Black_N3}; color: {c.White_N1}; border-radius: {r['input']}; padding: 6px 10px; padding-right: 25px; selection-color: {c.Black_N0}; }}
-        QSpinBox:focus, QDoubleSpinBox:focus {{ background-color: {c.Black_N3}; }}
-        QSpinBox::up-button, QDoubleSpinBox::up-button {{ subcontrol-origin: border; subcontrol-position: top right; width: 16px; border: none; border-left: 1px solid {c.Black_N1}; border-top-right-radius: {r['input']}; background-color: {c.Black_N3}; }}
-        QSpinBox::down-button, QDoubleSpinBox::down-button {{ subcontrol-origin: border; subcontrol-position: bottom right; width: 16px; border: none; border-left: 1px solid {c.Black_N1}; border-bottom-right-radius: {r['input']}; background-color: {c.Black_N3}; }}
+        QSpinBox, QDoubleSpinBox {{
+            background-color: {c.Black_N3}; color: {c.White_N1}; border-radius: {r['input']};
+            padding: 6px 10px; padding-right: 25px; selection-color: {c.Black_N0};
+        }}
+        QSpinBox:focus, QDoubleSpinBox:focus {{  background-color: {c.Black_N3}; }}
+        QSpinBox::up-button, QDoubleSpinBox::up-button {{
+            subcontrol-origin: border; subcontrol-position: top right; width: 16px; border: none;
+            border-left: 1px solid {c.Black_N1}; border-top-right-radius: {r['input']}; background-color: {c.Black_N3};
+        }}
+        QSpinBox::down-button, QDoubleSpinBox::down-button {{
+            subcontrol-origin: border; subcontrol-position: bottom right; width: 16px; border: none;
+            border-left: 1px solid {c.Black_N1}; border-bottom-right-radius: {r['input']}; background-color: {c.Black_N3};
+        }}
         QSpinBox::up-button:hover, QSpinBox::down-button:hover {{ background-color: {c.Black_N4}; }}
     """,
     
-    # --- SIDEBAR ---
-    "sidebar_btn": f"QPushButton {{ background-color: transparent; color: {c.Gray_N1}; padding: 6px; border: none; border-radius: 8px; text-align: left; font-weight: 500; margin: 2px; }} QPushButton:hover {{ background-color: {c.White_N2}; color: {c.White_N1}; }} QPushButton:checked {{ background-color: rgba(83, 252, 24, 0.15); color: {c.NeonGreen_Main}; font-weight: bold; }}",
-    "sidebar_container": f"QFrame {{ background-color: {c.Black_N1}; border-right: 1px solid {c.Black_N2}; }}"
+    # --- SIDEBAR (Existente) ---
+    "sidebar_btn": f"""
+        QPushButton {{
+            background-color: transparent; color: {c.Gray_N1}; 
+            padding: 6px; border: none; border-radius: 8px; text-align: left; font-weight: 500; margin: 2px;
+        }}
+        QPushButton:hover {{ background-color: {c.White_N2}; color: {c.White_N1}; }}
+        QPushButton:checked {{ background-color: rgba(83, 252, 24, 0.15); color: {c.NeonGreen_Main}; font-weight: bold; }}
+    """,
+    "sidebar_container": f"""
+        QFrame {{
+            background-color: {c.Black_N1}; 
+            border-right: 1px solid {c.Black_N2};
+        }}
+    """
 }
 
 # ==========================================
