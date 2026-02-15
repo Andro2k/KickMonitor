@@ -3,13 +3,13 @@
 import threading
 from PyQt6.QtWidgets import (
     QHBoxLayout, QSpinBox, QWidget, QVBoxLayout, QScrollArea, QFrame, 
-    QCheckBox, QFileDialog
+    QCheckBox, QFileDialog, QApplication
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QUrl
 from PyQt6.QtGui import QDesktopServices
 
 from backend.utils.paths import get_app_data_path
-from backend.workers.update_worker import INTERNAL_VERSION
+from backend.workers.update_worker import INTERNAL_VERSION, UpdateCheckerWorker, UpdateDownloaderWorker
 from frontend.factories import (
     create_header_page, create_section_header, create_setting_row,
     create_styled_input, create_styled_button, create_styled_combobox 
@@ -17,6 +17,7 @@ from frontend.factories import (
 from frontend.theme import STYLES, get_switch_style
 from frontend.alerts.toast_alert import ToastNotification
 from frontend.alerts.modal_alert import ModalConfirm
+from frontend.dialogs.download_modal import DownloadModal
 from backend.services.settings_service import SettingsService
 
 class SettingsPage(QWidget):
@@ -61,7 +62,6 @@ class SettingsPage(QWidget):
     # CREADORES MÁGICOS (DRY PATTERN)
     # ==========================================
     def _create_switch(self, title, description, db_key):
-        """TRUCO 1: Crea un switch, lo carga de la DB y conecta su guardado automático."""
         chk = QCheckBox()
         chk.setCursor(Qt.CursorShape.PointingHandCursor)
         chk.setStyleSheet(get_switch_style())
@@ -72,7 +72,6 @@ class SettingsPage(QWidget):
         return chk
 
     def _create_action_row(self, title, description, btn_text, btn_style, callback):
-        """TRUCO 2: Crea una fila con título, descripción y un botón de acción."""
         btn = create_styled_button(btn_text, btn_style, callback)
         self.content_layout.addWidget(create_setting_row(title, description, btn))
         return btn
@@ -83,31 +82,28 @@ class SettingsPage(QWidget):
     def _setup_app_section(self):
         self.content_layout.addWidget(create_section_header("Aplicación"))
 
-        # Switches automáticos
         self._create_switch("Conexión Automática", "Conecta el bot al chat inmediatamente al abrir la aplicación.", "auto_connect")
         self._create_switch("Minimizar a la Bandeja", "Mantiene la app en segundo plano al cerrar.", "minimize_to_tray")
 
-        # Formato Hora
         self.combo_time = create_styled_combobox(["Sistema", "12-hour (02:30 PM)", "24-hour (14:30)"], width=200)
         current_fmt = self.db.get("time_fmt", "Sistema")
         self.combo_time.setCurrentIndex(self.combo_time.findText(current_fmt) if self.combo_time.findText(current_fmt) >= 0 else 0)
         self.combo_time.currentIndexChanged.connect(lambda: self.service.set_setting("time_fmt", self.combo_time.currentText()))
         self.content_layout.addWidget(create_setting_row("Formato de Hora", "Configura cómo se muestran las fechas en el chat.", self.combo_time))
 
-        # Acciones
         self._create_action_row("Registros de Errores (Logs)", "Abre la carpeta donde se registran los errores.", "Abrir Carpeta", "btn_outlined", self._handle_open_logs_folder)
-        self._create_action_row(f"Versión Actual: {INTERNAL_VERSION}", "Comprueba si hay una nueva versión en GitHub.", "Buscar Actualizaciones", "btn_primary", lambda: self.controller.check_updates(manual=True))
+        
+        # NUEVO: Ahora el botón llama a _handle_check_updates internamente
+        self._create_action_row(f"Versión Actual: {INTERNAL_VERSION}", "Comprueba si hay una nueva versión en GitHub.", "Buscar Actualizaciones", "btn_primary", self._handle_check_updates)
 
     def _setup_economy_section(self):
         self.content_layout.addWidget(create_section_header("Economía"))
 
-        # Comando Puntos
         pts_cfg = self.service.get_points_config()
         inp_p_cmd = create_styled_input(pts_cfg["command"], is_cmd=True, callback=lambda: self.service.set_setting("points_command", inp_p_cmd.text()))
         inp_p_cmd.setFixedWidth(150)
         self.content_layout.addWidget(create_setting_row("Comando de Puntos", "El comando que usarán los usuarios.", inp_p_cmd))
 
-        # Spinbox Puntos
         spin_points = QSpinBox()
         spin_points.setFixedWidth(100)
         spin_points.setRange(0, 10000) 
@@ -123,7 +119,6 @@ class SettingsPage(QWidget):
     def _setup_danger_section(self):
         self.content_layout.addWidget(create_section_header("Gestión de Datos"))
         
-        # Backup Container
         backup_container = QWidget()
         l_backup = QHBoxLayout(backup_container)
         l_backup.setContentsMargins(0,0,0,0)
@@ -146,7 +141,7 @@ class SettingsPage(QWidget):
         self._create_action_row("Monitor de Workers", "Verifica cuántos procesos secundarios están activos.", "Refrescar Hilos", "btn_outlined", self._debug_show_threads)
 
     # ==========================================
-    # HANDLERS
+    # HANDLERS GENERALES
     # ==========================================
     def _handle_backup(self):
         if folder := QFileDialog.getExistingDirectory(self, "Seleccionar carpeta"):
@@ -186,3 +181,47 @@ class SettingsPage(QWidget):
 
     def _debug_show_threads(self):
         ToastNotification(self, "Threads", f"Hilos activos: {threading.active_count()}", "status_info").show_toast()
+
+    # ==========================================
+    # LÓGICA DE ACTUALIZACIONES (NUEVO)
+    # ==========================================
+    def _handle_check_updates(self):
+        """Lanza el buscador de actualizaciones silencioso."""
+        ToastNotification(self, "Actualizador", "Buscando nuevas versiones...", "status_info").show_toast()
+        
+        self.checker = UpdateCheckerWorker()
+        self.checker.update_available.connect(self._on_update_available)
+        self.checker.no_update.connect(self._on_up_to_date)
+        self.checker.error.connect(self._on_update_error)
+        self.checker.start()
+
+    def _on_update_available(self, new_version, url, changelog):
+        """Se ejecuta si encontramos una versión más nueva en GitHub."""
+        
+        # Como tu changelog es HTML, ModalConfirm lo renderizará perfecto
+        mensaje = f"¿Deseas descargar e instalar esta actualización ahora?<br><br>{changelog}"
+        
+        if ModalConfirm(self, f"¡Actualización v{new_version} Disponible!", mensaje).exec():
+            # 1. Abrimos ventana de progreso bloqueante
+            self.dl_modal = DownloadModal(self)
+            self.dl_modal.show()
+            
+            # 2. Empezamos la descarga real
+            self.dl_worker = UpdateDownloaderWorker(url)
+            self.dl_worker.progress.connect(self.dl_modal.update_progress)
+            self.dl_worker.finished.connect(self._on_download_finished)
+            self.dl_worker.error.connect(self._on_update_error)
+            self.dl_worker.start()
+
+    def _on_download_finished(self):
+        """Se ejecuta cuando la descarga terminó y se lanzó el EXE."""
+        self.dl_modal.accept()
+        QApplication.quit()
+
+    def _on_up_to_date(self):
+        ToastNotification(self, "Actualizador", f"Ya tienes la última versión ({INTERNAL_VERSION}).", "status_success").show_toast()
+
+    def _on_update_error(self, msg):
+        if hasattr(self, 'dl_modal'):
+            self.dl_modal.accept()
+        ToastNotification(self, "Error", msg, "status_error").show_toast()

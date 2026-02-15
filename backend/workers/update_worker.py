@@ -1,6 +1,5 @@
 # backend/workers/update_worker.py
 
-import subprocess
 import os
 import requests
 import tempfile
@@ -77,6 +76,8 @@ class UpdateDownloaderWorker(QThread):
 
             # Lanzar instalación
             self._launch_installer()
+            
+            # Emitimos finished PARA QUE LA INTERFAZ SE CIERRE (QApplication.quit())
             self.finished.emit()
 
         except Exception as e:
@@ -84,23 +85,16 @@ class UpdateDownloaderWorker(QThread):
 
     def _launch_installer(self):
         """
-        Ejecuta el instalador en un proceso independiente sin heredar 
-        el entorno de PyInstaller para evitar errores de DLL.
+        Delega la ejecución a Windows (como si el usuario hiciera doble clic).
+        Esto evita TODOS los errores de herencia de PyInstaller.
         """
         if not self.installer_path.exists():
             return
             
         try:
-            # TRUCO 4: Comprensión de Diccionarios (Dict Comprehension).
-            # Clona TODO el entorno de Windows, PERO excluyendo las llaves tóxicas en una sola línea.
-            forbidden_keys = {'_MEIPASS', 'PYTHONHOME', 'PYTHONPATH'}
-            clean_env = {k: v for k, v in os.environ.items() if k not in forbidden_keys}
-
-            # Lanzamos el instalador pasando la variable de entorno limpia
-            subprocess.Popen([str(self.installer_path)], env=clean_env, shell=False, close_fds=True)
-            
-            # Matar la app actual inmediatamente para liberar el archivo .exe y permitir sobrescritura.
-            os._exit(0) 
+            # os.startfile es la forma nativa y segura de Windows de abrir un archivo.
+            # Se desvincula totalmente del entorno de Python actual.
+            os.startfile(str(self.installer_path))
             
         except Exception as e:
             self.error.emit(f"No se pudo abrir el instalador: {e}")
