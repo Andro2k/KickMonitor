@@ -157,10 +157,12 @@ class OverlayServerWorker(QThread):
     # REGIÓN 5: UTILIDADES DE RUTAS
     # =========================================================================
     def _get_asset_path(self, filename: str) -> Path:
-        """Resuelve rutas estáticas usando pathlib (mucho más limpio)."""
+        """Resuelve rutas estáticas apuntando a assets/overlays."""
         if hasattr(sys, '_MEIPASS'): 
-            base_dir = Path(sys._MEIPASS) / "assets"
+            # Ruta cuando el bot está compilado en .exe (PyInstaller)
+            base_dir = Path(sys._MEIPASS) / "assets" / "overlays"
         else:
-            base_dir = Path(__file__).resolve().parent.parent.parent / "assets"
+            # Modo desarrollo: Sube 3 niveles (workers -> backend -> raíz) -> entra a assets/overlays
+            base_dir = Path(__file__).resolve().parent.parent.parent / "assets" / "overlays"
 
         return base_dir / filename if filename else base_dir

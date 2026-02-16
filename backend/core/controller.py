@@ -11,14 +11,14 @@ from backend.core.db_controller import DBHandler
 from backend.handlers.antibot_handler import AntibotHandler
 from backend.utils.logger_text import LoggerText
 from backend.utils.paths import get_cache_path
-from backend.workers.overlay_worker import OverlayServerWorker
+from backend.workers.trigger_worker import OverlayServerWorker
 from backend.core.kick_bot import KickBotWorker   
 from backend.workers.redemption_worker import RedemptionWorker
 from backend.workers.spotify_worker import SpotifyWorker
 from backend.workers.tts_worker import TTSWorker   
 from backend.workers.update_worker import UpdateCheckerWorker, UpdateDownloaderWorker
 from backend.workers.kick_worker import FollowMonitorWorker
-from backend.workers.chat_overlay_worker import ChatOverlayWorker
+from backend.workers.chat_worker import ChatOverlayWorker
 # --- LÓGICA DE NEGOCIO (SERVICIOS Y HANDLERS) ---
 from backend.game.casino import CasinoSystem
 from backend.services.commands_service import CommandsService
