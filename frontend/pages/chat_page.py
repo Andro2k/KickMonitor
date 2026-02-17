@@ -12,6 +12,109 @@ from frontend.theme import LAYOUT, THEME_DARK, STYLES
 from frontend.utils import get_icon, get_icon_colored
 from backend.services.chat_service import ChatService
 from frontend.components.flow_layout import FlowLayout
+from PyQt6.QtCore import pyqtSignal
+
+class TagPill(QFrame):
+    """Componente visual que representa el Pin/Tag con el botón X"""
+    def __init__(self, text, remove_callback, parent=None):
+        super().__init__(parent)
+        self.text = text
+        self.setObjectName("pill")
+        
+        # Estilo inspirado en la imagen (fondo oscuro, bordes suaves)
+        self.setStyleSheet("""
+            #pill {
+                background-color: #191919; 
+                border: 1px solid #4a4a5a;
+                border-radius: 12px;
+            }
+            QLabel { 
+                color: #d1d1e0; font-size: 11px; font-weight: bold; 
+                border: none; padding-left: 4px; 
+            }
+            QPushButton {
+                color: #888; border: none; font-weight: bold; font-size: 10px;
+                border-radius: 8px; padding-right: 4px; padding-left: 4px;
+            }
+            QPushButton:hover { color: #ff4c4c; background-color: #3d3d4a; }
+        """)
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 4, 4, 4)
+        layout.setSpacing(4)
+        
+        lbl = QLabel(text)
+        btn = QPushButton("x")
+        btn.setFixedSize(20, 20)
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn.clicked.connect(lambda: remove_callback(self))
+        
+        layout.addWidget(lbl)
+        layout.addWidget(btn)
+
+class TagInputContainer(QWidget):
+    """Contenedor que maneja el campo de texto y dibuja los TagPills"""
+    tags_changed = pyqtSignal()
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.tags = []
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        
+        # 1. El campo donde el usuario escribe
+        self.input = QLineEdit()
+        self.input.setPlaceholderText("Escribe un usuario y presiona Enter...")
+        self.input.returnPressed.connect(self._add_from_input)
+        
+        # 2. El contenedor donde aparecerán los pines mágicamente
+        self.flow_container = QWidget()
+        self.flow_layout = FlowLayout(self.flow_container, margin=0, spacing=5)
+        
+        layout.addWidget(self.input)
+        layout.addWidget(self.flow_container)
+
+    def _add_from_input(self):
+        text = self.input.text().strip().lower()
+        if text:
+            # Permitir que el usuario pegue varios nombres separados por coma
+            for t in text.split(","):
+                clean_t = t.strip()
+                if clean_t and clean_t not in self.tags:
+                    self.tags.append(clean_t)
+                    pill = TagPill(clean_t, self._remove_tag)
+                    self.flow_layout.addWidget(pill)
+            self.input.clear()
+            self.tags_changed.emit()
+
+    def _remove_tag(self, pill):
+        if pill.text in self.tags:
+            self.tags.remove(pill.text)
+        self.flow_layout.removeWidget(pill)
+        pill.deleteLater()
+        self.tags_changed.emit()
+
+    def get_tags_string(self):
+        return ",".join(self.tags)
+
+    def set_tags_from_string(self, text):
+        self.tags.clear()
+        # Limpiar pines anteriores de la UI
+        for i in reversed(range(self.flow_layout.count())):
+            w = self.flow_layout.itemAt(i).widget()
+            if w:
+                self.flow_layout.removeWidget(w)
+                w.deleteLater()
+                
+        if not text: return
+        for t in text.split(","):
+            clean_t = t.strip()
+            if clean_t:
+                self.tags.append(clean_t)
+                pill = TagPill(clean_t, self._remove_tag)
+                self.flow_layout.addWidget(pill)
 
 class ChatPage(QWidget):
     def __init__(self, db, tts_worker, chat_overlay_worker=None, parent=None):
@@ -26,7 +129,7 @@ class ChatPage(QWidget):
         self.theme_keys = ["bubble", "transparent", "neon", "horizontal"]
         
         self.init_ui()
-        self._map_ui_elements() # <--- NUEVO: Mapeo Pythónico
+        self._map_ui_elements()
         self._load_initial_state()
 
     def init_ui(self):
@@ -77,7 +180,7 @@ class ChatPage(QWidget):
     # TARJETAS DE TTS
     # ==========================================
     def _create_tts_card(self):
-        f = QFrame(); f.setMinimumWidth(320); f.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
+        f = QFrame(); f.setMinimumWidth(280); f.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
         l = QVBoxLayout(f); l.setContentsMargins(*LAYOUT["level_03"]); l.setSpacing(LAYOUT["space_01"])
         l.addWidget(QLabel("Configuración de Voz", objectName="h3"))
         
@@ -94,7 +197,7 @@ class ChatPage(QWidget):
         return f
 
     def _create_actions_card(self):
-        f = QFrame(); f.setMinimumWidth(320); f.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
+        f = QFrame(); f.setMinimumWidth(280); f.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
         l = QVBoxLayout(f); l.setContentsMargins(*LAYOUT["level_03"]); l.setSpacing(LAYOUT["space_01"])
         l.addWidget(QLabel("Comportamiento TTS", objectName="h3"))
         
@@ -123,7 +226,7 @@ class ChatPage(QWidget):
     # TARJETAS DE OVERLAY
     # ==========================================
     def _create_overlay_design_card(self):
-        f = QFrame(); f.setMinimumWidth(380); f.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
+        f = QFrame(); f.setMinimumWidth(280); f.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
         l = QVBoxLayout(f); l.setContentsMargins(*LAYOUT["level_03"]); l.setSpacing(LAYOUT["space_01"])
 
         h_head = QHBoxLayout()
@@ -165,7 +268,7 @@ class ChatPage(QWidget):
         return f
 
     def _create_overlay_behavior_card(self):
-        f = QFrame(); f.setMinimumWidth(320); f.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
+        f = QFrame(); f.setMinimumWidth(280); f.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
         l = QVBoxLayout(f); l.setContentsMargins(*LAYOUT["level_03"]); l.setSpacing(LAYOUT["space_01"])
         l.addWidget(QLabel("Filtros y Comportamiento", objectName="h3"))
 
@@ -185,8 +288,9 @@ class ChatPage(QWidget):
         sep = QFrame(); sep.setFixedHeight(1); sep.setStyleSheet(f"background: {THEME_DARK['border']};"); l.addWidget(sep)
         l.addWidget(QLabel("Usuarios ignorados (separados por coma):", styleSheet="color:#aaa; font-size:11px;"))
         
-        self.txt_ignored = QLineEdit(); self.txt_ignored.setPlaceholderText("usuario1, usuario2...")
-        self.txt_ignored.setStyleSheet(STYLES["input_cmd"]); self.txt_ignored.editingFinished.connect(self._handle_overlay_settings_changed)
+        self.txt_ignored = TagInputContainer()
+        self.txt_ignored.input.setStyleSheet(STYLES["input_cmd"]) # Mantenemos tu estilo original en la caja
+        self.txt_ignored.tags_changed.connect(self._handle_overlay_settings_changed)
         l.addWidget(self.txt_ignored); l.addStretch()
         return f
 
@@ -286,7 +390,7 @@ class ChatPage(QWidget):
 
         self.c_anim.setCurrentIndex(self.anim_keys.index(ov_cfg["animation"]))
         self.c_theme.setCurrentIndex(self.theme_keys.index(ov_cfg["theme"]))
-        self.txt_ignored.setText(ov_cfg["ignored_users"])
+        self.txt_ignored.set_tags_from_string(ov_cfg["ignored_users"])
 
         self._is_loading = False 
 
@@ -306,7 +410,7 @@ class ChatPage(QWidget):
             "text_color": self.overlay_colors["text_color"],
             "animation": self.anim_keys[self.c_anim.currentIndex()],
             "theme": self.theme_keys[self.c_theme.currentIndex()],
-            "ignored_users": self.txt_ignored.text()
+            "ignored_users": self.txt_ignored.get_tags_string()
         })
         
         self.service.save_chat_overlay_settings(config_to_save)

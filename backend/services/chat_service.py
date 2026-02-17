@@ -89,7 +89,14 @@ class ChatService:
     # REGIÓN 4: CONFIGURACIÓN DEL OVERLAY DEL CHAT (OBS)
     # =========================================================================
     def get_chat_overlay_settings(self) -> Dict[str, Any]:
-        """Recupera la configuración visual y de comportamiento para OBS."""
+        """Recupera la configuración visual y sincroniza los ignorados desde Puntos."""
+        
+        # 🔴 MAGIA 1: Buscamos a los usuarios silenciados directamente en la tabla de Puntos
+        all_users = self.db.get_all_points()
+        # u[0] es el nombre de usuario, u[4] es el estado is_muted
+        muted_users = [u[0] for u in all_users if u[4] == 1] 
+        ignored_str = ",".join(muted_users)
+
         return {
             "font_size": self.db.get_int("chat_font_size", 16),
             "bg_opacity": self.db.get_int("chat_bg_opacity", 50),
@@ -97,8 +104,6 @@ class ChatService:
             "text_color": self.db.get("chat_text_color", "#ffffff"),
             "border_radius": self.db.get_int("chat_border_radius", 8),
             "spacing": self.db.get_int("chat_spacing", 8),
-            
-            # --- NUEVOS CAMPOS ---
             "animation": self.db.get("chat_animation") or "fade",
             "theme": self.db.get("chat_theme") or "bubble",
             "hide_bots": self.db.get_bool("chat_hide_bots"),
@@ -106,10 +111,27 @@ class ChatService:
             "show_time": self.db.get_bool("chat_show_time"),
             "hide_old": self.db.get_bool("chat_hide_old"),
             "hide_time": self.db.get_int("chat_hide_time", 10),
-            "ignored_users": self.db.get("chat_ignored_users") or ""
+            "ignored_users": ignored_str # <--- Enviamos la lista unificada a la interfaz
         }
 
     def save_chat_overlay_settings(self, settings: Dict[str, Any]):
-        """Guarda todas las variables visuales y de comportamiento en la BD."""
+        """Guarda todas las variables visuales y sincroniza usuarios ignorados bidireccionalmente."""
+        
+        # 1. Guardamos TODA la configuración visual en la tabla general normalmente
         for key, value in settings.items():
             self.db.set(f"chat_{key}", value)
+
+        # 🔴 MAGIA 2: Sincronizamos los nombres de la caja de texto con la tabla de Puntos
+        ignored_str = settings.get("ignored_users", "")
+        
+        current_users = self.db.get_all_points()
+        currently_muted = {u[0].lower() for u in current_users if u[4] == 1}
+        new_muted = {u.strip().lower() for u in ignored_str.split(",") if u.strip()}
+
+        # A) Des-silenciar en la tabla de puntos a los que borraste de la caja de texto
+        for u in currently_muted - new_muted:
+            self.db.set_user_muted(u, False)
+
+        # B) Silenciar (y crear si no existen) a los nuevos que escribiste en la caja de texto
+        for u in new_muted - currently_muted:
+            self.db.set_user_muted(u, True)

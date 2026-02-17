@@ -378,8 +378,7 @@ STYLES = {
     """,
     "sidebar_container": f"""
         QFrame {{
-            background-color: {c.Black_N1}; 
-            border-right: 1px solid {c.Black_N2};
+            background-color: {c.Black_N1};
         }}
     """
 }

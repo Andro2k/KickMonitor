@@ -26,13 +26,17 @@ class KickAPIManager:
             if not target_user:
                 self.log(LoggerText.error("No se pudo detectar el usuario de Kick."))
                 return False
-                
-            self.config['kick_username'] = target_user
-            self.db.set("kick_username", target_user)
 
-        self.log(LoggerText.info(f"Cargando datos para el canal: {target_user}"))
-        if self._load_from_cache(target_user) or await self._fetch_channel_data(target_user):
+        safe_slug = target_user.strip().replace(" ", "-").replace("_", "-")
+
+        self.log(LoggerText.info(f"Cargando datos para el canal: {safe_slug}"))
+        
+        # Usamos el safe_slug para buscar la información
+        if self._load_from_cache(safe_slug) or await self._fetch_channel_data(safe_slug):
+            self.config['kick_username'] = safe_slug
+            self.db.set("kick_username", safe_slug)
             return True
+            
         return False
 
     async def _get_authenticated_user(self):
@@ -44,6 +48,9 @@ class KickAPIManager:
                     lista = data.get("data", [])
                     user = lista[0] if isinstance(lista, list) and lista else data
                     return user.get("slug") or user.get("name") or user.get("username")
+                else:
+                    # 🔴 NUEVO: Ver si la API pública nos está rechazando (ej. Error 401 o 429)
+                    self.log(LoggerText.warning(f"Fallo al autodetectar usuario. API Pública devolvió HTTP {resp.status}"))
         except Exception as e:
             self.log(LoggerText.error(f"Error detectando usuario: {e}"))
         return None
@@ -57,6 +64,11 @@ class KickAPIManager:
             if resp.status_code == 200:
                 self._process_channel_response(resp.json(), target_user)
                 return True
+            else:
+                # 🔴 AGREGAR ESTA LÍNEA PARA VER EL ERROR EN LA CONSOLA
+                self.log(LoggerText.error(f"Error API: Código {resp.status_code} al buscar {target_user}"))
+                self.log(LoggerText.error(f"Respuesta de Kick: {resp.text[:100]}")) # Muestra un pedacito de la respuesta
+                
         except Exception as e: 
             self.log(LoggerText.error(f"Error obteniendo datos del canal: {e}"))
         return False
@@ -65,7 +77,9 @@ class KickAPIManager:
         if 'chatroom' in data and 'id' in data['chatroom']:
             self.chatroom_id = str(data['chatroom']['id'])
             self.db.set("chatroom_id", self.chatroom_id)
-        
+        else:
+            # 🔴 NUEVO: Avisar si falta lo más importante para conectarse al chat
+            self.log(LoggerText.warning("⚠️ La respuesta de Kick no incluyó un ID de sala de chat (chatroom_id)."))
         uid = data.get('user_id') or data.get('id') or data.get('user', {}).get('id')
         if uid: self.broadcaster_user_id = uid
 
@@ -85,11 +99,19 @@ class KickAPIManager:
             chat_id_db = self.db.get("chatroom_id")
             if chat_id_db:
                 self.chatroom_id = chat_id_db
+                # 🔴 NUEVO: Confirmar visualmente que cargó sin hacer peticiones a internet
+                self.log(LoggerText.success(f"Datos cargados rápidamente desde la base de datos para: {target_user}"))
                 return True
         return False
 
     async def send_message(self, text, retry=True):
-        if not self.auth.access_token: return
+        if not self.auth.access_token: 
+            self.log(LoggerText.warning("No se puede enviar el mensaje: Falta el token de acceso."))
+            return
+            
+        if not self.broadcaster_user_id:
+            self.log(LoggerText.error("No se puede enviar el mensaje: Falta el ID del canal (broadcaster_user_id)."))
+            return
         headers = { "Authorization": f"Bearer {self.auth.access_token}", "Content-Type": "application/json" }
         payload = { "broadcaster_user_id": int(self.broadcaster_user_id), "content": text, "type": "bot" }
         try:

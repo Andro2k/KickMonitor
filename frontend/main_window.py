@@ -136,7 +136,11 @@ class MainWindow(QMainWindow):
             else: 
                 self.ui_home.update_connection_state(True)
 
-    def on_log_received(self, text):    
+    def on_log_received(self, text):
+        # 🔴 EL FIX: Ignorar textos vacíos o que solo tengan espacios
+        if not text or not text.strip():
+            return
+            
         self.ui_home.append_log(text) 
         if any(keyword in text for keyword in ["✅", "EN VIVO"]): 
             self.ui_chat.lbl_status.setText("En Vivo")
