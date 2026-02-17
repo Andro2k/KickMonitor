@@ -388,12 +388,12 @@ STYLES = {
 # ==========================================
 def get_switch_style(on_icon_name: str = "switch-on.svg", *args, **kwargs) -> str:
     off_path = asset_url("switch-off.svg")
-    colored_icon = get_icon_colored(on_icon_name, Palette.NeonGreen_Main, size=36)
+    colored_icon = get_icon_colored(on_icon_name, Palette.NeonGreen_Main, size=21)
     temp_dir = tempfile.gettempdir()
     on_path = os.path.join(temp_dir, "kick_switch_on_colored.png").replace("\\", "/")
 
     if not colored_icon.isNull():
-        colored_icon.pixmap(36, 20).save(on_path, "PNG")
+        colored_icon.pixmap(21, 21).save(on_path, "PNG")
     else:
         on_path = asset_url(on_icon_name)
 
@@ -403,11 +403,11 @@ def get_switch_style(on_icon_name: str = "switch-on.svg", *args, **kwargs) -> st
             spacing: 8px; 
             color: {Palette.Gray_N1}; 
             font-weight: bold; 
-            font-size: 13px; 
+            font-size: 12px; 
         }}
         QCheckBox::indicator {{ 
-            width: 36px; /* Ajustado al tamaño de tu SVG original */
-            height: 20px; 
+            width: 21px; /* Ajustado al tamaño de tu SVG original */
+            height: 21px; 
             border: none; 
         }}
         QCheckBox::indicator:unchecked {{ image: url({off_path}); }}

@@ -4,11 +4,14 @@ from typing import Tuple
 
 class AlertsService:
     """
-    Servicio de Automatización de Mensajes.
+    Servicio de Automatización de Mensajes y Alertas.
     """
     
-    def __init__(self, db_handler):
+    # 🔴 1. Añadimos alert_worker al __init__
+    def __init__(self, db_handler, alert_worker=None):
         self.db = db_handler
+        self.alert_worker = alert_worker 
+        
         self.DEFAULTS_ALERTS = {
             "follow": "¡Gracias {user} por seguir el canal! Bienvenid@ 😎",
             "subscription": "¡Wow! Gracias {user} por esa suscripción 👑",
@@ -38,7 +41,40 @@ class AlertsService:
     def save_alert(self, event_type: str, message: str, active: bool) -> bool:
         """Guarda la configuración de una alerta de evento."""
         return self.db.set_text_alert(event_type, message, active)
-    
+
+    # 🔴 2. NUEVA FUNCIÓN: El motor que dispara la alerta
+    def trigger_alert(self, event_type: str, username: str, extra_data: dict = None):
+        """
+        Verifica si la alerta está activa, formatea el texto y la envía a OBS.
+        Retorna el mensaje final por si también quieres enviarlo al chat de Kick.
+        """
+        msg_template, is_active = self.get_alert_config(event_type)
+        
+        if not is_active:
+            return None # Si está apagada en la UI, no hacemos nada
+            
+        # A. Formatear el mensaje (reemplazar variables)
+        final_msg = msg_template.replace("{user}", username)
+        
+        if extra_data:
+            for key, value in extra_data.items():
+                final_msg = final_msg.replace(f"{{{key}}}", str(value))
+                
+        # B. Títulos bonitos para el Overlay de OBS
+        titles = {
+            "follow": "¡Nuevo Seguidor!",
+            "subscription": "¡Nueva Suscripción!",
+            "host": "¡Raid / Host!"
+        }
+        title = titles.get(event_type, "¡Alerta!")
+
+        # C. Enviar la señal visual a OBS a través del Worker
+        if self.alert_worker:
+            self.alert_worker.send_alert(event_type, title, final_msg)
+            
+        # D. Retornamos el texto para que el Bot lo escriba en el chat
+        return final_msg
+
     # =========================================================================
     # REGIÓN 2: TIMERS (MENSAJES RECURRENTES)
     # =========================================================================

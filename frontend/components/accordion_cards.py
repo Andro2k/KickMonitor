@@ -115,7 +115,6 @@ class BaseAccordionCard(QFrame):
 # =========================================================================
 class AlertCard(BaseAccordionCard):
     def __init__(self, service, title, event_type, desc, default_vars):
-        # Obtener estado inicial de DB
         self.service = service
         self.event_type = event_type
         
@@ -134,8 +133,23 @@ class AlertCard(BaseAccordionCard):
         self.chk_active.setStyleSheet(get_switch_style())
         self.chk_active.toggled.connect(self._toggle_active)
 
+        # 🔴 NUEVO: Botón Probar (Estilo secundario)
+        btn_test = QPushButton(" Probar")
+        btn_test.setIcon(get_icon_colored("play-circle.svg", THEME_DARK['White_N1']))
+        btn_test.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_test.setStyleSheet(f"""
+            QPushButton {{ 
+                background-color: {THEME_DARK['Black_N3']}; 
+                color: {THEME_DARK['White_N1']}; 
+                border-radius: 6px; padding: 6px 12px; font-weight: bold;
+                border: 1px solid {THEME_DARK['border']};
+            }}
+            QPushButton:hover {{ background-color: {THEME_DARK['Black_N2']}; }}
+        """)
+        btn_test.clicked.connect(self._test_alert)
+
         # Botón Guardar
-        btn_save = QPushButton("Guardar Cambios")
+        btn_save = QPushButton(" Guardar Cambios")
         btn_save.setIcon(get_icon_colored("save.svg", THEME_DARK['NeonGreen_Main']))
         btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_save.setStyleSheet(STYLES["btn_primary"])
@@ -145,6 +159,7 @@ class AlertCard(BaseAccordionCard):
         row = QHBoxLayout()
         row.addWidget(self.chk_active)
         row.addStretch()
+        row.addWidget(btn_test)  # 🔴 Lo agregamos antes del botón de guardar
         row.addWidget(btn_save)
 
         self.add_content_widget(QLabel("Mensaje del Chat:", styleSheet="color:#AAA; font-size:11px;"))
@@ -161,6 +176,27 @@ class AlertCard(BaseAccordionCard):
         txt = self.txt_msg.toPlainText()
         if self.service.save_alert(self.event_type, txt, self.is_active):
             ToastNotification(self, "Guardado", "Configuración actualizada", "status_success").show_toast()
+
+    # 🔴 NUEVA FUNCIÓN: Lógica de prueba
+    def _test_alert(self):
+        # 1. Forzamos un guardado rápido para probar exactamente el texto que acabas de modificar
+        self._save()
+        
+        # 2. Si la alerta no está activa en el Switch, el servicio la ignorará. Avisamos al usuario:
+        if not self.chk_active.isChecked():
+            ToastNotification(self, "Aviso", "Activa la alerta para poder probarla.", "status_warning").show_toast()
+            return
+
+        # 3. Creamos datos falsos para que las variables {count}, {months} o {viewers} tengan sentido
+        mock_data = {
+            "count": 120,      # Simula ser el seguidor número 120
+            "months": 6,       # Simula una sub de 6 meses
+            "viewers": 450     # Simula un raid de 450 personas
+        }
+        
+        # 4. Disparamos la alerta mediante el servicio (Llegará a OBS mágicamente)
+        self.service.trigger_alert(self.event_type, "UsuarioTest", mock_data)
+        ToastNotification(self, "Prueba Enviada", "¡Revisa tu OBS!", "info").show_toast()
 
 # =========================================================================
 # COMPONENTE 2: TARJETA DE TIMER (Mensajes Recurrentes)

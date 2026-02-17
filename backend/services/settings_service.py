@@ -39,75 +39,60 @@ class SettingsService:
         }
     
     # =========================================================================
-    # REGIÓN 3: MANTENIMIENTO DE DATOS (NUEVO)
+    # REGIÓN 3: MANTENIMIENTO Y PELIGRO
     # =========================================================================
-    def get_database_info(self) -> Dict[str, str]:
-        """Devuelve información sobre el archivo DB."""
-        path = self.db.get_db_path()
-        return {
-            "path": path,
-            "folder": os.path.dirname(path),
-            "filename": os.path.basename(path)
-        }
-
-    def create_backup(self, target_folder: str) -> str:
-        """Crea una copia de la DB en la carpeta indicada."""
-        db_path = self.db.get_db_path()
-        if not os.path.exists(db_path):
-            raise FileNotFoundError("No se encuentra la base de datos.")
-
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_name = f"KickBackup_{timestamp}.db"
-        target_path = os.path.join(target_folder, backup_name)
-
-        shutil.copy2(db_path, target_path)
-        return target_path
-
     def reset_user_data(self):
-        """Wrapper para el reset de usuario."""
+        """Wrapper para el reset de usuario y eliminación de sesión OAuth."""
+        # 1. Limpiamos la base de datos (Usuario, IDs, etc)
         self.db.factory_reset_user()
+
+        # 2. 🔴 EL FIX: Eliminamos el archivo físico que mantiene abierta la sesión de Kick
+        session_file = os.path.join(get_config_path(), "session.json")
+        if os.path.exists(session_file):
+            try:
+                os.remove(session_file)
+            except Exception as e:
+                print(f"No se pudo borrar el archivo de sesión: {e}")
 
     def reset_economy(self):
         """Wrapper para el reset de economía."""
         self.db.wipe_economy_data()
 
-    # ==========================================
-    # LÓGICA DE RESPALDO Y RESTAURACIÓN
-    # ==========================================
-    
-    def create_backup(self, target_folder):
+    # =========================================================================
+    # REGIÓN 4: RESPALDO Y RESTAURACIÓN (EXPORT / IMPORT DB)
+    # =========================================================================
+    def create_backup(self, target_folder: str) -> str:
         """Crea una copia de la DB actual en la carpeta seleccionada."""
-        source = os.path.join(get_config_path(), "kick_data.db")
+        # 1. Obtenemos la ruta real directa desde el controlador
+        source = self.db.get_db_path()
         
         if not os.path.exists(source):
             raise FileNotFoundError("No se encontró la base de datos original.")
 
-        # --- 2. CORRECCIÓN AQUÍ ---
-        # Usamos datetime.now() que es inequívoco, en lugar de time.strftime
+        # 2. Creamos el nombre del archivo con la fecha exacta
         date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        
         filename = f"backup_kickmonitor_{date_str}.db"
         destination = os.path.join(target_folder, filename)
 
+        # 3. Copiamos
         shutil.copy2(source, destination)
         return destination
 
-    def restore_backup(self, backup_file_path):
+    def restore_backup(self, backup_file_path: str):
         """Sobrescribe la DB actual con el archivo seleccionado."""
+        dest_path = self.db.get_db_path()
         
-        # 1. Ruta destino (La DB activa en /config)
-        dest_path = os.path.join(get_config_path(), "kick_data.db")
-        
-        # 2. Validaciones básicas
         if not os.path.exists(backup_file_path):
             raise FileNotFoundError("El archivo de respaldo seleccionado no existe.")
 
-        # 3. Intentar el reemplazo
         try:
+            # 🔴 EL FIX CLAVE: Cerramos la conexión activa de SQLite para liberar el archivo.
+            # Esto evita el PermissionError en Windows.
+            if hasattr(self.db, 'conn_handler') and hasattr(self.db.conn_handler, 'conn'):
+                self.db.conn_handler.conn.close()
             
+            # Reemplazamos el archivo físico
             shutil.copy2(backup_file_path, dest_path)
             
-        except PermissionError:
-            raise Exception("La base de datos está en uso. Cierra completamente la app y reemplaza el archivo manualmente en la carpeta /config.")
         except Exception as e:
             raise Exception(f"Error al restaurar: {str(e)}")

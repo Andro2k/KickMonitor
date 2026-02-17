@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Kick Alerts Overlay</title>
+    <style>
+        :root {
+            /* Colores de Kick */
+            --kick-green: #53fc18;
+            --kick-dark: #191919;
+            --text-light: #ffffff;
+        }
+
+        body, html {
+            height: 100%; width: 100%;
+            margin: 0; padding: 0; overflow: hidden;
+            background-color: transparent;
+            font-family: 'Arial', sans-serif;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        #alert-container {
+            position: relative;
+            display: none; /* Oculto por defecto */
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            background: rgba(25, 25, 25, 0.85);
+            border: 2px solid var(--kick-green);
+            border-radius: 16px;
+            padding: 20px 40px;
+            box-shadow: 0 0 20px rgba(83, 252, 24, 0.4);
+            transform: scale(0.5);
+            opacity: 0;
+        }
+
+        /* Animaciones de entrada y salida */
+        .alert-in {
+            display: flex !important;
+            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        .alert-out {
+            animation: popOut 0.5s ease-in forwards;
+        }
+
+        @keyframes popIn {
+            0% { transform: translateY(50px) scale(0.5); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        @keyframes popOut {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0; }
+        }
+
+        /* Tipografía */
+        .alert-title {
+            color: var(--kick-green);
+            font-size: 28px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        .alert-message {
+            color: var(--text-light);
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+        .alert-icon {
+            font-size: 50px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="alert-container">
+        <div id="alert-icon" class="alert-icon">✨</div>
+        <div id="alert-title" class="alert-title">Nuevo Seguidor</div>
+        <div id="alert-message" class="alert-message">¡Gracias por seguir el canal!</div>
+    </div>
+
+    <audio id="alert-sound" src="alert.mp3" preload="auto"></audio>
+
+    <script>
+        const container = document.getElementById('alert-container');
+        const titleEl = document.getElementById('alert-title');
+        const messageEl = document.getElementById('alert-message');
+        const iconEl = document.getElementById('alert-icon');
+        const sound = document.getElementById('alert-sound');
+        
+        let alertQueue = [];
+        let isPlaying = false;
+
+        const ICONS = {
+            'follow': '💚',
+            'subscription': '👑',
+            'host': '🚀'
+        };
+
+        function connect() {
+            // 🔴 EL FIX: Cambiar el puerto de 6001 a 6002
+            const socket = new WebSocket('ws://localhost:6002/ws');
+            
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'new_alert') {
+                    alertQueue.push(data.payload);
+                    processQueue();
+                }
+            };
+            
+            socket.onclose = () => setTimeout(connect, 3000);
+        }
+
+        function processQueue() {
+            if (isPlaying || alertQueue.length === 0) return;
+            
+            isPlaying = true;
+            const alertData = alertQueue.shift();
+
+            // Configurar textos e iconos
+            titleEl.textContent = alertData.title;
+            messageEl.textContent = alertData.message;
+            iconEl.textContent = ICONS[alertData.alert_type] || '✨';
+
+            // Reproducir sonido si existe
+            sound.volume = 0.5;
+            sound.play().catch(e => console.log("Sonido omitido por el navegador."));
+
+            // Mostrar
+            container.classList.remove('alert-out');
+            container.classList.add('alert-in');
+
+            // Ocultar después de 5 segundos
+            setTimeout(() => {
+                container.classList.remove('alert-in');
+                container.classList.add('alert-out');
+                
+                // Dar tiempo a la animación de salida antes de la siguiente alerta
+                setTimeout(() => {
+                    isPlaying = false;
+                    processQueue();
+                }, 600);
+            }, 5000);
+        }
+
+        connect();
+    </script>
+</body>
+</html>

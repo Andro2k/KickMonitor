@@ -154,11 +154,20 @@ class SettingsPage(QWidget):
     def _handle_restore_backup(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Seleccionar Copia de Seguridad", "", "Database Files (*.db);;All Files (*)")
         if not file_path: return
-
-        if ModalConfirm(self, "Restaurar Datos", "Esta acción REEMPLAZARÁ todos tus datos.\\nLa aplicación se cerrará.\\n¿Continuar?").exec():
+        mensaje = "Esta acción REEMPLAZARÁ todos tus datos actuales.<br><br><b>La aplicación se cerrará automáticamente</b> para aplicar los cambios.<br>¿Continuar?"
+        
+        if ModalConfirm(self, "Restaurar Datos", mensaje).exec():
             try:
+                # 1. Restaurar el archivo (cierra la DB por debajo)
                 self.service.restore_backup(file_path)
-                ToastNotification(self, "Éxito", "Base de datos restaurada.", "status_success").show_toast()
+                
+                # 2. Avisar al usuario que todo salió bien
+                ToastNotification(self, "Éxito", "Restauración completada. Cerrando...", "status_success").show_toast()
+                
+                # 3. 🔴 FIX: Forzar el cierre de la app. 
+                # Esto es obligatorio, de lo contrario la app intentaría buscar cosas en una base de datos que ya no existe en memoria.
+                QApplication.quit()
+                
             except Exception as e:
                 ToastNotification(self, "Error", f"No se pudo restaurar: {str(e)}", "status_error").show_toast()
 

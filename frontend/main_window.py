@@ -63,7 +63,7 @@ class MainWindow(QMainWindow):
         self.ui_home = DashboardPage(db, self.controller.spotify)
         self.ui_chat = ChatPage(db, self.controller.tts, self.controller.chat_overlay)
         self.ui_cmds = CommandsPage(db)
-        self.ui_alerts = AlertsPage(db)
+        self.ui_alerts = AlertsPage(db, self.controller.alert_overlay)
         self.ui_overlay = TriggerPage(self.controller.overlay_server, db)
         self.ui_points = PointsPage(db)
         self.ui_gamble = GamblingPage(db, self.controller)

@@ -11,6 +11,7 @@ from backend.core.db_controller import DBHandler
 from backend.handlers.antibot_handler import AntibotHandler
 from backend.utils.logger_text import LoggerText
 from backend.utils.paths import get_cache_path
+from backend.workers.alert_worker import AlertOverlayWorker
 from backend.workers.trigger_worker import OverlayServerWorker
 from backend.core.kick_bot import KickBotWorker   
 from backend.workers.redemption_worker import RedemptionWorker
@@ -52,7 +53,8 @@ class MainController(QObject):
         self._init_spotify()
         self._init_tts()
         self._init_overlay()
-        self._init_chat_overlay()     
+        self._init_chat_overlay()
+        self._init_alert_overlay()  
         
         # 3. Handlers de Lógica
         self.chat_handler = ChatHandler(self.db)
@@ -215,6 +217,12 @@ class MainController(QObject):
         self.chat_overlay = ChatOverlayWorker(port=6001)
         self.chat_overlay.error_occurred.connect(self.emit_log); self.chat_overlay.start()
 
+    # 🔴 AÑADIR ESTA NUEVA FUNCIÓN
+    def _init_alert_overlay(self):
+        self.alert_overlay = AlertOverlayWorker(port=6002)
+        self.alert_overlay.error_occurred.connect(self.emit_log)
+        self.alert_overlay.start()
+
     def start_bot(self):
         if self.worker: self.stop_bot()      
         
@@ -266,7 +274,7 @@ class MainController(QObject):
 
     def shutdown(self):
         self.stop_bot()
-        for server in filter(None, [self.tts, self.overlay_server, self.chat_overlay]): 
+        for server in filter(None, [self.tts, self.overlay_server, self.chat_overlay, self.alert_overlay]): 
             server.stop()
 
         if hasattr(self, 'spotify_thread') and self.spotify_thread.isRunning():
@@ -293,14 +301,28 @@ class MainController(QObject):
             self.monitor_worker.new_follower.connect(self.on_new_follower)
             self.monitor_worker.start()
 
-    def on_new_follower(self, count, name):
+    def on_new_follower(self, name, count):
         self.toast_signal.emit("¡NUEVO!", f"{name} (+{count})", "status_success")
         self.emit_log(LoggerText.success(f"NUEVO SEGUIDOR: {name}"))
-        if self.tts_enabled: self.tts.add_message(f"Gracias {name} por seguirme.")
+        
+        if self.tts_enabled: 
+            self.tts.add_message(f"Gracias {name} por seguirme.")
         
         msg_tpl, is_active = self.db.get_text_alert("follow")
         if is_active and msg_tpl:
-            self.send_msg(msg_tpl.replace("{user}", name).replace("{count}", str(count)))
+            # 🔴 Reemplazamos las variables con los datos correctos
+            final_msg = msg_tpl.replace("{user}", name).replace("{count}", str(count))
+            
+            # 1. Enviar al chat de Kick
+            self.send_msg(final_msg)
+            
+            # 2. Enviar la animación a OBS
+            if hasattr(self, 'alert_overlay') and self.alert_overlay:
+                self.alert_overlay.send_alert(
+                    alert_type="follow",
+                    title="¡Nuevo Seguidor!",
+                    message=final_msg
+                )
 
     def force_user_refresh_ui(self):
         username = self.db.get("kick_username")
