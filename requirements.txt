@@ -1,24 +1,18 @@
 # --- Core y Red ---
-cffi
-curl_cffi
-requests
 aiohttp
-aiohttp_cors
-websockets
 cloudscraper
-packaging
 
 # --- Interfaz Gráfica ---
 PyQt6
-PyQt6-sip
 
 # --- Multimedia y Extras ---
 pyttsx3
 spotipy
+edge_tts
+pygame
+packaging
 opencv-python
-pywin32
 
-# --- Ayuda ---
 markdown
-# --- Empaquetado ---
+# # --- Empaquetado ---
 pyinstaller
