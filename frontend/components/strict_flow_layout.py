@@ -6,9 +6,6 @@ from PyQt6.QtCore import Qt, QRect, QSize, QPoint
 class StrictFlowLayout(QLayout):
     """
     Layout de flujo estricto (estilo Grid/Galería).
-    - NO estira los elementos (mantiene su tamaño fijo).
-    - Alinea todo a la izquierda y arriba.
-    - Ideal para galerías de imágenes o tarjetas de medios.
     """
     def __init__(self, parent=None, margin=0, spacing=0):
         super().__init__(parent)

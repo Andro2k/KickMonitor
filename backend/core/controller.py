@@ -263,9 +263,18 @@ class MainController(QObject):
             w_instance = getattr(self, w_attr, None)
             if w_instance:
                 if w_attr == 'worker': self.safe_disconnect(w_instance.chat_received)
+                
+                # 1. Avisamos al hilo que debe detenerse
                 w_instance.stop()
-                if not w_instance.wait(500) and w_attr == 'worker': 
+                
+                # 2. Le damos hasta 2 segundos (2000 ms) para que asyncio cierre sus sockets
+                if not w_instance.wait(2000) and w_attr == 'worker': 
                     self.emit_log(LoggerText.warning("Timeout: Forzando cierre de hilos."))
+                
+                # 3. TRUCO: Le decimos a Qt que limpie el objeto de memoria de forma segura
+                w_instance.deleteLater() 
+                
+                # 4. Desvinculamos la variable
                 setattr(self, w_attr, None)
                 
         self.status_signal.emit("Desconectado")
