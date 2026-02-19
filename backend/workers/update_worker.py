@@ -1,6 +1,8 @@
 # backend/workers/update_worker.py
 
 import os
+import subprocess
+import sys
 import requests
 import tempfile
 from pathlib import Path
@@ -10,7 +12,7 @@ from packaging import version
 # =========================================================================
 # CONFIGURACIÓN DE VERSIÓN
 # =========================================================================
-INTERNAL_VERSION = "2.2.0"
+INTERNAL_VERSION = "2.1.0"
 UPDATE_JSON_URL = "https://raw.githubusercontent.com/Andro2k/KickMonitor/refs/heads/main/version.json"
 
 # =========================================================================
@@ -58,43 +60,80 @@ class UpdateDownloaderWorker(QThread):
 
     def run(self):
         try:
-            # Descargar con stream para barra de progreso
-            with requests.get(self.url, stream=True, timeout=15) as r:
+            # Añadimos allow_redirects=True por seguridad
+            with requests.get(self.url, stream=True, timeout=15, allow_redirects=True) as r:
                 r.raise_for_status()
                 total_length = int(r.headers.get('content-length', 0))
                 dl = 0
                 
-                # TRUCO 3: Abrimos el archivo directamente desde el objeto Path
+                # Si el servidor no nos dice el peso, enviamos -1 a la interfaz
+                if total_length == 0:
+                    self.progress.emit(-1)
+                
                 with self.installer_path.open('wb') as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         if chunk:
                             dl += len(chunk)
                             f.write(chunk)
                             if total_length > 0:
-                                # Calculamos y emitimos el porcentaje
                                 self.progress.emit(int((dl / total_length) * 100))
 
-            # Lanzar instalación
             self._launch_installer()
-            
-            # Emitimos finished PARA QUE LA INTERFAZ SE CIERRE (QApplication.quit())
             self.finished.emit()
 
         except Exception as e:
+            # Si hubo un error y el archivo se quedó a medias, lo borramos
+            if self.installer_path.exists():
+                try:
+                    self.installer_path.unlink()
+                except:
+                    pass
             self.error.emit(f"Error en descarga: {e}")
 
     def _launch_installer(self):
         """
-        Delega la ejecución a Windows (como si el usuario hiciera doble clic).
-        Esto evita TODOS los errores de herencia de PyInstaller.
+        Genera un script temporal (.bat) que espera a que la app se cierre 
+        antes de ejecutar el instalador.
         """
         if not self.installer_path.exists():
+            self.error.emit("El instalador no se encontró en la ruta temporal.")
             return
-            
+
+        # Obtener el nombre del ejecutable actual (ej. KickMonitor.exe)
+        current_exe = os.path.basename(sys.executable)
+
+        # Crear el contenido del script Batch
+        bat_content = f"""@echo off
+    title Actualizando KickMonitor...
+    echo.
+    echo ===================================================
+    echo     Preparando la actualizacion de KickMonitor
+    echo ===================================================
+    echo.
+    echo Esperando a que la aplicacion se cierre de forma segura...
+    timeout /t 3 /nobreak > NUL
+
+    :: Forzar el cierre por si algun worker se quedo colgado
+    taskkill /f /im "{current_exe}" > NUL 2>&1
+
+    echo.
+    echo Iniciando el instalador...
+    start "" "{self.installer_path}"
+
+    :: Autodestruir este script .bat despues de usarlo
+    del "%~f0"
+    """
+        
+        # Guardar el script en la carpeta temporal
+        bat_path = Path(tempfile.gettempdir()) / "updater_kickmonitor.bat"
         try:
-            # os.startfile es la forma nativa y segura de Windows de abrir un archivo.
-            # Se desvincula totalmente del entorno de Python actual.
-            os.startfile(str(self.installer_path))
-            
+            with open(bat_path, "w") as f:
+                f.write(bat_content)
+                
+            # Lanzar el script de forma totalmente independiente a este proceso de Python
+            subprocess.Popen(
+                [str(bat_path)], 
+                creationflags=subprocess.CREATE_NEW_CONSOLE | subprocess.CREATE_NEW_PROCESS_GROUP
+            )
         except Exception as e:
-            self.error.emit(f"No se pudo abrir el instalador: {e}")
+            self.error.emit(f"No se pudo crear el actualizador temporal: {e}")

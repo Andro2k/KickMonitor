@@ -49,7 +49,6 @@ class KickAPIManager:
                     user = lista[0] if isinstance(lista, list) and lista else data
                     return user.get("slug") or user.get("name") or user.get("username")
                 else:
-                    # 🔴 NUEVO: Ver si la API pública nos está rechazando (ej. Error 401 o 429)
                     self.log(LoggerText.warning(f"Fallo al autodetectar usuario. API Pública devolvió HTTP {resp.status}"))
         except Exception as e:
             self.log(LoggerText.error(f"Error detectando usuario: {e}"))
@@ -65,9 +64,8 @@ class KickAPIManager:
                 self._process_channel_response(resp.json(), target_user)
                 return True
             else:
-                # 🔴 AGREGAR ESTA LÍNEA PARA VER EL ERROR EN LA CONSOLA
                 self.log(LoggerText.error(f"Error API: Código {resp.status_code} al buscar {target_user}"))
-                self.log(LoggerText.error(f"Respuesta de Kick: {resp.text[:100]}")) # Muestra un pedacito de la respuesta
+                self.log(LoggerText.error(f"Respuesta de Kick: {resp.text[:100]}"))
                 
         except Exception as e: 
             self.log(LoggerText.error(f"Error obteniendo datos del canal: {e}"))
@@ -78,7 +76,6 @@ class KickAPIManager:
             self.chatroom_id = str(data['chatroom']['id'])
             self.db.set("chatroom_id", self.chatroom_id)
         else:
-            # 🔴 NUEVO: Avisar si falta lo más importante para conectarse al chat
             self.log(LoggerText.warning("⚠️ La respuesta de Kick no incluyó un ID de sala de chat (chatroom_id)."))
         uid = data.get('user_id') or data.get('id') or data.get('user', {}).get('id')
         if uid: self.broadcaster_user_id = uid
@@ -99,7 +96,6 @@ class KickAPIManager:
             chat_id_db = self.db.get("chatroom_id")
             if chat_id_db:
                 self.chatroom_id = chat_id_db
-                # 🔴 NUEVO: Confirmar visualmente que cargó sin hacer peticiones a internet
                 self.log(LoggerText.success(f"Datos cargados rápidamente desde la base de datos para: {target_user}"))
                 return True
         return False

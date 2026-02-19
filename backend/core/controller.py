@@ -382,11 +382,39 @@ class MainController(QObject):
 
     def ask_user_to_update(self, new_ver, url, notes):
         self._update_found = True
-        if UpdateModal(new_ver, notes, parent=None).exec():
-            self.toast_signal.emit("Sistema", "Descargando actualización.", "status_success")
-            self.start_download(url)
-        else:
-            self.emit_log(LoggerText.system("Usuario pospuso actualización."))
+        
+        # 1. Instanciar el nuevo modal unificado
+        self.update_dialog = UpdateModal(new_ver, notes, parent=None)
+        
+        # 2. Conectar el botón "ACTUALIZAR" para que inicie la descarga
+        self.update_dialog.request_download.connect(lambda u=url: self.start_download_process(u))
+        
+        # 3. Mostrar el modal (ahora espera a que termine todo el proceso)
+        self.update_dialog.exec()
+
+    def start_download_process(self, url):
+        # Configurar el worker de descarga
+        self.downloader = UpdateDownloaderWorker(url)
+        self.downloader.progress.connect(self.update_dialog.update_progress)
+        self.downloader.finished.connect(self._on_download_finished)
+        self.downloader.error.connect(self._handle_download_error)
+        
+        # Destruir el hilo al terminar para limpiar la memoria
+        self.downloader.finished.connect(self.downloader.deleteLater)
+        
+        # Arrancar la descarga real
+        self.downloader.start()
+
+    def _on_download_finished(self):
+        if hasattr(self, 'update_dialog') and self.update_dialog:
+            self.update_dialog.accept()
+        from PyQt6.QtWidgets import QApplication
+        QApplication.quit()
+
+    def _handle_download_error(self, error_msg):
+        if hasattr(self, 'update_dialog') and self.update_dialog:
+            self.update_dialog.accept()
+        self.toast_signal.emit("Error Update", str(error_msg), "status_error")
 
     def _on_check_finished(self):
         if self._manual_check and not self._update_found:
@@ -394,12 +422,6 @@ class MainController(QObject):
         self._manual_check = False
         try: self.updater.deleteLater()
         except: pass
-
-    def start_download(self, url):
-        self.downloader = UpdateDownloaderWorker(url)
-        self.downloader.progress.connect(lambda p: self.emit_log(LoggerText.system(f"Descargando: {p}%")) if p % 10 == 0 else None)
-        self.downloader.error.connect(lambda e: self.toast_signal.emit("Error Update", str(e), "status_error"))
-        self.downloader.start()
 
     # =========================================================================
     # REGIÓN 6: LOGS & DEBUG

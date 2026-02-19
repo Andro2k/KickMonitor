@@ -86,7 +86,7 @@ class RewardsService:
         token = session.get("access_token")
         
         if not token:
-            print("[ERROR] No hay token de acceso disponible.")
+            # print("[ERROR] No hay token de acceso disponible.")
             return None
 
         headers = {

@@ -214,8 +214,8 @@ STYLES = {
     """,
     "text_browser": f"""
         QTextBrowser {{
-            background-color: {c.Black_N4};
-            color: #DDD;
+            background-color: {c.Black_N2}; 
+            color: {c.White_N1};
             border: 1px solid {c.border};
             border-radius: {r['input']};
             padding: 6px;

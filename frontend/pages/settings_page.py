@@ -10,6 +10,7 @@ from PyQt6.QtGui import QDesktopServices
 
 from backend.utils.paths import get_app_data_path
 from backend.workers.update_worker import INTERNAL_VERSION, UpdateCheckerWorker, UpdateDownloaderWorker
+from frontend.dialogs.update_modal import UpdateModal
 from frontend.factories import (
     create_header_page, create_section_header, create_setting_row,
     create_styled_input, create_styled_button, create_styled_combobox 
@@ -17,7 +18,6 @@ from frontend.factories import (
 from frontend.theme import STYLES, get_switch_style
 from frontend.alerts.toast_alert import ToastNotification
 from frontend.alerts.modal_alert import ModalConfirm
-from frontend.dialogs.download_modal import DownloadModal
 from backend.services.settings_service import SettingsService
 
 class SettingsPage(QWidget):
@@ -158,14 +158,8 @@ class SettingsPage(QWidget):
         
         if ModalConfirm(self, "Restaurar Datos", mensaje).exec():
             try:
-                # 1. Restaurar el archivo (cierra la DB por debajo)
                 self.service.restore_backup(file_path)
-                
-                # 2. Avisar al usuario que todo salió bien
                 ToastNotification(self, "Éxito", "Restauración completada. Cerrando...", "status_success").show_toast()
-                
-                # 3. 🔴 FIX: Forzar el cierre de la app. 
-                # Esto es obligatorio, de lo contrario la app intentaría buscar cosas en una base de datos que ya no existe en memoria.
                 QApplication.quit()
                 
             except Exception as e:
@@ -205,32 +199,30 @@ class SettingsPage(QWidget):
         self.checker.start()
 
     def _on_update_available(self, new_version, url, changelog):
-        """Se ejecuta si encontramos una versión más nueva en GitHub."""
+        self.update_dialog = UpdateModal(new_version, changelog, parent=self)
+        self.update_dialog.request_download.connect(lambda u=url: self._start_download_process(u))       
+        self.update_dialog.exec()
+
+    def _start_download_process(self, url):
+        """Inicia el worker de descarga y lo vincula a la barra de progreso del modal."""
+        self.dl_worker = UpdateDownloaderWorker(url)
+        self.dl_worker.progress.connect(self.update_dialog.update_progress)
+        self.dl_worker.finished.connect(self._on_download_finished)
+        self.dl_worker.error.connect(self._on_update_error)
         
-        # Como tu changelog es HTML, ModalConfirm lo renderizará perfecto
-        mensaje = f"¿Deseas descargar e instalar esta actualización ahora?<br><br>{changelog}"
+        # NUEVO: Destruye el hilo de descarga de la memoria cuando termine su trabajo
+        self.dl_worker.finished.connect(self.dl_worker.deleteLater) 
         
-        if ModalConfirm(self, f"¡Actualización v{new_version} Disponible!", mensaje).exec():
-            # 1. Abrimos ventana de progreso bloqueante
-            self.dl_modal = DownloadModal(self)
-            self.dl_modal.show()
-            
-            # 2. Empezamos la descarga real
-            self.dl_worker = UpdateDownloaderWorker(url)
-            self.dl_worker.progress.connect(self.dl_modal.update_progress)
-            self.dl_worker.finished.connect(self._on_download_finished)
-            self.dl_worker.error.connect(self._on_update_error)
-            self.dl_worker.start()
+        self.dl_worker.start()
 
     def _on_download_finished(self):
-        """Se ejecuta cuando la descarga terminó y se lanzó el EXE."""
-        self.dl_modal.accept()
+        self.update_dialog.accept()
         QApplication.quit()
 
     def _on_up_to_date(self):
         ToastNotification(self, "Actualizador", f"Ya tienes la última versión ({INTERNAL_VERSION}).", "status_success").show_toast()
 
     def _on_update_error(self, msg):
-        if hasattr(self, 'dl_modal'):
-            self.dl_modal.accept()
+        if hasattr(self, 'update_dialog'):
+            self.update_dialog.accept()
         ToastNotification(self, "Error", msg, "status_error").show_toast()

@@ -45,6 +45,14 @@ class KickChatManager:
             async for msg in self.ws_connection:
                 if msg.type == aiohttp.WSMsgType.TEXT:
                     data = json.loads(msg.data)
+                    # --- NUEVO: Manejar el ping de Pusher ---
+                    if data.get("event") == "pusher:ping":
+                        await self.ws_connection.send_json({
+                            "event": "pusher:pong",
+                            "data": {}
+                        })
+                        continue
+                    # ----------------------------------------
                     if data.get("event") == "App\\Events\\ChatMessageEvent":
                         self._parse_message(json.loads(data.get("data", "{}")))
                 elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
