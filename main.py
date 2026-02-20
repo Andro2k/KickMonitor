@@ -32,7 +32,7 @@ def setup_environment():
         if sys.stdout is None: sys.stdout = open(os.devnull, "w")
         if sys.stderr is None: sys.stderr = open(os.devnull, "w")
 
-    myappid = 'kickmonitor.v2.3.0' 
+    myappid = 'kickmonitor.v2.3.1' 
     try:
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     except Exception:

@@ -12,7 +12,7 @@ from packaging import version
 # =========================================================================
 # CONFIGURACIÓN DE VERSIÓN
 # =========================================================================
-INTERNAL_VERSION = "2.3.0"
+INTERNAL_VERSION = "2.3.1"
 UPDATE_JSON_URL = "https://raw.githubusercontent.com/Andro2k/KickMonitor/refs/heads/main/version.json"
 
 # =========================================================================
@@ -92,48 +92,60 @@ class UpdateDownloaderWorker(QThread):
 
     def _launch_installer(self):
         """
-        Genera un script temporal (.bat) que espera a que la app se cierre 
-        antes de ejecutar el instalador.
+        Genera un script temporal (.bat) y un (.vbs) para ejecutar la instalación
+        de forma 100% invisible y esperando el cierre natural de la app.
         """
         if not self.installer_path.exists():
             self.error.emit("El instalador no se encontró en la ruta temporal.")
             return
 
-        # Obtener el nombre del ejecutable actual (ej. KickMonitor.exe)
         current_exe = os.path.basename(sys.executable)
-
-        # Crear el contenido del script Batch
-        bat_content = f"""@echo off
-    title Actualizando KickMonitor...
-    echo.
-    echo ===================================================
-    echo     Preparando la actualizacion de KickMonitor
-    echo ===================================================
-    echo.
-    echo Esperando a que la aplicacion se cierre de forma segura...
-    timeout /t 3 /nobreak > NUL
-
-    :: Forzar el cierre por si algun worker se quedo colgado
-    taskkill /f /im "{current_exe}" > NUL 2>&1
-
-    echo.
-    echo Iniciando el instalador...
-    start "" "{self.installer_path}"
-
-    :: Autodestruir este script .bat despues de usarlo
-    del "%~f0"
-    """
+        temp_dir = tempfile.gettempdir()
         
-        # Guardar el script en la carpeta temporal
-        bat_path = Path(tempfile.gettempdir()) / "updater_kickmonitor.bat"
+        bat_path = Path(temp_dir) / "updater_kickmonitor.bat"
+        vbs_path = Path(temp_dir) / "updater_hidden.vbs"
+
+        # 1. El script Batch con espera amable (sin matar el proceso de golpe)
+        bat_content = f"""@echo off
+        :: Espera 2 segundos para permitir el cierre natural de la app
+        timeout /t 2 /nobreak > NUL
+
+        :: Bucle para esperar que el proceso desaparezca (maximo 10 segundos)
+        set retries=0
+        :wait_loop
+        tasklist /fi "imagename eq {current_exe}" | find /i "{current_exe}" > NUL
+        if %errorlevel% equ 0 (
+            timeout /t 1 /nobreak > NUL
+            set /a retries+=1
+            if %retries% lss 10 goto wait_loop
+            
+            :: Si despues de 10 segundos sigue abierto, entonces si forzamos cierre
+            taskkill /f /im "{current_exe}" > NUL 2>&1
+        )
+
+        :: Iniciar el instalador de la nueva version
+        start "" "{self.installer_path}"
+
+        :: Limpiar los archivos temporales
+        del "{vbs_path}"
+        del "%~f0"
+        """
         try:
             with open(bat_path, "w") as f:
                 f.write(bat_content)
                 
-            # Lanzar el script de forma totalmente independiente a este proceso de Python
+            # 2. El VBScript para ejecutar el .bat sin mostrar ventana CMD
+            vbs_content = f'Set WshShell = CreateObject("WScript.Shell")\nWshShell.Run chr(34) & "{bat_path}" & chr(34), 0, False'
+            with open(vbs_path, "w") as f:
+                f.write(vbs_content)
+
+            # 3. Lanzar el VBScript de forma separada
+            # 0x08000008 = DETACHED_PROCESS | CREATE_NO_WINDOW
+            # close_fds=True es CRUCIAL para evitar el error de Python DLL
             subprocess.Popen(
-                [str(bat_path)], 
-                creationflags=subprocess.CREATE_NEW_CONSOLE | subprocess.CREATE_NEW_PROCESS_GROUP
+                ["wscript.exe", str(vbs_path)], 
+                creationflags=0x08000008,
+                close_fds=True 
             )
         except Exception as e:
-            self.error.emit(f"No se pudo crear el actualizador temporal: {e}")
+            self.error.emit(f"No se pudo crear el actualizador invisible: {e}")

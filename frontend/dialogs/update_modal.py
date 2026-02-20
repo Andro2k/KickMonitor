@@ -8,6 +8,7 @@ from PyQt6.QtGui import QPixmap
 
 from frontend.theme import LAYOUT, STYLES, THEME_DARK
 from frontend.components.base_modal import BaseModal
+from frontend.utils import resource_path
 
 class UpdateModal(BaseModal):
     """
@@ -58,7 +59,7 @@ class UpdateModal(BaseModal):
 
         # 1. Imagen (Escalada proporcionalmente)
         self.img_label = QLabel()
-        img_path = os.path.join("assets", "install_bg.png") 
+        img_path = resource_path(os.path.join("assets", "install_bg.png"))
         
         pixmap = QPixmap(img_path)
         if not pixmap.isNull():
