@@ -8,7 +8,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QPropertyAnimation, QEasingCurve, QSize
 from PyQt6.QtGui import QPixmap, QPainter, QPainterPath
 from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 
-from frontend.theme import THEME_DARK, STYLES
+from frontend.theme import LAYOUT, THEME_DARK, STYLES
 from frontend.utils import get_icon
 
 class SidebarButton(QPushButton):
@@ -31,8 +31,8 @@ class Sidebar(QFrame):
         self.setStyleSheet(STYLES["sidebar_container"])
         
         # Dimensiones ajustadas para el centrado perfecto
-        self.full_width = 190
-        self.mini_width = 70
+        self.full_width = 220
+        self.mini_width = 90
         self.is_collapsed = False
         self.buttons = []
         
@@ -45,8 +45,8 @@ class Sidebar(QFrame):
         
         # Layout Principal
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(8, 8, 8, 8)
-        self.layout.setSpacing(8)
+        self.layout.setContentsMargins(20, 20, 0, 20)
+        self.layout.setSpacing(LAYOUT["space_01"])
         
         # Partes del Sidebar
         self._setup_header()
@@ -62,7 +62,7 @@ class Sidebar(QFrame):
         header_frame = QFrame()
         header_frame.setStyleSheet(f"background: {THEME_DARK['Black_N2']}; border-radius: 8px;")
         h_layout = QHBoxLayout(header_frame)
-        h_layout.setContentsMargins(5, 5, 5, 5)
+        h_layout.setContentsMargins(*LAYOUT["level_01"])
         h_layout.setSpacing(5)
 
         self.lbl_title = QLabel("Kick Monitor")
@@ -95,7 +95,7 @@ class Sidebar(QFrame):
         content.setStyleSheet(f"background: {THEME_DARK['Black_N2']}; border-radius: 8px;")
         
         self.menu_layout = QVBoxLayout(content)
-        self.menu_layout.setContentsMargins(5, 5, 5, 5)
+        self.menu_layout.setContentsMargins(*LAYOUT["level_01"])
         self.menu_layout.setSpacing(2)
 
         # MAIN MENU
@@ -128,7 +128,7 @@ class Sidebar(QFrame):
         self.footer.setStyleSheet(f"background: {THEME_DARK['Black_N2']}; border-radius: 8px;")
         
         f_layout = QHBoxLayout(self.footer)
-        f_layout.setContentsMargins(5, 5, 5, 5)
+        f_layout.setContentsMargins(*LAYOUT["level_01"])
         f_layout.setSpacing(5)
         
         # Avatar

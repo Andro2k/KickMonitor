@@ -2,7 +2,7 @@
 
 import threading
 from PyQt6.QtWidgets import (
-    QHBoxLayout, QSpinBox, QWidget, QVBoxLayout, QScrollArea, QFrame, 
+    QHBoxLayout, QLabel, QSpinBox, QWidget, QVBoxLayout, QScrollArea, QFrame, 
     QCheckBox, QFileDialog, QApplication
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QUrl
@@ -12,10 +12,10 @@ from backend.utils.paths import get_app_data_path
 from backend.workers.update_worker import INTERNAL_VERSION, UpdateCheckerWorker, UpdateDownloaderWorker
 from frontend.dialogs.update_modal import UpdateModal
 from frontend.factories import (
-    create_header_page, create_section_header, create_setting_row,
+    create_page_header, create_section_header, create_setting_row,
     create_styled_input, create_styled_button, create_styled_combobox 
 )
-from frontend.theme import STYLES, get_switch_style
+from frontend.theme import LAYOUT, STYLES, get_switch_style
 from frontend.alerts.toast_alert import ToastNotification
 from frontend.alerts.modal_alert import ModalConfirm
 from backend.services.settings_service import SettingsService
@@ -35,9 +35,6 @@ class SettingsPage(QWidget):
     def init_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
-
-        main_layout.addWidget(create_header_page("Preferencias", "Gestiona el comportamiento de la aplicación y sus configuraciones generales."))
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -46,9 +43,12 @@ class SettingsPage(QWidget):
 
         self.content_widget = QWidget()
         self.content_layout = QVBoxLayout(self.content_widget)
-        self.content_layout.setContentsMargins(40, 20, 40, 40)
+        self.content_layout.setContentsMargins(*LAYOUT["level_03"]) # Aquí están los márgenes
         self.content_layout.setSpacing(5)
-
+        
+        # EL CAMBIO ESTÁ AQUÍ: Pasamos self.content_layout en lugar de main_layout
+        self._setup_header(self.content_layout) 
+        
         self._setup_app_section()
         self._setup_economy_section()
         self._setup_danger_section()
@@ -57,6 +57,18 @@ class SettingsPage(QWidget):
         self.content_layout.addStretch()
         scroll.setWidget(self.content_widget)
         main_layout.addWidget(scroll)
+
+    def _setup_header(self, layout):
+        h_box = QHBoxLayout()
+        v_titles = QVBoxLayout()
+        v_titles.setSpacing(2)
+        
+        # Usamos create_page_header como en el chat
+        v_titles.addWidget(create_page_header("Preferencias", "Gestiona el comportamiento de la aplicación y sus configuraciones generales."))
+        
+        h_box.addLayout(v_titles)
+        h_box.addStretch()
+        layout.addLayout(h_box)
 
     # ==========================================
     # CREADORES MÁGICOS (DRY PATTERN)

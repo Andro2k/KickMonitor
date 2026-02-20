@@ -1,7 +1,7 @@
 # frontend/factories.py
 
 from PyQt6.QtWidgets import (
-    QComboBox, QFrame, QPushButton, QWidget, QHBoxLayout, 
+    QComboBox, QPushButton, QWidget, QHBoxLayout, 
     QCheckBox, QSizePolicy, QVBoxLayout, QLabel, QLineEdit, QGridLayout
 )
 from PyQt6.QtCore import Qt
@@ -11,7 +11,6 @@ from frontend.utils import get_icon
 # ==========================================
 # BOTONES Y NAVEGACIÓN
 # ==========================================
-
 def create_nav_btn(text: str, icon_name: str, func=None) -> QPushButton:
     btn = QPushButton("  " + text)
     if icon_name: btn.setIcon(get_icon(icon_name))
@@ -80,7 +79,6 @@ def create_switch_widget(checked: bool, func=None, tooltip: str = "") -> QWidget
 # ==========================================
 # HEADERS Y TÍTULOS
 # ==========================================
-
 def create_page_header(title: str, subtitle: str) -> QWidget:
     container = QWidget()
     l = QVBoxLayout(container)
@@ -109,18 +107,6 @@ def create_card_header(title: str, icon_name: str = None) -> QWidget:
     l.addWidget(lbl_text); l.addStretch()
     return w
 
-def create_header_page(title: str, description: str) -> QFrame:
-    frame = QFrame()
-    frame.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']};")
-    layout = QVBoxLayout(frame)
-    layout.setContentsMargins(15,10,15,10)
-    
-    lbl_head = QLabel(title); lbl_head.setObjectName("h1")
-    lbl_desc = QLabel(description); lbl_desc.setObjectName("subtitle")
-    
-    layout.addWidget(lbl_head); layout.addWidget(lbl_desc)
-    return frame
-
 def create_section_header(text: str) -> QLabel:
     lbl = QLabel(text); lbl.setObjectName("h4")
     return lbl
@@ -128,7 +114,6 @@ def create_section_header(text: str) -> QLabel:
 # ==========================================
 # INPUTS Y FORMULARIOS
 # ==========================================
-
 def create_styled_input(placeholder: str = "", is_cmd: bool = False, callback=None) -> QLineEdit:
     inp = QLineEdit()
     if placeholder: inp.setPlaceholderText(placeholder)
@@ -169,7 +154,6 @@ def create_styled_combobox(items: list[str], width: int = 0) -> QComboBox:
 # ==========================================
 # BOTONES DASHBOARD (GRANDES)
 # ==========================================
-
 def create_dashboard_action_btn(text: str, icon_name: str, func=None) -> QPushButton:
     btn = QPushButton(text)
     btn.setIcon(get_icon(icon_name))

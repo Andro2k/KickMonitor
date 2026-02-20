@@ -3,48 +3,77 @@
 import os
 import sys
 import ctypes
-from PyQt6.QtWidgets import QApplication, QMessageBox
+from PyQt6.QtWidgets import QApplication, QComboBox, QSlider, QAbstractSpinBox
+from PyQt6.QtCore import QObject, QEvent
 from PyQt6.QtGui import QIcon
 
 from frontend.main_window import MainWindow
 from frontend.utils import resource_path
+# IMPORTAMOS LA NUEVA ALERTA
+from frontend.alerts.startup_alert import AlreadyRunningDialog 
 
-if sys.platform.startswith('win'):
-    if sys.stdin is None:
-        sys.stdin = open(os.devnull, "r")
-    if sys.stdout is None:
-        sys.stdout = open(os.devnull, "w")
-    if sys.stderr is None:
-        sys.stderr = open(os.devnull, "w")
+class LockWheelFilter(QObject):
+    """
+    Filtro global para evitar que el scroll del mouse cambie accidentalmente
+    los valores de ComboBoxes, Sliders y SpinBoxes si no tienen el foco.
+    """
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.Type.Wheel:
+            if isinstance(obj, (QComboBox, QSlider, QAbstractSpinBox)):
+                if not obj.hasFocus():
+                    event.ignore()
+                    return True
+        return super().eventFilter(obj, event)
 
-if not hasattr(sys, '_MEIPASS'):
-    pass
+def setup_environment():
+    """Configura el entorno del sistema operativo y salidas estándar."""
+    if sys.platform.startswith('win'):
+        if sys.stdin is None: sys.stdin = open(os.devnull, "r")
+        if sys.stdout is None: sys.stdout = open(os.devnull, "w")
+        if sys.stderr is None: sys.stderr = open(os.devnull, "w")
 
-myappid = 'kickmonitor.v2.3.1' 
-try:
-    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-except ImportError:
-    pass
+    myappid = 'kickmonitor.v2.3.0' 
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    except Exception:
+        pass
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-
+def try_create_mutex():
+    """
+    Intenta crear el mutex y retorna (mutex_handle, ya_existe).
+    """
     mutex_id = "3E28ED4F-E3D1-466D-8140-E080992D5092"
     mutex = ctypes.windll.kernel32.CreateMutexW(None, False, mutex_id)
+    last_error = ctypes.windll.kernel32.GetLastError()
     
-    if ctypes.windll.kernel32.GetLastError() == 183:
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Icon.Warning)
-        msg.setWindowTitle("KickMonitor")
-        msg.setText("La aplicación ya se está ejecutando.")
-        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
-        msg.setWindowIcon(QIcon(resource_path("icon.ico"))) 
-        msg.exec()
-        sys.exit(0)
+    # Error 183 significa ERROR_ALREADY_EXISTS
+    return mutex, (last_error == 183)
 
-    app.setWindowIcon(QIcon(resource_path("icon.ico")))
+def main():
+    setup_environment()
     
-    w = MainWindow()
-    w.show()
+    # IMPORTANTE: QApplication debe crearse ANTES de mostrar cualquier widget
+    app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon(resource_path("icon.ico")))
+
+    # 1. Verificación de Instancia Única
+    _mutex, already_running = try_create_mutex()
+    
+    if already_running:
+        # Mostramos la nueva ventana personalizada
+        alert = AlreadyRunningDialog()
+        alert.exec()
+        sys.exit(0)
+    
+    # 2. Instalación de filtros globales
+    wheel_filter = LockWheelFilter()
+    app.installEventFilter(wheel_filter)
+    
+    # 3. Inicio normal de la aplicación
+    main_window = MainWindow()
+    main_window.show()
     
     sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()
