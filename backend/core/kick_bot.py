@@ -72,8 +72,11 @@ class KickBotWorker(QThread):
             return
             
         # 4. Bucle principal
-        while self._is_running:
-            await asyncio.sleep(1)
+        try:
+            while self._is_running:
+                await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            pass
 
     def send_chat_message(self, text: str):
         """Llamado desde el Frontend para responder comandos"""
@@ -81,21 +84,34 @@ class KickBotWorker(QThread):
             asyncio.run_coroutine_threadsafe(self.api.send_message(text), self.loop)
 
     def stop(self):
+        """Detiene el bot y despierta el loop de asyncio inmediatamente."""
         self._is_running = False
+
+        if self.loop and self.loop.is_running():
+            self.loop.call_soon_threadsafe(self._cancel_all_tasks)
+
+    def _cancel_all_tasks(self):
+        """Función interna que se ejecuta DENTRO del hilo de asyncio para cancelar tareas."""
+        for task in asyncio.all_tasks(self.loop):
+            task.cancel()
 
     def _cleanup_loop(self):
         if not self.loop or self.loop.is_closed(): return
         try:
             self.loop.run_until_complete(self._shutdown_sequence())
+            tasks = asyncio.all_tasks(self.loop)
+            for t in tasks: t.cancel()
+            self.loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
             self.loop.close()
         except Exception as e:
             print(f"Error cerrando loop asíncrono: {e}")
 
     async def _shutdown_sequence(self):
-        self.log_received.emit(LoggerText.system("Cerrando conexiones."))
-        if self.chat: await self.chat.disconnect()
-        if self.http_session and not self.http_session.closed: await self.http_session.close()
-        
-        tasks = [t for t in asyncio.all_tasks(self.loop) if t is not asyncio.current_task()]
-        for t in tasks: t.cancel()
-        if tasks: await asyncio.wait(tasks, timeout=1.0)
+        self.log_received.emit(LoggerText.system("Cerrando conexiones de red..."))
+
+        if self.chat: 
+            await self.chat.disconnect()
+            
+        if self.http_session and not self.http_session.closed: 
+            await self.http_session.close()
+            await asyncio.sleep(0.250)

@@ -8,19 +8,11 @@ from PyQt6.QtCore import QMutexLocker
 # --- INFRAESTRUCTURA ---
 from backend.database.connection import DatabaseConnection
 from backend.database.repositories import (
-    SettingsRepository, 
-    UsersRepository, 
-    EconomyRepository, 
-    TriggersRepository,
-    ChatCommandsRepository,
-    AutomationsRepository
-)
+    SettingsRepository, UsersRepository, 
+    EconomyRepository, TriggersRepository,
+    ChatCommandsRepository, AutomationsRepository)
 
 class DBHandler:
-    """
-    Controlador de Base de Datos (Facade).
-    Centraliza el acceso a datos delegando la lógica a repositorios específicos.
-    """
     # =========================================================================
     # REGIÓN 1: ESQUEMAS Y DEFAULTS
     # =========================================================================
@@ -81,7 +73,8 @@ class DBHandler:
         self.economy = EconomyRepository(self.conn_handler)
         self.triggers = TriggersRepository(self.conn_handler)
         self.commands = ChatCommandsRepository(self.conn_handler)
-        self.automations = AutomationsRepository(self.conn_handler)       
+        self.automations = AutomationsRepository(self.conn_handler)
+        self._settings_cache = {}
         
         self._init_db()
         self._run_migrations()
@@ -116,7 +109,7 @@ class DBHandler:
                 ("volume", "INTEGER DEFAULT 100"), ("pos_x", "INTEGER DEFAULT 0"), 
                 ("pos_y", "INTEGER DEFAULT 0"), ("color", "TEXT DEFAULT '#53fc18'"),
                 ("description", "TEXT DEFAULT 'Trigger KickMonitor'"),
-                ("path", "TEXT DEFAULT ''"), ("random_pos", "INTEGER DEFAULT 0") # <--- NUEVOS CAMPOS
+                ("path", "TEXT DEFAULT ''"), ("random_pos", "INTEGER DEFAULT 0")
             ],
             "data_users": [("is_paused", "INTEGER DEFAULT 0"), ("is_muted", "INTEGER DEFAULT 0"), ("role", "TEXT DEFAULT ''")],
             "custom_commands": [("cooldown", "INTEGER DEFAULT 5")],
@@ -141,13 +134,22 @@ class DBHandler:
     # =========================================================================
     # REGIÓN 3: FACHADA - CONFIGURACIÓN (SETTINGS)
     # =========================================================================
-    def get(self, key: str, default: str = "") -> str: return self.settings.get(key, default)
-    def set(self, key: str, val: Any): self.settings.set(key, val)       
-    def get_bool(self, key: str) -> bool: return self.settings.get(key) == "1"       
+    def get(self, key: str, default: str = "") -> str: 
+        if key not in self._settings_cache:
+            self._settings_cache[key] = self.settings.get(key, default)
+            
+        return self._settings_cache[key]
+
+    def set(self, key: str, val: Any): 
+        self.settings.set(key, val)
+        self._settings_cache[key] = str(val)
+        
+    def get_bool(self, key: str) -> bool: 
+        return self.get(key) == "1"       
     
     def get_int(self, key: str, default: int = 0) -> int: 
         with suppress(ValueError, TypeError):
-            return int(self.settings.get(key, str(default)))
+            return int(self.get(key, str(default)))
         return default
 
     # =========================================================================
@@ -212,16 +214,15 @@ class DBHandler:
         return os.path.abspath(self.conn_handler.db_path)
 
     def factory_reset_user(self):
-        # Usamos una lista de tuplas para enviarla directo al executemany()
         keys_to_wipe = [
             ("kick_username",), ("chatroom_id",), ("client_id",), ("client_secret",), 
             ("spotify_client_id",), ("spotify_secret",), ("spotify_enabled",)
         ]
         with QMutexLocker(self.conn_handler.mutex):
-            # Eliminamos el ciclo for, ejecutamos todas las sentencias a nivel de C (C++)
             self.conn_handler.conn.executemany("UPDATE settings SET value='' WHERE key=?", keys_to_wipe)
             self.conn_handler.conn.execute("DELETE FROM kick_streamer")
             self.conn_handler.conn.commit()
+        self._settings_cache.clear()
 
     def wipe_economy_data(self):
         with QMutexLocker(self.conn_handler.mutex):

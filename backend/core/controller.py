@@ -44,39 +44,33 @@ class MainController(QObject):
 
     def __init__(self):
         super().__init__()       
-        # 1. Persistencia y Servicios Core
         self.db = DBHandler()
         self.cmd_service = CommandsService(self.db)
         self.casino_system = CasinoSystem(self.db)       
-        
-        # 2. Inicialización de Workers
+
         self._init_spotify()
         self._init_tts()
         self._init_overlay()
         self._init_chat_overlay()
         self._init_alert_overlay()  
-        
-        # 3. Handlers de Lógica
+
         self.chat_handler = ChatHandler(self.db)
         self.music_handler = MusicHandler(self.db, self.spotify) 
         self.game_handler = GameHandler(self.db, self.casino_system)
         self.trigger_handler = TriggerHandler(self.db, self.overlay_server)
         self.antibot = AntibotHandler(self.db)
-        
-        # 4. Estado Interno
+
         self.worker: Optional[KickBotWorker] = None          
         self.monitor_worker: Optional[FollowMonitorWorker] = None
         self.redemption_worker: Optional[RedemptionWorker] = None
         self.tts_enabled = False
         self.command_only = False       
-        
-        # 5. Configuración y Timers
+
         self._setup_timers()
         self.debug_enabled = self.db.get_bool("debug_mode")
         LoggerText.enabled_debug = self.debug_enabled
         self.log_signal.connect(self._write_log_to_file)
-        
-        # 6. Actualizaciones
+
         self._manual_check = False
         self._update_found = False
         self.check_updates(manual=False)
@@ -97,18 +91,14 @@ class MainController(QObject):
         """Recibe datos limpios y los procesa a través de la cadena de responsabilidad."""
         msg_lower = content.strip().lower()
         
-        # 0. ANTIBOT Y FILTROS BASE
         if self.antibot.check_user(user, self._ban_user, self.emit_log) or \
            self.chat_handler.is_bot(user) or \
            self.chat_handler.should_ignore_user(user):
             self._update_ui_chat(timestamp, user, content)
             return
             
-        # 1. ECONOMÍA
         self.chat_handler.process_points(user, msg_lower, badges)
-        
-        # 2. EVALUACIÓN PEREZOSA (Lazy Evaluation) DE COMANDOS
-        # En vez de múltiples IFs, evaluamos una lista hasta que uno retorne True
+
         command_handlers = [
             lambda: self.music_handler.handle_command(user, content, msg_lower, self.send_msg, self.emit_log),
             lambda: self.game_handler.handle_command(user, msg_lower, self.send_msg, self.gamble_result_signal.emit),
@@ -120,7 +110,6 @@ class MainController(QObject):
             self._update_ui_chat(timestamp, user, content)
             return
             
-        # 3. PROCESAMIENTO MULTIMEDIA (TTS y Overlay)
         if self.tts_enabled: 
             self._process_tts(user, content)
 
@@ -141,7 +130,6 @@ class MainController(QObject):
         if self.db.get_bool("chat_hide_bots") and self.chat_handler.is_bot(user): return False
         if self.db.get_bool("chat_hide_cmds") and content.strip().startswith("!"): return False
         
-        # Búsqueda O(1) usando Set Comprehension
         ignored_users = self.db.get("chat_ignored_users") or ""
         ignored_set = {u.strip().lower() for u in ignored_users.split(",") if u.strip()}
         
@@ -217,15 +205,23 @@ class MainController(QObject):
         self.chat_overlay = ChatOverlayWorker(port=6001)
         self.chat_overlay.error_occurred.connect(self.emit_log); self.chat_overlay.start()
 
-    # 🔴 AÑADIR ESTA NUEVA FUNCIÓN
     def _init_alert_overlay(self):
         self.alert_overlay = AlertOverlayWorker(port=6002)
         self.alert_overlay.error_occurred.connect(self.emit_log)
         self.alert_overlay.start()
 
     def start_bot(self):
-        if self.worker: self.stop_bot()      
-        
+        if self.worker and self.worker.isRunning():
+            self.worker.finished.connect(self._do_start_bot)
+            self.stop_bot()
+            return
+            
+        self._do_start_bot()
+
+    def _do_start_bot(self):
+        if self.worker:
+            self.safe_disconnect(self.worker.finished)
+
         config = {key: self.db.get(key) for key in ["client_id", "client_secret", "chatroom_id", "kick_username", "redirect_uri"]}
         
         if not config["client_id"] or not config["client_secret"]:
@@ -242,12 +238,14 @@ class MainController(QObject):
         self.worker.disconnected_signal.connect(self.on_disconnected)
         self.worker.user_info_signal.connect(lambda u, f, p: (self.user_info_signal.emit(u, f, p), self.force_user_refresh_ui()))
         self.worker.username_required.connect(self.username_needed.emit)
+        self.worker.finished.connect(self.worker.deleteLater)
         self.worker.start()
         
         if not self.redemption_worker:
             self.redemption_worker = RedemptionWorker(self.db)
             self.redemption_worker.log_signal.connect(self.emit_log)
             self.redemption_worker.redemption_detected.connect(self.on_redemption_received)
+            self.redemption_worker.finished.connect(self.redemption_worker.deleteLater)
             self.redemption_worker.start()
 
         if config["kick_username"]: self._start_monitor(config["kick_username"])
@@ -256,34 +254,34 @@ class MainController(QObject):
         self.toast_signal.emit("Conectado", "Bot en línea y escuchando.", "status_success")
 
     def stop_bot(self):
-        """Detiene dinámicamente todos los workers de red (DRY Pattern)."""
+        """Detiene dinámicamente todos los workers sin bloquear la UI."""
         workers_to_stop = ['worker', 'monitor_worker', 'redemption_worker']
         
         for w_attr in workers_to_stop:
             w_instance = getattr(self, w_attr, None)
             if w_instance:
-                if w_attr == 'worker': self.safe_disconnect(w_instance.chat_received)
-                
-                # 1. Avisamos al hilo que debe detenerse
+                if w_attr == 'worker': 
+                    self.safe_disconnect(w_instance.chat_received)
+
                 w_instance.stop()
                 
-                # 2. Le damos hasta 2 segundos (2000 ms) para que asyncio cierre sus sockets
-                if not w_instance.wait(2000) and w_attr == 'worker': 
-                    self.emit_log(LoggerText.warning("Timeout: Forzando cierre de hilos."))
+                if w_instance.isRunning():
+                    w_instance.quit() 
                 
-                # 3. TRUCO: Le decimos a Qt que limpie el objeto de memoria de forma segura
-                w_instance.deleteLater() 
-                
-                # 4. Desvinculamos la variable
-                setattr(self, w_attr, None)
-                
+                if w_attr != 'worker':
+                    setattr(self, w_attr, None)
+                    
+        if not (self.worker and self.worker.isRunning()):
+             self.worker = None
+
         self.status_signal.emit("Desconectado")
         self.connection_changed.emit(False)
         self.toast_signal.emit("Sistema", "Desconectado", "status_warning")
 
     def shutdown(self):
         self.stop_bot()
-        for server in filter(None, [self.tts, self.overlay_server, self.chat_overlay, self.alert_overlay]): 
+
+        for server in filter(None, [getattr(self, 'tts', None), getattr(self, 'overlay_server', None), getattr(self, 'chat_overlay', None), getattr(self, 'alert_overlay', None)]): 
             server.stop()
 
         if hasattr(self, 'spotify_thread') and self.spotify_thread.isRunning():
@@ -319,13 +317,10 @@ class MainController(QObject):
         
         msg_tpl, is_active = self.db.get_text_alert("follow")
         if is_active and msg_tpl:
-            # 🔴 Reemplazamos las variables con los datos correctos
             final_msg = msg_tpl.replace("{user}", name).replace("{count}", str(count))
             
-            # 1. Enviar al chat de Kick
             self.send_msg(final_msg)
-            
-            # 2. Enviar la animación a OBS
+
             if hasattr(self, 'alert_overlay') and self.alert_overlay:
                 self.alert_overlay.send_alert(
                     alert_type="follow",
@@ -390,14 +385,11 @@ class MainController(QObject):
         self.updater.start()
 
     def ask_user_to_update(self, new_ver, url, notes):
-        self._update_found = True
-        
+        self._update_found = True      
         # 1. Instanciar el nuevo modal unificado
-        self.update_dialog = UpdateModal(new_ver, notes, parent=None)
-        
+        self.update_dialog = UpdateModal(new_ver, notes, parent=None)        
         # 2. Conectar el botón "ACTUALIZAR" para que inicie la descarga
         self.update_dialog.request_download.connect(lambda u=url: self.start_download_process(u))
-        
         # 3. Mostrar el modal (ahora espera a que termine todo el proceso)
         self.update_dialog.exec()
 
@@ -407,18 +399,17 @@ class MainController(QObject):
         self.downloader.progress.connect(self.update_dialog.update_progress)
         self.downloader.finished.connect(self._on_download_finished)
         self.downloader.error.connect(self._handle_download_error)
-        
-        # Destruir el hilo al terminar para limpiar la memoria
         self.downloader.finished.connect(self.downloader.deleteLater)
-        
-        # Arrancar la descarga real
         self.downloader.start()
 
     def _on_download_finished(self):
         if hasattr(self, 'update_dialog') and self.update_dialog:
             self.update_dialog.accept()
+
+        self.shutdown()
+
         from PyQt6.QtWidgets import QApplication
-        QApplication.quit()
+        QTimer.singleShot(500, QApplication.quit)
 
     def _handle_download_error(self, error_msg):
         if hasattr(self, 'update_dialog') and self.update_dialog:

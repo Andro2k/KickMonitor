@@ -2,7 +2,6 @@
 
 import sqlite3
 import os
-from contextlib import suppress
 from PyQt6.QtCore import QMutex, QMutexLocker
 from backend.utils.paths import get_config_path
 
@@ -16,34 +15,58 @@ class DatabaseConnection:
             self.conn.row_factory = sqlite3.Row 
             self._init_wal()
         except sqlite3.OperationalError as e:
-            print(f"[DB_DEBUG] No se pudo abrir {self.db_path}: {e}")
+            print(f"[DB_CRITICAL] No se pudo abrir {self.db_path}: {e}")
             self.conn = sqlite3.connect(":memory:", check_same_thread=False)
 
     def _init_wal(self):
-        with QMutexLocker(self.mutex), suppress(Exception):
-            self.conn.execute("PRAGMA journal_mode=WAL;")
-            self.conn.commit()
+        with QMutexLocker(self.mutex):
+            try:
+                self.conn.execute("PRAGMA journal_mode=WAL;")
+                self.conn.commit()
+            except Exception as e:
+                print(f"[DB_ERROR] Fallo al iniciar WAL: {e}")
 
     def execute_query(self, sql, params=()):
         with QMutexLocker(self.mutex):
             try:
-                # TRUCO 2: sqlite3 permite ejecutar directo desde la conexión sin crear un cursor manual
                 self.conn.execute(sql, params)
                 self.conn.commit()
                 return True
-            except Exception: 
+            except Exception as e: 
+                print(f"[DB_ERROR] Fallo en execute_query: {e} | SQL: {sql}")
+                return False
+
+    def execute_transaction(self, queries_and_params):
+        """NUEVO: Ejecuta múltiples consultas en un solo acceso a disco (Rendimiento Extremo)"""
+        with QMutexLocker(self.mutex):
+            try:
+                for sql, params in queries_and_params:
+                    self.conn.execute(sql, params)
+                self.conn.commit()
+                return True
+            except Exception as e:
+                print(f"[DB_ERROR] Fallo en transacción, revirtiendo: {e}")
+                self.conn.rollback()
                 return False
 
     def fetch_one(self, sql, params=()):
-        with QMutexLocker(self.mutex), suppress(Exception):
-            return self.conn.execute(sql, params).fetchone()
-        return None
+        with QMutexLocker(self.mutex):
+            try:
+                return self.conn.execute(sql, params).fetchone()
+            except Exception as e:
+                print(f"[DB_ERROR] Fallo en fetch_one: {e} | SQL: {sql}")
+                return None
 
     def fetch_all(self, sql, params=()):
-        with QMutexLocker(self.mutex), suppress(Exception):
-            return self.conn.execute(sql, params).fetchall()
-        return []
+        with QMutexLocker(self.mutex):
+            try:
+                return self.conn.execute(sql, params).fetchall()
+            except Exception as e:
+                print(f"[DB_ERROR] Fallo en fetch_all: {e} | SQL: {sql}")
+                return []
 
     def close(self):
-        with suppress(Exception):
+        try:
             self.conn.close()
+        except Exception as e:
+            print(f"[DB_ERROR] Fallo al cerrar conexión: {e}")

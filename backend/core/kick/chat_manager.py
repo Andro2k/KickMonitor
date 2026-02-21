@@ -1,5 +1,6 @@
 # backend/core/kick/chat_manager.py
 
+import asyncio
 import json
 import aiohttp
 from datetime import datetime
@@ -13,6 +14,9 @@ class KickChatManager:
         self.emit_chat = chat_callback
         self.ws_connection = None
         self.is_running = True
+
+        self.message_queue = asyncio.Queue()
+        self.queue_task = None
         
         self.pusher_key = "32cbd69e4b950bf97679"
         self.pusher_cluster = "us2"
@@ -32,8 +36,10 @@ class KickChatManager:
                 "data": {"auth": "", "channel": f"chatrooms.{chatroom_id}.v2"}
             }
             await self.ws_connection.send_json(subscribe_msg)
-            
+
             self.loop.create_task(self._listen())
+            self.queue_task = self.loop.create_task(self._process_message_queue())
+            
             self.log(LoggerText.success(f"CHAT CONECTADO: {username}"))
             return True
         except Exception as e:
@@ -45,14 +51,12 @@ class KickChatManager:
             async for msg in self.ws_connection:
                 if msg.type == aiohttp.WSMsgType.TEXT:
                     data = json.loads(msg.data)
-                    # --- NUEVO: Manejar el ping de Pusher ---
                     if data.get("event") == "pusher:ping":
                         await self.ws_connection.send_json({
                             "event": "pusher:pong",
                             "data": {}
                         })
                         continue
-                    # ----------------------------------------
                     if data.get("event") == "App\\Events\\ChatMessageEvent":
                         self._parse_message(json.loads(data.get("data", "{}")))
                 elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
@@ -72,12 +76,26 @@ class KickChatManager:
             sender = sender_info.get('username', 'Desconocido')
             badges = [b.get('type') for b in sender_info.get('identity', {}).get('badges', []) if isinstance(b, dict)]
             timestamp = datetime.now().strftime("%H:%M:%S")
-
-            self.emit_chat(sender, content, badges, timestamp)
+            self.message_queue.put_nowait((sender, content, badges, timestamp))
         except Exception as e:
             self.log(LoggerText.error(f"Error parseando mensaje: {e}"))
 
+    async def _process_message_queue(self):
+        """Consumidor: Extrae mensajes y los despacha dando un respiro a la UI."""
+        while self.is_running:
+            try:
+                sender, content, badges, timestamp = await self.message_queue.get()
+                self.emit_chat(sender, content, badges, timestamp)                
+                await asyncio.sleep(0.015)                 
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                self.log(LoggerText.error(f"Error despachando cola de chat: {e}"))
+
     async def disconnect(self):
         self.is_running = False
+        if self.queue_task and not self.queue_task.done():
+            self.queue_task.cancel()
+            
         if self.ws_connection and not self.ws_connection.closed:
             await self.ws_connection.close()
