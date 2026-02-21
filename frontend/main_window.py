@@ -56,7 +56,7 @@ class MainWindow(QMainWindow):
 
     def _setup_app_id(self):
         with suppress(Exception):
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(u'kickmonitor.v2.3.2')
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(u'kickmonitor.v2.4.0')
 
     def _init_pages(self):
         db = self.controller.db
