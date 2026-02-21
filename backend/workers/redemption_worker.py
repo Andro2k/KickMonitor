@@ -17,12 +17,11 @@ class RedemptionWorker(QThread):
         self.db = db_handler
         self.is_running = True
         
-        self.rewards_api = RewardsService() 
-        self.normal_interval = 1.5  
-        self.burst_interval = 0.5   
+        self.rewards_api = RewardsService()
+        self.normal_interval = 3.5  
+        self.burst_interval = 1.5   
         self.processed_ids = set() 
-        self.first_scan = True 
-
+        self.first_scan = True
     # =========================================================================
     # REGIÓN 1: BUCLE PRINCIPAL
     # =========================================================================
@@ -55,6 +54,8 @@ class RedemptionWorker(QThread):
         if not groups: return False
 
         found_new = False
+        ids_to_accept = []
+
         for group in groups:
             title = group.get("reward", {}).get("title", "")
             
@@ -79,6 +80,9 @@ class RedemptionWorker(QThread):
                 self.log_signal.emit(LoggerText.success(f"Canje detectado: {title} ({username})"))
 
                 if status == "pending":
-                    self.rewards_api.accept_redemption(red_id)
+                    ids_to_accept.append(red_id)
         
+        if ids_to_accept:
+            self.rewards_api.accept_redemptions(ids_to_accept)
+            
         return found_new

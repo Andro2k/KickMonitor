@@ -90,6 +90,8 @@ class SpotifyWorker(QObject):
     status_msg = pyqtSignal(str)                              
     sig_do_auth = pyqtSignal()
     sig_do_disconnect = pyqtSignal()
+    _start_timer_signal = pyqtSignal()
+    _stop_timer_signal = pyqtSignal()
 
     def __init__(self, db_handler):
         super().__init__()
@@ -99,9 +101,12 @@ class SpotifyWorker(QObject):
         self.is_active = False
         self.login_thread: Optional[SpotifyLoginThread] = None
         
-        self.timer = QTimer()
+        self.timer = QTimer(self)
         self.timer.setInterval(POLL_INTERVAL_MS)
         self.timer.timeout.connect(self._poll_current_song)
+
+        self._start_timer_signal.connect(self.timer.start)
+        self._stop_timer_signal.connect(self.timer.stop)
         
         self.sig_do_auth.connect(self.authenticate)
         self.sig_do_disconnect.connect(self.disconnect)
@@ -169,15 +174,15 @@ class SpotifyWorker(QObject):
             
             self.is_active = True
             self.status_msg.emit(LoggerText.success(f"Spotify Vinculado: {user.get('display_name', 'Usuario')}"))
-            
-            self.timer.start()
+
+            self._start_timer_signal.emit()
             self._poll_current_song()
             
         except Exception as e:
             self.status_msg.emit(LoggerText.error(f"Error inicializando cliente: {e}"))
 
     def disconnect(self):
-        self.timer.stop()
+        self._stop_timer_signal.emit()
         self.is_active = False
         self.sp = None
         self.track_changed.emit("Spotify Desconectado", "", "", 0, 100, False)
@@ -232,7 +237,7 @@ class SpotifyWorker(QObject):
             data = self._parse_track_data(self.sp.current_playback())
             if data and data['is_playing']:
                 return f"🎵 Sonando: {data['title']} - {data['artist']}"
-        return "🔇 No está sonando nada ahora mismo."
+        return "No está sonando nada ahora mismo."
 
     # =========================================================================
     # REGIÓN 5: CONTROLES DE REPRODUCCIÓN

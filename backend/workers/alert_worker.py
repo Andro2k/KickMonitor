@@ -53,7 +53,9 @@ class AlertOverlayWorker(QObject):
         except Exception as e:
             self.error_occurred.emit(f"Error en servidor Alerts Overlay: {e}")
         finally:
-            self.loop.run_until_complete(self._stop_aiohttp())
+            tasks = asyncio.all_tasks(self.loop)
+            for t in tasks: t.cancel()
+            self.loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
             self.loop.close()
 
     async def _start_aiohttp(self):
@@ -63,16 +65,26 @@ class AlertOverlayWorker(QObject):
         await self.site.start()
         self.service_started.emit(f"Servidor de Alertas iniciado en http://127.0.0.1:{self.port}/alerts")
 
-    async def _stop_aiohttp(self):
+    def stop(self):
+        """Envía una orden asíncrona para apagar el servidor limpiamente antes de matar el hilo."""
+        if self.loop and self.loop.is_running():
+            asyncio.run_coroutine_threadsafe(self._safe_shutdown(), self.loop)
+
+        if self.thread:
+             self.thread.quit()
+             self.thread.wait(1500)
+
+    async def _safe_shutdown(self):
+        """Se ejecuta dentro del Event Loop. Cierra sockets, clientes y libera el puerto."""
+        if self.clients:
+            await asyncio.gather(
+                *(ws.close(code=1001, message=b"Server shutting down") for ws in list(self.clients)),
+                return_exceptions=True
+            )
         if self.site: await self.site.stop()
         if self.runner: await self.runner.cleanup()
 
-    def stop(self):
-        if self.loop:
-             self.loop.call_soon_threadsafe(self.loop.stop)
-        if self.thread:
-             self.thread.quit()
-             self.thread.wait(1000)
+        self.loop.stop()
 
     # =========================================================================
     # REGIÓN 3: UTILIDADES DE RUTAS

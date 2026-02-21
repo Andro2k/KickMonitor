@@ -186,10 +186,11 @@ class RewardsService:
             
         return []
 
-    def accept_redemption(self, red_id: str):
+    def accept_redemptions(self, red_ids: list):
         """
-        Marca un canje pendiente como completado en Kick.
+        Marca múltiples canjes pendientes como completados en Kick en una sola petición (Evita Error 429).
         """
+        if not red_ids: return
         url = f"{URL_REDEMPTIONS}/accept"
-        payload = {"ids": [red_id]}
+        payload = {"ids": red_ids}
         self._make_request("POST", url, json_data=payload)

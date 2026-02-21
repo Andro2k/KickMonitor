@@ -26,17 +26,14 @@ class TTSWorker(QThread):
         super().__init__()
         self.queue = queue.Queue()
         self.is_running = True
-        
-        # --- ESTADO GENERAL ---
+
         self.engine_type = "edge-tts"
         self.volume = 1.0 
-        
-        # --- CONFIG PYTTSX3 ---
+
         self.current_engine = None 
         self.selected_voice_id = None
         self.rate = 175
-        
-        # --- CONFIG EDGE-TTS ---
+
         self.edge_voice = "es-MX-JorgeNeural"
         with suppress(Exception):
             pygame.mixer.init()
@@ -80,6 +77,9 @@ class TTSWorker(QThread):
     # LOOP PRINCIPAL
     # ==========================================
     def run(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        
         while self.is_running:
             try:
                 text = self.queue.get(timeout=1)
@@ -89,6 +89,8 @@ class TTSWorker(QThread):
                 continue
             except Exception as e:
                 self.error_signal.emit(LoggerText.error(f"TTS Error: {e}"))
+
+        self.loop.close()
 
     # ==========================================
     # PROCESAMIENTO INTERNO (ENRUTADOR)
@@ -105,7 +107,7 @@ class TTSWorker(QThread):
 
     def _speak_edge(self, text: str):
         try:
-            audio_bytes = asyncio.run(self._get_edge_bytes(text))
+            audio_bytes = self.loop.run_until_complete(self._get_edge_bytes(text))
             
             if not audio_bytes:
                 raise Exception("No se generó audio")

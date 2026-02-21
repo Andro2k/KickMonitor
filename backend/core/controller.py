@@ -121,8 +121,7 @@ class MainController(QObject):
                 user_color="#53fc18" if is_streamer else "#ffffff",
                 timestamp=timestamp
             )
-            
-        self.game_handler.analyze_outcome(user, content, self.gamble_result_signal.emit)
+
         self._update_ui_chat(timestamp, user, content)
 
     def _should_send_to_overlay(self, user, content) -> bool:

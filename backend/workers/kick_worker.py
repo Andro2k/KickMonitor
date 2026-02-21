@@ -26,7 +26,7 @@ class KickApiWorker(QThread):
     def run(self):
         scraper = cloudscraper.create_scraper()
         try:
-            resp = scraper.get(f"{KICK_API_BASE}/{self.username}")
+            resp = scraper.get(f"{KICK_API_BASE}/{self.username}", timeout=10)
             
             if resp.status_code == 200:
                 self._process_success(resp.json())
@@ -88,7 +88,7 @@ class FollowMonitorWorker(QThread):
     # =========================================================================
     def _check_followers(self):
         """Consulta el contador actual y compara con el historial."""
-        resp = self.scraper.get(f"{KICK_API_BASE}/{self.username}")
+        resp = self.scraper.get(f"{KICK_API_BASE}/{self.username}", timeout=10)
         
         if resp.status_code != 200: return
 
@@ -108,7 +108,7 @@ class FollowMonitorWorker(QThread):
     def _fetch_latest_follower_name(self) -> str:
         """Obtiene el nombre del seguidor más reciente desde la lista."""
         with suppress(Exception):
-            resp = self.scraper.get(f"{KICK_API_BASE}/{self.username}/followers")            
+            resp = self.scraper.get(f"{KICK_API_BASE}/{self.username}/followers", timeout=10)            
             if resp.status_code == 200:
                 followers = resp.json().get('followers', [])
                 if followers:

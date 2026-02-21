@@ -21,11 +21,9 @@ class TriggerHandler:
         """
         Recibe un canje, busca el archivo asociado y lo reproduce.
         """
-        # 1. Verificar si el Overlay está activado globalmente
         if not self.db.get_bool("overlay_enabled"):
             return False
-            
-        # 2. Búsqueda Inteligente (Nombre exacto vs Nombre con !)
+
         clean_title = reward_title.strip().lower()
         trigger_data = self.db.get_trigger_file(clean_title)
         if not trigger_data:
@@ -34,29 +32,28 @@ class TriggerHandler:
         if not trigger_data:
             return False
         try:
-            filename = trigger_data[0]
-            ftype = trigger_data[1] or "audio"
-            duration = trigger_data[2] or 0
-            scale = trigger_data[3] or 1.0
-            is_active = bool(trigger_data[4])
-            volume = trigger_data[6] if trigger_data[6] is not None else 100
-            pos_x = trigger_data[7] if len(trigger_data) > 7 else 0
-            pos_y = trigger_data[8] if len(trigger_data) > 8 else 0
-            file_path = trigger_data[9] if len(trigger_data) > 9 else ""
-            random_pos = bool(trigger_data[10]) if len(trigger_data) > 10 else False
-        except IndexError:
-            log_callback(LoggerText.error("Error DB: Índices de trigger incorrectos."))
+            filename = trigger_data['filename']
+            ftype = trigger_data['type'] or "audio"
+            duration = trigger_data['duration'] or 0
+            scale = trigger_data['scale'] or 1.0
+            is_active = bool(trigger_data['is_active'])
+            volume = trigger_data['volume'] if trigger_data['volume'] is not None else 100
+            pos_x = trigger_data['pos_x'] or 0
+            pos_y = trigger_data['pos_y'] or 0
+            file_path = trigger_data['path'] or ""
+            random_pos = bool(trigger_data['random_pos'])
+            
+        except Exception as e:
+            log_callback(LoggerText.error(f"Error de base de datos leyendo el trigger: {e}"))
             return False
 
         if not is_active:
             return False
 
-        # 4. Validar Archivo (USANDO LA RUTA INDIVIDUAL, YA NO LA CARPETA GLOBAL)
         if not file_path or not os.path.exists(file_path):
             log_callback(LoggerText.error(f"Archivo 404 o no configurado correctamente: {filename}"))
             return False
         
-        # 5. Construir URL y Payload
         file_url = f"http://127.0.0.1:8081/media/{quote(filename)}"
 
         payload = {
@@ -73,7 +70,6 @@ class TriggerHandler:
             "input_text": user_input
         }     
 
-        # 6. Enviar al Overlay
         self.server.send_event("play_media", payload)
         
         return True
@@ -102,7 +98,6 @@ class TriggerHandler:
 
         if not success_db: return False
 
-        # Crear en Kick
         if create_in_kick:
             self.rewards_api.create_reward(title, cost)
         

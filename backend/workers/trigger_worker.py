@@ -25,7 +25,6 @@ for lib in LOG_MODULES_TO_SILENCE:
 class OverlayServerWorker(QThread):
     """
     Servidor Web (aiohttp) que corre en un hilo secundario.
-    Sirve el HTML del Overlay y maneja WebSockets para alertas en tiempo real.
     """    
     log_signal = pyqtSignal(str)
 
@@ -50,11 +49,26 @@ class OverlayServerWorker(QThread):
         if self.loop and self.loop.is_running(): 
             asyncio.run_coroutine_threadsafe(self._broadcast(action, payload), self.loop)
 
+    async def _safe_shutdown(self):
+        """Se ejecuta dentro del Event Loop. Cierra sockets, clientes y libera el puerto."""
+        if self.websockets:
+            await asyncio.gather(
+                *(ws.close(code=1001, message=b"Server shutting down") for ws in list(self.websockets)),
+                return_exceptions=True
+            )
+            
+        if self.site: await self.site.stop()
+        if self.runner: await self.runner.cleanup()
+        
+        self.loop.stop()
+
     def stop(self):
-        if self.loop:
-             self.loop.call_soon_threadsafe(self.loop.stop)
+        """Envía una orden asíncrona para apagar el servidor limpiamente antes de matar el hilo."""
+        if self.loop and self.loop.is_running():
+            asyncio.run_coroutine_threadsafe(self._safe_shutdown(), self.loop)
+
         self.quit()
-        self.wait(1000)
+        self.wait(1500)
 
     # =========================================================================
     # REGIÓN 2: CICLO DE VIDA DEL SERVIDOR (THREAD RUN)
@@ -71,7 +85,9 @@ class OverlayServerWorker(QThread):
         except Exception as e:
             self.log_signal.emit(LoggerText.error(f"Excepción Crítica en Servidor: {e}"))
         finally:
-            self.loop.run_until_complete(self._async_cleanup())
+            tasks = asyncio.all_tasks(self.loop)
+            for t in tasks: t.cancel()
+            self.loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
             self.loop.close()
 
     async def _async_start(self, app):
@@ -79,15 +95,6 @@ class OverlayServerWorker(QThread):
         self.site = web.TCPSite(self.runner, '127.0.0.1', SERVER_PORT)
         await self.site.start()
         self.log_signal.emit(LoggerText.success(f"Overlay Online: http://127.0.0.1:{SERVER_PORT}"))
-
-    async def _async_cleanup(self):
-        if self.websockets:
-            await asyncio.gather(
-                *(ws.close(code=1001, message=b"Server shutting down") for ws in self.websockets),
-                return_exceptions=True
-            )
-        if self.site: await self.site.stop()
-        if self.runner: await self.runner.cleanup()
 
     # =========================================================================
     # REGIÓN 3: RUTAS HTTP & ARCHIVOS
@@ -109,8 +116,6 @@ class OverlayServerWorker(QThread):
 
     async def handle_media_request(self, request):
         filename = request.match_info['filename']
-        
-        # Buscamos la configuración en la DB para obtener la ruta absoluta
         triggers = self.db.get_all_triggers()
         config = triggers.get(filename)
         
@@ -155,10 +160,8 @@ class OverlayServerWorker(QThread):
     def _get_asset_path(self, filename: str) -> Path:
         """Resuelve rutas estáticas apuntando a assets/overlays."""
         if hasattr(sys, '_MEIPASS'): 
-            # Ruta cuando el bot está compilado en .exe (PyInstaller)
             base_dir = Path(sys._MEIPASS) / "assets" / "overlays"
         else:
-            # Modo desarrollo: Sube 3 niveles (workers -> backend -> raíz) -> entra a assets/overlays
             base_dir = Path(__file__).resolve().parent.parent.parent / "assets" / "overlays"
 
         return base_dir / filename if filename else base_dir

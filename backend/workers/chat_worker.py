@@ -18,17 +18,14 @@ class ChatOverlayWorker(QObject):
         super().__init__()
         self.port = port
         self.app = web.Application()
-        
-        # Rutas del servidor
+
         self.app.router.add_get('/chat', self.chat_overlay_handler)
         self.app.router.add_get('/ws', self.websocket_handler)
-        
-        # Ruta estática para assets (CSS, JS, imágenes) dentro de la carpeta overlays
+
         overlays_path = self._get_overlay_path("")
         if overlays_path.exists():
             self.app.router.add_static('/assets', path=str(overlays_path))
 
-        # Estado interno
         self.runner = None
         self.site = None
         self.clients = set()
@@ -55,7 +52,9 @@ class ChatOverlayWorker(QObject):
         except Exception as e:
             self.error_occurred.emit(f"Error en servidor Chat Overlay: {e}")
         finally:
-            self.loop.run_until_complete(self._stop_aiohttp())
+            tasks = asyncio.all_tasks(self.loop)
+            for t in tasks: t.cancel()
+            self.loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
             self.loop.close()
 
     async def _start_aiohttp(self):
@@ -65,16 +64,27 @@ class ChatOverlayWorker(QObject):
         await self.site.start()
         self.service_started.emit(f"Servidor Chat Overlay iniciado en http://127.0.0.1:{self.port}/chat")
 
-    async def _stop_aiohttp(self):
+    async def _safe_shutdown(self):
+        """Se ejecuta dentro del Event Loop. Cierra sockets, clientes y libera el puerto."""
+        if self.clients:
+            await asyncio.gather(
+                *(ws.close(code=1001, message=b"Server shutting down") for ws in list(self.clients)),
+                return_exceptions=True
+            )
+
         if self.site: await self.site.stop()
         if self.runner: await self.runner.cleanup()
 
+        self.loop.stop()
+
     def stop(self):
-        if self.loop:
-             self.loop.call_soon_threadsafe(self.loop.stop)
+        """Envía una orden asíncrona para apagar el servidor limpiamente antes de matar el hilo."""
+        if self.loop and self.loop.is_running():
+            asyncio.run_coroutine_threadsafe(self._safe_shutdown(), self.loop)
+
         if self.thread:
              self.thread.quit()
-             self.thread.wait(1000)
+             self.thread.wait(1500)
 
     # =========================================================================
     # REGIÓN 3: UTILIDADES DE RUTAS (COMPATIBILIDAD EXE/DEV)
@@ -82,11 +92,8 @@ class ChatOverlayWorker(QObject):
     def _get_overlay_path(self, filename: str) -> Path:
         """Resuelve rutas de forma dinámica, apuntando a assets/overlays."""
         if hasattr(sys, '_MEIPASS'): 
-            # Ruta cuando está compilado (PyInstaller)
             base_dir = Path(sys._MEIPASS) / "assets" / "overlays"
         else:
-            # Ruta relativa en modo de desarrollo: 
-            # Sube de workers -> backend -> raíz del proyecto -> entra a assets/overlays
             base_dir = Path(__file__).resolve().parent.parent.parent / "assets" / "overlays"
 
         return base_dir / filename if filename else base_dir
@@ -110,8 +117,7 @@ class ChatOverlayWorker(QObject):
         ws = web.WebSocketResponse()
         await ws.prepare(request)
         self.clients.add(ws)
-        
-        # Enviar la última configuración de estilos al conectar
+
         if self.latest_config:
             await ws.send_str(json.dumps({
                 "type": "update_chat_styles", 
@@ -155,7 +161,6 @@ class ChatOverlayWorker(QObject):
     def update_chat_styles(self, style_dict):
         if not self.loop: return
 
-        # Actualiza el diccionario de la configuración más reciente
         self.latest_config |= style_dict
         
         payload = {"type": "update_chat_styles", "payload": style_dict}

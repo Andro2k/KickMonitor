@@ -15,7 +15,6 @@ class GameHandler:
             "!slots": "slots", "!tragamonedas": "slots", 
             "!carta": "highcard", "!highcard": "highcard" 
         }
-        self.game_icons = {"🎰":"slots", "🎲":"dice", "🎡":"roulette", "🃏":"highcard"}
 
     # =========================================================================
     # REGIÓN 1: COMANDOS DE APUESTA (INPUT)
@@ -30,6 +29,7 @@ class GameHandler:
         if cmd == "!casino": 
             send_msg("🎰 Juegos: !dados, !ruleta, !slots, !carta")
             return True
+            
         # 2. Verificar si es un comando de juego válido
         target_game = self.game_map.get(cmd)
         if target_game:
@@ -37,6 +37,8 @@ class GameHandler:
             extra = args[2] if len(args) > 2 else None    
             msg_response, game_data = self.casino.resolve_bet(user, bet, target_game, extra)
             send_msg(msg_response)
+            
+            # El juego ya se resolvió, registramos y notificamos a la UI directamente aquí
             if game_data:
                 self._record_and_notify(game_data, on_game_result)
             return True
@@ -51,30 +53,3 @@ class GameHandler:
         )       
         display_str = f"{data['res']} ({data['profit']})"
         callback(data['user'], data['game'], display_str, data['win'])
-
-    # =========================================================================
-    # REGIÓN 2: ANÁLISIS DE RESULTADOS (OUTPUT)
-    # =========================================================================
-    def analyze_outcome(self, user: str, content: str, 
-                        on_game_result: Callable[[str, str, str, bool], None]):
-        """
-        Analiza el texto del chat para detectar resultados de juegos que
-        no pasaron por handle_command
-        """
-        # 1. Identificar tipo de juego por icono
-        found_game_type = next((g for i, g in self.game_icons.items() if i in content), None)
-        if not found_game_type:
-            return
-        # 2. Identificar si es un mensaje de resultado (Ganar/Perder)
-        keywords = ["GANASTE", "Perdiste", "Gana", "JACKPOT", "Pierdes"]
-        if not any(k in content for k in keywords):
-            return
-        # 3. Determinar el usuario objetivo
-        target_user = user
-        if content.startswith("@"):
-            try: 
-                target_user = content.split(" ")[0].replace("@","")
-            except: pass       
-        # 4. Determinar victoria
-        is_win = any(k in content for k in ["GANASTE", "JACKPOT"])      
-        on_game_result(target_user, found_game_type, content, is_win)
