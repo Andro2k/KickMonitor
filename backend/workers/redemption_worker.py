@@ -72,8 +72,8 @@ class RedemptionWorker(QThread):
 
                 found_new = True 
 
-                redeemer = red.get("redeemer", {})
-                username = redeemer.get("username") or redeemer.get("slug") or "Anonimo"
+                user_data = red.get("user", {})
+                username = user_data.get("username") or user_data.get("slug") or "Anonimo"
                 user_input = red.get("user_input", "")
 
                 self.redemption_detected.emit(username, title, user_input)

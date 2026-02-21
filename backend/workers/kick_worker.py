@@ -110,8 +110,8 @@ class FollowMonitorWorker(QThread):
         with suppress(Exception):
             resp = self.scraper.get(f"{KICK_API_BASE}/{self.username}/followers", timeout=10)            
             if resp.status_code == 200:
-                followers = resp.json().get('followers', [])
-                if followers:
-                    return followers[0].get('username', 'Nuevo Seguidor')
+                data = resp.json().get('data', [])
+                if data:
+                    return data[0].get('follower', {}).get('username', 'Nuevo Seguidor')
                     
         return "Nuevo Seguidor"

@@ -307,8 +307,9 @@ class MainController(QObject):
             self.monitor_worker.new_follower.connect(self.on_new_follower)
             self.monitor_worker.start()
 
-    def on_new_follower(self, name, count):
-        self.toast_signal.emit("¡NUEVO!", f"{name} (+{count})", "status_success")
+    def on_new_follower(self, current_count, diff, name):
+        # Ahora recibimos correctamente: Total (current_count), Diferencia (diff) y Nombre (name)
+        self.toast_signal.emit("¡NUEVO!", f"{name} (+{diff})", "status_success")
         self.emit_log(LoggerText.success(f"NUEVO SEGUIDOR: {name}"))
         
         if self.tts_enabled: 
@@ -316,10 +317,13 @@ class MainController(QObject):
         
         msg_tpl, is_active = self.db.get_text_alert("follow")
         if is_active and msg_tpl:
-            final_msg = msg_tpl.replace("{user}", name).replace("{count}", str(count))
+            # Reemplazamos usando las variables correctas (y convirtiendo el número a string por seguridad)
+            final_msg = msg_tpl.replace("{user}", name).replace("{count}", str(current_count))
             
+            # 1. Enviar al chat de Kick
             self.send_msg(final_msg)
-
+            
+            # 2. Enviar la animación a OBS
             if hasattr(self, 'alert_overlay') and self.alert_overlay:
                 self.alert_overlay.send_alert(
                     alert_type="follow",
