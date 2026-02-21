@@ -24,27 +24,26 @@ class TriggerHandler:
         # 1. Verificar si el Overlay está activado globalmente
         if not self.db.get_bool("overlay_enabled"):
             return False
+            
         # 2. Búsqueda Inteligente (Nombre exacto vs Nombre con !)
         clean_title = reward_title.strip().lower()
         trigger_data = self.db.get_trigger_file(clean_title)
         if not trigger_data:
-            # Intento de fallback (compatibilidad vieja)
             trigger_data = self.db.get_trigger_file(f"!{clean_title}")
 
         if not trigger_data:
             return False
-
-        # 3. Desempaquetar datos (Con índices seguros)
         try:
             filename = trigger_data[0]
             ftype = trigger_data[1] or "audio"
             duration = trigger_data[2] or 0
             scale = trigger_data[3] or 1.0
             is_active = bool(trigger_data[4])
-            # cost = trigger_data[5]
             volume = trigger_data[6] if trigger_data[6] is not None else 100
             pos_x = trigger_data[7] if len(trigger_data) > 7 else 0
             pos_y = trigger_data[8] if len(trigger_data) > 8 else 0
+            file_path = trigger_data[9] if len(trigger_data) > 9 else ""
+            random_pos = bool(trigger_data[10]) if len(trigger_data) > 10 else False
         except IndexError:
             log_callback(LoggerText.error("Error DB: Índices de trigger incorrectos."))
             return False
@@ -52,20 +51,13 @@ class TriggerHandler:
         if not is_active:
             return False
 
-        # 4. Validar Archivo
-        media_folder = self.db.get("media_folder")
-        if not media_folder:
-            log_callback(LoggerText.error("Carpeta multimedia no configurada."))
-            return False
-
-        full_path = os.path.join(media_folder, filename)
-        if not os.path.exists(full_path):
-            log_callback(LoggerText.error(f"Archivo 404: {filename}"))
+        # 4. Validar Archivo (USANDO LA RUTA INDIVIDUAL, YA NO LA CARPETA GLOBAL)
+        if not file_path or not os.path.exists(file_path):
+            log_callback(LoggerText.error(f"Archivo 404 o no configurado correctamente: {filename}"))
             return False
         
         # 5. Construir URL y Payload
         file_url = f"http://127.0.0.1:8081/media/{quote(filename)}"
-        is_random = self.db.get_bool("random_pos")
 
         payload = {
             "url": file_url,
@@ -75,7 +67,7 @@ class TriggerHandler:
             "volume": volume,
             "pos_x": pos_x,
             "pos_y": pos_y,
-            "random": is_random,
+            "random": random_pos,
             "user": user,          
             "reward_name": reward_title,
             "input_text": user_input

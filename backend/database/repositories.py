@@ -96,16 +96,16 @@ class EconomyRepository:
 class TriggersRepository:
     def __init__(self, conn): self.conn = conn
 
-    def save_trigger(self, command, filename, ftype, duration=0, scale=1.0, is_active=1, cost=0, volume=100, pos_x=0, pos_y=0, color="#53fc18", description="Trigger KickMonitor"):
+    def save_trigger(self, command, filename, ftype, duration=0, scale=1.0, is_active=1, cost=0, volume=100, pos_x=0, pos_y=0, color="#53fc18", description="Trigger KickMonitor", path="", random_pos=0):
         query = """
             INSERT OR REPLACE INTO triggers 
-            (command, filename, type, duration, scale, is_active, cost, volume, pos_x, pos_y, color, description) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (command, filename, type, duration, scale, is_active, cost, volume, pos_x, pos_y, color, description, path, random_pos) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
-        return self.conn.execute_query(query, (command.lower().strip(), filename, ftype, duration, scale, int(is_active), cost, volume, pos_x, pos_y, color, description))
+        return self.conn.execute_query(query, (command.lower().strip(), filename, ftype, duration, scale, int(is_active), cost, volume, pos_x, pos_y, color, description, path, int(random_pos)))
 
     def get_trigger(self, command: str) -> Optional[Tuple]:
-        return self.conn.fetch_one("SELECT filename, type, duration, scale, is_active, cost, volume, pos_x, pos_y FROM triggers WHERE command=?", (command.lower(),))
+        return self.conn.fetch_one("SELECT filename, type, duration, scale, is_active, cost, volume, pos_x, pos_y, path, random_pos FROM triggers WHERE command=?", (command.lower(),))
 
     def get_all(self) -> Dict:
         data = {}
@@ -123,7 +123,9 @@ class TriggersRepository:
                 "pos_x": r.get('pos_x') or 0,
                 "pos_y": r.get('pos_y') or 0,
                 "color": r.get('color') or "#53fc18",
-                "description": r.get('description') or "Trigger KickMonitor"
+                "description": r.get('description') or "Trigger KickMonitor",
+                "path": r.get('path') or "",           # <--- NUEVO
+                "random_pos": r.get('random_pos') or 0 # <--- NUEVO
             }
         return data
 

@@ -137,7 +137,6 @@ class MainWindow(QMainWindow):
                 self.ui_home.update_connection_state(True)
 
     def on_log_received(self, text):
-        # 🔴 EL FIX: Ignorar textos vacíos o que solo tengan espacios
         if not text or not text.strip():
             return
             
@@ -177,15 +176,12 @@ class MainWindow(QMainWindow):
     # EVENTO DE CIERRE OPTIMIZADO
     # =========================================================================
     def closeEvent(self, event):
-        """Maneja el cierre de la ventana principal."""
         # 1. Si está configurado para minimizar a la bandeja:
         if self.controller.db.get_bool("minimize_to_tray"):
-            event.ignore() # Ignora el cierre real
-            self.hide()    # Solo esconde la ventana
-            
-            # Usamos el nuevo método del componente separado
+            event.ignore()
+            self.hide()
             self.tray_icon.show_minimized_notification()
-            return # Salida temprana (Guard Clause)
+            return
 
         # 2. Si no, pregunta si quiere cerrar de verdad:
         if ModalConfirm(self, "Salir", "¿Cerrar la aplicación?").exec():

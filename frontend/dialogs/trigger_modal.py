@@ -4,7 +4,7 @@ import json
 import os
 import re
 from PyQt6.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QLabel, 
+    QCheckBox, QVBoxLayout, QHBoxLayout, QLabel, 
     QPushButton, QSpinBox, QSlider, QComboBox,
     QTextEdit, QColorDialog, QFrame, QWidget
 )
@@ -13,8 +13,10 @@ from PyQt6.QtGui import QColor, QCursor, QTextCursor
 
 # --- IMPORTACIONES DEL PROYECTO ---
 from backend.utils.paths import get_config_path
+from frontend.alerts.modal_alert import ModalConfirm
+from frontend.alerts.toast_alert import ToastNotification
 from frontend.factories import create_icon_btn
-from frontend.theme import STYLES, THEME_DARK
+from frontend.theme import STYLES, THEME_DARK, get_switch_style
 from frontend.components.base_modal import BaseModal
 
 # =============================================================================
@@ -72,6 +74,7 @@ class ModalEditMedia(BaseModal):
         self.pos_y = int(data.get("pos_y", 0))
         self.color = data.get("color", "#53fc18") 
         self.description = data.get("description", "Trigger KickMonitor")
+        self.random_pos = int(data.get("random_pos", 0))
         
         self._setup_ui()
         
@@ -154,8 +157,8 @@ class ModalEditMedia(BaseModal):
         v_cost = QVBoxLayout()
         v_cost.addWidget(QLabel("Costo:", styleSheet="border:none; color: #888;"))
         self.spin_cost = QSpinBox()
-        self.spin_cost.setRange(0, 1000000)
-        self.spin_cost.setValue(self.cost)
+        self.spin_cost.setRange(1, 1000000) # <--- CAMBIAR DE 0 A 1
+        self.spin_cost.setValue(self.cost if self.cost > 0 else 1) # <--- ASEGURAR MÍNIMO 1
         self.spin_cost.setStyleSheet(STYLES["spinbox_modern"] + "color: #53fc18; font-weight: bold;")
         v_cost.addWidget(self.spin_cost)
         h_nums.addLayout(v_cost)
@@ -170,12 +173,26 @@ class ModalEditMedia(BaseModal):
         h_nums.addLayout(v_dur)
         l.addLayout(h_nums)
 
-        # 5. COORDENADAS (X / Y)
+        # 5. COORDENADAS (X / Y) Y POSICIÓN ALEATORIA (AHORA CON SWITCH)
         h_pos = QHBoxLayout()
         self.spin_x = self._create_coord_spin("Pos X:", self.pos_x)
         self.spin_y = self._create_coord_spin("Pos Y:", self.pos_y)
         h_pos.addLayout(self.spin_x)
         h_pos.addLayout(self.spin_y)
+        
+        v_rand = QVBoxLayout()
+        v_rand.setContentsMargins(0, 0, 0, 0)
+        v_rand.setSpacing(2)
+        v_rand.addWidget(QLabel("Posición Aleatoria:", styleSheet="border:none; color: #888; background: transparent;"))
+        
+        self.chk_rand = QCheckBox()
+        self.chk_rand.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.chk_rand.setStyleSheet(get_switch_style())
+        self.chk_rand.setChecked(bool(self.random_pos))
+        
+        v_rand.addWidget(self.chk_rand)
+        h_pos.addLayout(v_rand)
+        
         l.addLayout(h_pos)
 
         # 6. SLIDERS (VOLUMEN Y ESCALA)
@@ -226,21 +243,60 @@ class ModalEditMedia(BaseModal):
         
         l.addStretch()
 
-        # 7. BOTONES DE ACCIÓN
+        # 7. BOTONES DE ACCIÓN (NUEVO BOTÓN DESVINCULAR Y ELIMINAR KICK)
         h_btns = QHBoxLayout()
+        
+        self.btn_unlink = QPushButton("Desvincular")
+        self.btn_unlink.clicked.connect(self._unlink_data)
+        self.btn_unlink.setStyleSheet(f"""
+            QPushButton {{ 
+                background-color: transparent; 
+                color: {THEME_DARK['status_error']}; 
+                border: 1px solid {THEME_DARK['status_error']}; 
+                border-radius: 4px; padding: 5px 15px; font-weight: bold;
+            }}
+            QPushButton:hover {{ 
+                background-color: {THEME_DARK['status_error']}; 
+                color: white; 
+            }}
+        """)
+
+        # --- NUEVO BOTÓN: ELIMINAR DE KICK ---
+        self.btn_delete_kick = QPushButton("Eliminar de Kick")
+        self.btn_delete_kick.clicked.connect(self._delete_from_kick)
+        self.btn_delete_kick.setStyleSheet(f"""
+            QPushButton {{ 
+                background-color: {THEME_DARK['status_error']}; 
+                color: white; 
+                border: none; 
+                border-radius: 4px; padding: 5px 15px; font-weight: bold;
+            }}
+            QPushButton:hover {{ 
+                background-color: #c0392b; 
+            }}
+        """)
+
+        # Si no tiene recompensa asignada, ocultamos los botones destructivos
+        if not self.cmd:
+            self.btn_unlink.hide()
+            self.btn_delete_kick.hide() # <--- Se oculta si no hay recompensa
+            
         btn_cancel = QPushButton("Cancelar")
         btn_cancel.clicked.connect(self.reject)
         btn_cancel.setStyleSheet(STYLES["btn_outlined"])
         
-        # Botón Guardar (Guardamos referencia 'self' para bloquearlo)
         self.btn_save = QPushButton("Guardar") 
         self.btn_save.clicked.connect(self._save_data)
         self.btn_save.setStyleSheet(STYLES["btn_primary"])
         
+        # Agregamos los botones al layout horizontal
+        h_btns.addWidget(self.btn_unlink)
+        h_btns.addWidget(self.btn_delete_kick) # <--- Lo agregamos aquí
+        h_btns.addStretch() # Empuja cancelar y guardar a la derecha
         h_btns.addWidget(btn_cancel)
         h_btns.addWidget(self.btn_save)
+        
         l.addLayout(h_btns)
-
         self._validate_desc()
 
     # =========================================================================
@@ -401,6 +457,37 @@ class ModalEditMedia(BaseModal):
             if kick_desc:
                 self.txt_desc.setText(kick_desc)
 
+    def _unlink_data(self):
+        """Desvincula la recompensa manteniendo la configuración del archivo local."""
+        self.cmd = ""
+        # Guardamos el resto de valores por si acaso
+        self.description = self.txt_desc.toPlainText()
+        self.cost = self.spin_cost.value()
+        self.dur = self.spin_dur.value()
+        self.vol = self.slider_vol.value()
+        self.pos_x = self.spin_x.itemAt(1).widget().value()
+        self.pos_y = self.spin_y.itemAt(1).widget().value()
+        
+        if hasattr(self, 'slider_zoom'):
+            self.scale = self.slider_zoom.value() / 100.0
+        else:
+            self.scale = 1.0
+            
+        self.random_pos = 1 if self.chk_rand.isChecked() else 0
+        self.accept()
+        
+    def _delete_from_kick(self):
+        """Elimina la recompensa permanentemente en Kick y la desvincula localmente."""
+        if ModalConfirm(self, "Eliminar de Kick", "⚠️ ¿Estás seguro de eliminar esta recompensa DIRECTAMENTE en Kick?\n\nEsta acción NO se puede deshacer.").exec():
+            
+            # 1. Borrar de Kick a través del servicio
+            if hasattr(self.page, 'service') and self.cmd:
+                self.page.service.delete_reward_from_kick(self.cmd)
+                ToastNotification(self.page, "Kick", "Recompensa eliminada de Kick.", "status_success").show_toast()
+            
+            # 2. Reutilizamos la lógica de desvincular para limpiar el archivo localmente y cerrar
+            self._unlink_data()
+
     def _save_data(self):
         # Recopilación final de datos
         self.cmd = self.combo_rewards.currentText().strip()
@@ -416,4 +503,5 @@ class ModalEditMedia(BaseModal):
         else:
             self.scale = 1.0
             
+        self.random_pos = 1 if self.chk_rand.isChecked() else 0
         self.accept()

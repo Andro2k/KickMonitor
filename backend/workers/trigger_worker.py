@@ -109,24 +109,20 @@ class OverlayServerWorker(QThread):
 
     async def handle_media_request(self, request):
         filename = request.match_info['filename']
-        folder_str = self.db.get("media_folder")
         
-        if not folder_str:
-            return web.Response(status=404, text="Carpeta multimedia no configurada.")
+        # Buscamos la configuración en la DB para obtener la ruta absoluta
+        triggers = self.db.get_all_triggers()
+        config = triggers.get(filename)
         
-        user_folder = Path(folder_str).resolve()
-        if not user_folder.exists():
-            return web.Response(status=404, text="Carpeta no encontrada.")
-
-        full_path = (user_folder / filename).resolve()
-
-        if not full_path.is_relative_to(user_folder):
-            return web.Response(status=403, text="Acceso Denegado.")
+        if not config or "path" not in config:
+            return web.Response(status=404, text="Archivo no registrado en la configuración.")
+        
+        full_path = Path(config["path"]).resolve()
 
         if full_path.is_file():
             return web.FileResponse(full_path, chunk_size=CHUNK_SIZE)
             
-        return web.Response(status=404, text="Archivo no encontrado.")
+        return web.Response(status=404, text="Archivo no encontrado en el disco.")
 
     # =========================================================================
     # REGIÓN 4: GESTIÓN DE WEBSOCKETS

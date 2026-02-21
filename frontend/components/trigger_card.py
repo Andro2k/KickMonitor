@@ -21,11 +21,9 @@ class MediaCard(QFrame):
         self.config = config.copy()
         self.page = parent_page 
         
-        folder = ""
-        if hasattr(self.page, 'service'):
-            folder = self.page.service.get_media_folder()
-            
-        self.full_path = os.path.join(folder, filename)
+        # Obtenemos la ruta absoluta directamente desde la base de datos
+        self.full_path = self.config.get("path", "")
+        
         self.setFixedSize(360, 160)
         self._init_ui()
         self._load_values()
@@ -174,7 +172,7 @@ class MediaCard(QFrame):
             if hasattr(self.page, 'service'):
                 self.page.service.ensure_unique_assignment(self.filename, dlg.cmd)
 
-            # 2. Actualizar config (INCLUYENDO COLOR Y DESC)
+            # 2. Actualizar config (INCLUYENDO COLOR, DESC Y RANDOM POS)
             self.config.update({
                 "cmd": dlg.cmd, 
                 "cost": dlg.cost, 
@@ -183,6 +181,7 @@ class MediaCard(QFrame):
                 "scale": dlg.scale,
                 "pos_x": dlg.pos_x, 
                 "pos_y": dlg.pos_y,
+                "random_pos": dlg.random_pos,
                 "active": 1,
                 "color": dlg.color,
                 "description": dlg.description
@@ -197,14 +196,14 @@ class MediaCard(QFrame):
             self.page.load_data()
 
     def _delete_config(self):
-        if ModalConfirm(self, "Eliminar", "¿Desvincular y eliminar recompensa de Kick?").exec():
-            reward_name = self.config.get("cmd", "")
+        if ModalConfirm(self, "Eliminar Archivo", "¿Deseas quitar este archivo de tu biblioteca?\n(Esto NO borrará la recompensa en Kick)").exec():
             if hasattr(self.page, 'service'):
-                self.page.service.delete_trigger_data(self.filename, reward_name)
+                self.page.service.delete_trigger_data(self.filename, "") 
             
             self.config = {"cmd": "", "active": 0, "volume": 100}
             self._load_values()
-            ToastNotification(self.page, "Eliminado", "Configuración borrada.", "status_success").show_toast()
+            self.page.load_data()
+            ToastNotification(self.page, "Eliminado", "Archivo quitado de la biblioteca.", "status_success").show_toast()
 
     def _preview(self):
         self.page.preview_item(self.filename, self.ftype, self.config)

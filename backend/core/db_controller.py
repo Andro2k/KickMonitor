@@ -38,7 +38,8 @@ class DBHandler:
             duration INTEGER DEFAULT 0, scale REAL DEFAULT 1.0, 
             is_active INTEGER DEFAULT 1, cost INTEGER DEFAULT 0, volume INTEGER DEFAULT 100,
             pos_x INTEGER DEFAULT 0, pos_y INTEGER DEFAULT 0,
-            color TEXT DEFAULT '#53fc18', description TEXT DEFAULT 'Trigger KickMonitor'
+            color TEXT DEFAULT '#53fc18', description TEXT DEFAULT 'Trigger KickMonitor',
+            path TEXT DEFAULT '', random_pos INTEGER DEFAULT 0
         """,
         "data_users": """
             username TEXT PRIMARY KEY, points INTEGER DEFAULT 0, 
@@ -114,7 +115,8 @@ class DBHandler:
                 ("is_active", "INTEGER DEFAULT 1"), ("cost", "INTEGER DEFAULT 0"),
                 ("volume", "INTEGER DEFAULT 100"), ("pos_x", "INTEGER DEFAULT 0"), 
                 ("pos_y", "INTEGER DEFAULT 0"), ("color", "TEXT DEFAULT '#53fc18'"),
-                ("description", "TEXT DEFAULT 'Trigger KickMonitor'")
+                ("description", "TEXT DEFAULT 'Trigger KickMonitor'"),
+                ("path", "TEXT DEFAULT ''"), ("random_pos", "INTEGER DEFAULT 0") # <--- NUEVOS CAMPOS
             ],
             "data_users": [("is_paused", "INTEGER DEFAULT 0"), ("is_muted", "INTEGER DEFAULT 0"), ("role", "TEXT DEFAULT ''")],
             "custom_commands": [("cooldown", "INTEGER DEFAULT 5")],
@@ -179,8 +181,8 @@ class DBHandler:
     # =========================================================================
     # REGIÓN 6: FACHADA - CARACTERÍSTICAS (COMMANDS, OVERLAY, ALERTS)
     # =========================================================================
-    def set_trigger(self, cmd, file, ftype, dur=0, sc=1.0, act=1, cost=0, vol=100, pos_x=0, pos_y=0, color="#53fc18", description="Trigger KickMonitor"):
-        return self.triggers.save_trigger(cmd, file, ftype, dur, sc, act, cost, vol, pos_x, pos_y, color, description)
+    def set_trigger(self, cmd, file, ftype, dur=0, sc=1.0, act=1, cost=0, vol=100, pos_x=0, pos_y=0, color="#53fc18", description="Trigger KickMonitor", path="", random_pos=0):
+        return self.triggers.save_trigger(cmd, file, ftype, dur, sc, act, cost, vol, pos_x, pos_y, color, description, path, random_pos)
     def update_active_state(self, filename: str, is_active: bool): return self.triggers.update_active_state(filename, is_active)    
     def get_trigger_file(self, cmd: str): return self.triggers.get_trigger(cmd)
     def delete_triggers_by_filename(self, fname: str): return self.triggers.delete_triggers_by_filename(fname)

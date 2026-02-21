@@ -26,6 +26,21 @@ class TriggerService:
         self.VIDEO_EXTS = {'.mp4', '.webm'}
         self.AUDIO_EXTS = {'.mp3', '.wav', '.ogg'}
 
+    def add_single_media(self, filepath: str):
+        filename = os.path.basename(filepath)
+        ext = os.path.splitext(filename)[1].lower()
+        ftype = "video" if ext in self.VIDEO_EXTS else "audio"
+
+        # --- NUEVO: Limpiamos rastros viejos para evitar el error 404 ---
+        self.db.delete_triggers_by_filename(filename) 
+
+        # Guarda en DB el registro con la RUTA ABSOLUTA
+        self.db.set_trigger(
+            cmd="", file=filename, ftype=ftype,
+            dur=0, sc=1.0, act=0, cost=1, vol=100, # <-- Costo base en 1
+            pos_x=0, pos_y=0, color="#53fc18", description="",
+            path=filepath, random_pos=0  
+        )
     # =========================================================================
     # REGIÓN 1: GESTIÓN DE API KICK (WRAPPER)
     # =========================================================================    
@@ -103,7 +118,11 @@ class TriggerService:
                         cost=config.get("cost", 0),
                         vol=config.get("volume", 100),
                         pos_x=config.get("pos_x", 0),
-                        pos_y=config.get("pos_y", 0)
+                        pos_y=config.get("pos_y", 0),
+                        color=config.get("color", "#53fc18"),
+                        description=config.get("description", "Trigger KickMonitor"),
+                        path=config.get("path", ""),           # <--- MANTIENE LA RUTA
+                        random_pos=config.get("random_pos", 0) # <--- MANTIENE RANDOM POS
                     )
 
     # =========================================================================
@@ -129,32 +148,17 @@ class TriggerService:
         self.db.set("random_pos", active)
 
     def get_media_files_with_config(self) -> List[Dict[str, Any]]:
-        folder = self.get_media_folder()
-        if not folder or not os.path.exists(folder):
-            return []
-
         triggers_map = self.db.get_all_triggers()
         results = []
         
-        try:
-            all_files = os.listdir(folder)
-            for f in sorted(all_files):
-                ext = os.path.splitext(f)[1].lower()
-                ftype = None
-                if ext in self.VIDEO_EXTS: ftype = "video"
-                elif ext in self.AUDIO_EXTS: ftype = "audio"
-                
-                if ftype:
-                    config = triggers_map.get(f)
-                    if not config:
-                        config = {
-                            "cmd": "", "active": 0,
-                            "scale": 1.0, "volume": 100,
-                            "dur": 0, "cost": 100
-                        }
-                    results.append({"filename": f, "type": ftype, "config": config})
-        except Exception:
-            return []
+        for filename, config in triggers_map.items():
+            ftype = config.get("type", "audio") 
+            results.append({
+                "filename": filename, 
+                "type": ftype, 
+                "config": config
+            })
+            
         return results
 
     def save_trigger(self, filename: str, ftype: str, data: Dict, sync_kick: bool = True) -> Tuple[bool, str]:
@@ -216,7 +220,9 @@ class TriggerService:
             pos_x=data.get("pos_x", 0),
             pos_y=data.get("pos_y", 0),
             color=color,         
-            description=desc
+            description=desc,
+            path=old_config.get("path", ""),          # <--- MANTIENE LA RUTA
+            random_pos=data.get("random_pos", 0)      # <--- GUARDA EL CHECKBOX
         )
 
         # --- PASO 5: SINCRONIZAR CON KICK ---
@@ -291,20 +297,21 @@ class TriggerService:
 
                     if has_changes:
                         # Actualizamos la DB Local con los datos de Kick
-                        # Manteniendo los datos "físicos" (archivo, duracion, escala, volumen, pos)
                         self.db.set_trigger(
-                            cmd=config.get("cmd"), # Mantenemos el nombre original (casing)
+                            cmd=config.get("cmd"), 
                             file=filename,
-                            ftype=config.get("type", "audio"), # Fallback seguro
+                            ftype=config.get("type", "audio"), 
                             dur=config.get("dur", 0),
                             sc=config.get("scale", 1.0),
-                            act=1 if k_active else 0,     # <--- Actualiza Activo
-                            cost=k_cost,                  # <--- Actualiza Costo
+                            act=1 if k_active else 0,     
+                            cost=k_cost,                  
                             vol=config.get("volume", 100),
                             pos_x=config.get("pos_x", 0),
                             pos_y=config.get("pos_y", 0),
-                            color=k_color,                # <--- Actualiza Color
-                            description=k_desc            # <--- Actualiza Descripción
+                            color=k_color,                
+                            description=k_desc,           
+                            path=config.get("path", ""),           # <--- MANTIENE LA RUTA
+                            random_pos=config.get("random_pos", 0) # <--- MANTIENE RANDOM POS
                         )
                         changes_count += 1
                         print(f"[SYNC] Actualizado {filename} desde Kick.")
@@ -332,7 +339,7 @@ class TriggerService:
                 "volume": volume,
                 "pos_x": pos_x,
                 "pos_y": pos_y,
-                "random": self.db.get_bool("random_pos"),
+                "random": bool(config.get("random_pos", 0)), # <--- Ahora lee de la config individual
                 "user": "Streamer (Prueba)",
                 "reward_name": config.get("cmd", "Test"),
                 "input_text": ""
