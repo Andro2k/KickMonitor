@@ -18,6 +18,13 @@ class UpdateModal(BaseModal):
 
     def __init__(self, new_version, changelog, parent=None):
         super().__init__(parent, width=750, height=480)
+        self.body.setStyleSheet(f"""
+            QFrame#ModalBody {{
+                background-color: {THEME_DARK['Black_N1']};
+                border: 1px solid {THEME_DARK['border']};
+                border-radius: 16px;
+            }}
+        """)
         
         self.new_version = new_version
         self.changelog = changelog
@@ -89,7 +96,6 @@ class UpdateModal(BaseModal):
         self.progress.setTextVisible(True)
         self.progress.setStyleSheet(f"""
             QProgressBar {{
-                border: 1px solid {THEME_DARK['border']};
                 border-radius: 6px;
                 text-align: center;
                 background-color: {THEME_DARK['Black_N4']};

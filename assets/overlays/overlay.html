@@ -36,10 +36,21 @@
       const container = document.getElementById("media-container");
       let socket = null;
       let retryInterval = 2000;
+      
+      // 🔴 1. NUEVA VARIABLE PARA RASTREAR EL ESTADO
+      let wasConnected = false; 
 
       function connect() {
         socket = new WebSocket("ws://127.0.0.1:8081/ws");
-        socket.onopen = () => console.log("🟢 Conectado al Overlay");
+        
+        socket.onopen = () => {
+          console.log("🟢 Conectado al Overlay");
+          if (wasConnected) {
+              location.reload();
+          }
+          wasConnected = true;
+        };
+
         socket.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
@@ -48,8 +59,15 @@
             console.error(e);
           }
         };
-        socket.onclose = () => setTimeout(connect, retryInterval);
-        socket.onerror = () => socket.close();
+
+        socket.onclose = () => {
+            // Reintento automático cuando se cae el servidor
+            setTimeout(connect, retryInterval);
+        };
+
+        socket.onerror = () => {
+            socket.close();
+        };
       }
 
       function playMedia(data) {

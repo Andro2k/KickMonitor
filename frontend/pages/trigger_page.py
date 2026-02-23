@@ -22,9 +22,8 @@ from frontend.components.core.factories import (
 from frontend.components.core.layouts import FlowLayout
 from frontend.components.features.media import MediaCard
 from frontend.dialogs.help_modal import load_help_content
-from frontend.utils import get_icon
+from frontend.utils import get_icon, get_icon_colored
 from frontend.theme import LAYOUT, STYLES, THEME_DARK, get_switch_style
-
 
 # =========================================================================
 # WORKERS ASÍNCRONOS (Evitan congelar la Interfaz de Usuario)
@@ -142,7 +141,7 @@ class TriggerPage(QWidget):
 
         # 1. Botón Añadir Archivo (Principal)
         btn_add = QPushButton("Añadir Archivo")
-        btn_add.setIcon(get_icon("plus.svg"))
+        btn_add.setIcon(get_icon_colored("plus.svg", "#53fc18")) 
         btn_add.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_add.setStyleSheet(STYLES["btn_primary"])
         btn_add.setFixedWidth(180)
@@ -175,7 +174,7 @@ class TriggerPage(QWidget):
         bar = QFrame()
         bar.setFixedHeight(60)
         bar.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        bar.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 10px; border: 1px solid {THEME_DARK['Black_N1']};")
+        bar.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 10px;")
 
         layout = QHBoxLayout(bar)
         layout.setSpacing(LAYOUT["space_01"])
@@ -226,6 +225,8 @@ class TriggerPage(QWidget):
         search_term = self.search_text.lower()
 
         for item in self.full_media_list:
+            if "path" in item and "path" not in item["config"]:
+                item["config"]["path"] = item["path"]
             fname = item["filename"].lower()
             cmd = item["config"].get("cmd", "").lower()
             ftype = item["type"]
@@ -274,7 +275,6 @@ class TriggerPage(QWidget):
         self.media_layout.addWidget(empty_widget)
 
     def check_filter_refresh(self):
-        # Forzar repintado si el cambio de estado afecta al filtro actual
         if self.filter_mode in ["Activos", "Desactivados"]:
             self._render_grid()
 
@@ -303,7 +303,10 @@ class TriggerPage(QWidget):
         for item in self.full_media_list:
             fname = item["filename"]
             if fname in fresh_data:
+                old_path = item["config"].get("path", "")       
                 item["config"] = fresh_data[fname]
+                if old_path:
+                    item["config"]["path"] = old_path
 
         for i in range(self.media_layout.count()):
             widget = self.media_layout.itemAt(i).widget()
@@ -355,12 +358,47 @@ class TriggerPage(QWidget):
         self.filter_mode = self.combo_filter.currentText()
         self._render_grid()
 
+    def get_used_commands(self):
+        """Devuelve un set con todos los nombres de comandos (cmd) actualmente en uso."""
+        used = set()
+        for item in self.full_media_list:
+            cmd = item.get("config", {}).get("cmd", "")
+            if cmd:
+                used.add(cmd)
+        return used
+
     def _handle_add_file(self):
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Seleccionar Archivo Multimedia", "", "Media Files (*.mp4 *.webm *.mp3 *.wav *.ogg)"
-        )
-        if path:
-            self.service.add_single_media(path)
+        from frontend.dialogs.trigger_modal import ModalEditMedia
+        from PyQt6.QtWidgets import QDialog
+        
+        # Obtenemos la lista negra actual
+        used_cmds = self.get_used_commands()
+        
+        # Pasamos used_commands al modal
+        dlg = ModalEditMedia(self, "", "", {}, used_commands=used_cmds) 
+        
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            if not getattr(dlg, 'full_path', ''):
+                return
+                
+            self.service.add_single_media(dlg.full_path)
+            
+            config = {
+                "path": dlg.full_path,
+                "cmd": dlg.cmd,
+                "cost": dlg.cost,
+                "dur": dlg.dur,
+                "volume": dlg.vol,
+                "scale": getattr(dlg, 'scale', 1.0),
+                "pos_x": dlg.pos_x,
+                "pos_y": dlg.pos_y,
+                "random_pos": dlg.random_pos,
+                "active": 1 if dlg.cmd else 0,
+                "color": dlg.color,
+                "description": dlg.description
+            }
+            
+            self.save_item(dlg.filename, dlg.ftype, config, sync_kick=True)
             self.load_data()
 
     def _handle_export(self):

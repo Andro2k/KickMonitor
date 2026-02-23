@@ -171,14 +171,14 @@ STYLES = {
     "input_cmd": f"""
         QLineEdit {{ 
             background: {c.Black_N3}; color: {c.Gray_N1}; font-weight: bold; font-family: Consolas;
-            border-radius: 4px; padding: 6px; border: 1px solid {c.border};
+            border-radius: 4px; padding: 6px;
         }}
         QLineEdit:focus {{ border-color: {c.Gray_N1}; }}
     """,
     "input_readonly": f"""
         QLineEdit {{ 
             background: {c.Black_N3}; color: {c.Gray_N1}; 
-            font-family: Consolas; border: 1px solid {c.border};
+            font-family: Consolas;
             border-radius: {r['input']}; padding: 4px;
         }}
     """,

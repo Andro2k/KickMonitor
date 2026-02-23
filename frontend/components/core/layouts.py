@@ -9,7 +9,6 @@ from PyQt6.QtCore import Qt, QRect, QSize, QPoint
 class FlowLayout(QLayout):
     """
     Layout personalizado tipo CSS Flexbox.
-    Los elementos intentan llenar el espacio horizontal disponible en la fila.
     """
     def __init__(self, parent=None, margin=0, spacing=-1):
         super().__init__(parent)
@@ -126,14 +125,12 @@ class FlowLayout(QLayout):
 
         return y - rect.y()
 
-
 # =========================================================================
 # STRICT FLOW LAYOUT (Estilo Grid/Galería)
 # =========================================================================
 class StrictFlowLayout(QLayout):
     """
     Layout de flujo estricto (estilo Grid/Galería).
-    Los elementos mantienen su tamaño original sin estirarse.
     """
     def __init__(self, parent=None, margin=0, spacing=0):
         super().__init__(parent)
@@ -196,12 +193,10 @@ class StrictFlowLayout(QLayout):
         spacing = self.spacing()
         width = rect.width()
 
-        # --- FASE 1: PROCESAMIENTO ---
         for item in self.itemList:
             w = item.sizeHint().width()
             h = item.sizeHint().height()
             
-            # Si el elemento se sale del ancho, bajamos a nueva línea
             if (x + w > rect.x() + width) and (line_height > 0):
                 x = rect.x() 
                 y += line_height + spacing

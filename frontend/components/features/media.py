@@ -49,13 +49,15 @@ class MediaCard(QFrame):
         self.setFixedHeight(260)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
+        is_missing = not os.path.exists(self.full_path)
+        border_color = "#e74c3c" if is_missing else THEME_DARK['Black_N1']
+        bg_color = "#2a1111" if is_missing else THEME_DARK['Black_N2']
+
         self.setStyleSheet(f"""
             QFrame {{
-                background-color: {THEME_DARK['Black_N2']};
+                background-color: {bg_color};
                 border-radius: 12px;
-            }}
-            QFrame:hover {{
-                border: 1px solid {THEME_DARK['Gray_N1']};
+                border: 1px solid {border_color};
             }}
         """)
         
@@ -79,8 +81,11 @@ class MediaCard(QFrame):
         layout.addWidget(bg_icon)
 
         # 2. Nombre del Archivo
-        self.lbl_name = QLabel(self.filename)
-        self.lbl_name.setStyleSheet("color: #AAA; font-size: 12px; font-weight: bold; border:none;")
+        name_text = f"⚠️ Falta: {self.filename}" if is_missing else self.filename
+        name_color = "#e74c3c" if is_missing else "#AAA"
+        
+        self.lbl_name = QLabel(name_text)
+        self.lbl_name.setStyleSheet(f"color: {name_color}; font-size: 12px; font-weight: bold; border:none;")
         self.lbl_name.setWordWrap(False) 
         layout.addWidget(self.lbl_name)
 
@@ -178,15 +183,21 @@ class MediaCard(QFrame):
             self.page.check_filter_refresh()
 
     def _open_advanced_settings(self):
-        dlg = ModalEditMedia(self.page, self.filename, self.ftype, self.config)
+        used_cmds = self.page.get_used_commands()
+        dlg = ModalEditMedia(self.page, self.filename, self.ftype, self.config, used_commands=used_cmds)
         
         if dlg.exec() == QDialog.DialogCode.Accepted:
             # 1. Unicidad
             if hasattr(self.page, 'service'):
-                self.page.service.ensure_unique_assignment(self.filename, dlg.cmd)
+                self.page.service.ensure_unique_assignment(dlg.filename, dlg.cmd)
+                if getattr(dlg, 'full_path', '') and dlg.full_path != self.full_path:
+                    self.full_path = dlg.full_path
+                    self.filename = dlg.filename
+                    self.ftype = dlg.ftype
+                    self.page.service.add_single_media(self.full_path)
 
-            # 2. Actualizar config (INCLUYENDO COLOR, DESC Y RANDOM POS)
             self.config.update({
+                "path": self.full_path,
                 "cmd": dlg.cmd, 
                 "cost": dlg.cost, 
                 "dur": dlg.dur,
@@ -199,13 +210,11 @@ class MediaCard(QFrame):
                 "color": dlg.color,
                 "description": dlg.description
             })
-            
-            # --- CORRECCIÓN CLAVE: Usamos el método helper, no txt_reward ---
+
             self._update_display_label(dlg.cmd)
             self._update_btn_state()
             
-            # 3. Guardar con sincronización
-            self.page.save_item(self.filename, self.ftype, self.config, sync_kick=True)
+            self.page.save_item(dlg.filename, dlg.ftype, self.config, sync_kick=True)
             self.page.load_data()
 
     def _delete_config(self):
@@ -228,9 +237,9 @@ class MediaCard(QFrame):
 
     def _load_async_thumbnail(self):
         if not os.path.exists(self.full_path): return
-        worker = ThumbnailWorker(self.full_path, width=300)
-        worker.signals.finished.connect(self._update_thumbnail)
-        QThreadPool.globalInstance().start(worker)
+        self.worker_thumb = ThumbnailWorker(self.full_path, width=300)
+        self.worker_thumb.signals.finished.connect(self._update_thumbnail)
+        QThreadPool.globalInstance().start(self.worker_thumb)
 
     def _update_thumbnail(self, pixmap):
         if pixmap and not pixmap.isNull():
