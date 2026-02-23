@@ -1,8 +1,8 @@
 # frontend/alerts/startup_alert.py
 
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QFrame, QGraphicsDropShadowEffect
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QFrame
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor, QPixmap
+from PyQt6.QtGui import QPixmap
 from frontend.theme import STYLES
 from frontend.utils import resource_path # Importamos resource_path para la ruta segura
 

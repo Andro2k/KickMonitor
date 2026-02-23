@@ -2,7 +2,7 @@
 
 import threading
 from PyQt6.QtWidgets import (
-    QHBoxLayout, QLabel, QSpinBox, QWidget, QVBoxLayout, QScrollArea, QFrame, 
+    QHBoxLayout, QSpinBox, QWidget, QVBoxLayout, QScrollArea, QFrame, 
     QCheckBox, QFileDialog, QApplication
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QUrl
@@ -11,7 +11,7 @@ from PyQt6.QtGui import QDesktopServices
 from backend.utils.paths import get_app_data_path
 from backend.workers.update_worker import INTERNAL_VERSION, UpdateCheckerWorker, UpdateDownloaderWorker
 from frontend.dialogs.update_modal import UpdateModal
-from frontend.factories import (
+from frontend.components.core.factories import (
     create_page_header, create_section_header, create_setting_row,
     create_styled_input, create_styled_button, create_styled_combobox 
 )

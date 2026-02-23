@@ -15,13 +15,15 @@ from frontend.alerts.modal_alert import ModalConfirm
 from frontend.alerts.toast_alert import ToastNotification
 
 # Estilos y Utilidades
+from frontend.components.core.factories import create_card_header, create_dashboard_action_btn, create_shortcut_btn
+from frontend.components.core.layouts import FlowLayout
+from frontend.components.features.music import MusicPlayerPanel
 from frontend.theme import LAYOUT, STYLES, THEME_DARK
 from frontend.utils import crop_to_square, get_icon_colored, get_icon, get_rounded_pixmap
 
 # Componentes
-from frontend.components.flow_layout import FlowLayout
-from frontend.components.music_card import MusicPlayerPanel
-from frontend.factories import create_card_header, create_dashboard_action_btn, create_shortcut_btn 
+
+
 
 class DashboardPage(QWidget):
     navigate_signal = pyqtSignal(int) 

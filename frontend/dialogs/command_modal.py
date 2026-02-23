@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from frontend.theme import THEME_DARK, STYLES
-from frontend.components.base_modal import BaseModal
+from frontend.components.core.modals import BaseModal
 
 class ModalEditCommand(BaseModal):
     def __init__(self, parent=None, trigger="", response="", cooldown=5):

@@ -10,16 +10,18 @@ from PyQt6.QtCore import QThread, Qt, QTimer, pyqtSignal
 # --- MÓDULOS INTERNOS ---
 from backend.services.triggers_service import TriggerService
 from frontend.alerts.info_modal import InfoModal
-from frontend.components.cards import Card
+
 from frontend.alerts.modal_alert import ModalConfirm
 from frontend.alerts.toast_alert import ToastNotification
-from frontend.components.flow_layout import FlowLayout 
-from frontend.components.trigger_card import MediaCard
-from frontend.factories import (
+
+from frontend.components.core.cards import Card
+from frontend.components.core.factories import (
     create_help_btn, create_nav_btn, create_page_header, 
     create_styled_input
 )
-from frontend.help_content import load_help_content
+from frontend.components.core.layouts import FlowLayout
+from frontend.components.features.media import MediaCard
+from frontend.dialogs.help_modal import load_help_content
 from frontend.utils import get_icon
 from frontend.theme import LAYOUT, STYLES, THEME_DARK, get_switch_style
 

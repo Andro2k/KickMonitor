@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QTimer
 
 # --- IMPORTS DE FACTORÍAS ---
-from frontend.factories import (
+from frontend.components.core.factories import (
     create_icon_btn, 
     create_nav_btn, 
     create_page_header, 

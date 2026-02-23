@@ -14,7 +14,7 @@ class AlertOverlayWorker(QObject):
     service_started = pyqtSignal(str)
     error_occurred = pyqtSignal(str)
 
-    def __init__(self, port=6002): # 🔴 Usamos el puerto 6002 para no chocar con el Chat (6001)
+    def __init__(self, port=6002):
         super().__init__()
         self.port = port
         self.app = web.Application()
@@ -132,7 +132,8 @@ class AlertOverlayWorker(QObject):
             return_exceptions=True
         )
 
-    def send_alert(self, alert_type: str, title: str, message: str):
+    # 🔴 AQUÍ ESTÁ EL CAMBIO: Agregamos color y image_url
+    def send_alert(self, alert_type: str, title: str, message: str, color: str = None, image_url: str = None):
         """
         Llama a este método desde tu bot para disparar la alerta visual en OBS.
         alert_type: 'follow', 'subscription', 'host', etc.
@@ -143,7 +144,9 @@ class AlertOverlayWorker(QObject):
             "payload": {
                 "alert_type": alert_type, 
                 "title": title,
-                "message": message
+                "message": message,
+                "color": color,           # <- Nuevo
+                "image_url": image_url    # <- Nuevo
             }
         }
         asyncio.run_coroutine_threadsafe(self.broadcast_data(payload), self.loop)

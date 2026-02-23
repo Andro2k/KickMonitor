@@ -7,7 +7,7 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
 
 from frontend.theme import LAYOUT, STYLES, THEME_DARK
-from frontend.components.base_modal import BaseModal
+from frontend.components.core.modals import BaseModal
 from frontend.utils import resource_path
 
 class UpdateModal(BaseModal):

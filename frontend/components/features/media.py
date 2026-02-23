@@ -1,4 +1,4 @@
-# frontend/components/trigger_card.py
+# frontend/components/features/media.py
 
 import os
 from PyQt6.QtWidgets import (
@@ -6,14 +6,27 @@ from PyQt6.QtWidgets import (
     QPushButton, QSizePolicy, QDialog
 )
 from PyQt6.QtCore import QThreadPool, QTimer, Qt
+
+# Importaciones de utilidades y temas
 from frontend.theme import LAYOUT, THEME_DARK, STYLES
 from frontend.utils import ThumbnailWorker, get_icon_colored, get_icon, get_rounded_pixmap
-from frontend.factories import create_icon_btn
+
+# Importamos nuestra fábrica de botones desde el nuevo CORE
+from frontend.components.core.factories import create_icon_btn
+
+# Importaciones del resto de la app
 from frontend.alerts.modal_alert import ModalConfirm
 from frontend.alerts.toast_alert import ToastNotification
 from frontend.dialogs.trigger_modal import ModalEditMedia
 
+# =========================================================================
+# TARJETA DE RECOMPENSAS MULTIMEDIA (TRIGGERS)
+# =========================================================================
 class MediaCard(QFrame):
+    """
+    Tarjeta visual para gestionar un archivo multimedia (video/audio).
+    Permite asignarlo a una recompensa de Kick y probarlo localmente.
+    """
     def __init__(self, filename, ftype, config, parent_page):
         super().__init__()
         self.filename = filename
@@ -89,7 +102,7 @@ class MediaCard(QFrame):
         
         row_btns.addWidget(self.btn_toggle, stretch=1)
         
-        # Botones pequeños
+        # Botones pequeños usando nuestra Factory del Core
         self.btn_conf = create_icon_btn("sliders.svg", self._open_advanced_settings, tooltip="Editar Configuración")
         self.btn_play = create_icon_btn("play-circle.svg", self._preview, tooltip="Probar Sonido")
         self.btn_del = create_icon_btn("trash.svg", self._delete_config, color_hover=THEME_DARK['status_error'])

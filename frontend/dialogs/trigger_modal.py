@@ -15,9 +15,9 @@ from PyQt6.QtGui import QColor, QCursor, QTextCursor
 from backend.utils.paths import get_config_path
 from frontend.alerts.modal_alert import ModalConfirm
 from frontend.alerts.toast_alert import ToastNotification
-from frontend.factories import create_icon_btn
+from frontend.components.core.factories import create_icon_btn
 from frontend.theme import STYLES, THEME_DARK, get_switch_style
-from frontend.components.base_modal import BaseModal
+from frontend.components.core.modals import BaseModal
 
 # =============================================================================
 # WORKER: CARGA ASÍNCRONA DE KICK

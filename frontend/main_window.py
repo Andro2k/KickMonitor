@@ -12,11 +12,11 @@ from backend.core.controller import MainController
 from backend.workers.update_worker import INTERNAL_VERSION
 
 # UI Components
-from frontend.components.sidebar import Sidebar
+from frontend.components.core.sidebar import Sidebar
 from frontend.theme import get_sheet
 from frontend.alerts.modal_alert import ModalConfirm
 from frontend.alerts.toast_alert import ToastNotification
-from frontend.components.tray_icon import TrayIcon  
+from frontend.components.core.tray_icon import TrayIcon  
 from frontend.utils import resource_path 
 
 # Páginas

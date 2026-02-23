@@ -7,11 +7,12 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QColor
-from frontend.factories import create_page_header
+from frontend.components.core.factories import create_page_header
+from frontend.components.core.layouts import FlowLayout
 from frontend.theme import LAYOUT, THEME_DARK, STYLES
 from frontend.utils import get_icon, get_icon_colored
 from backend.services.chat_service import ChatService
-from frontend.components.flow_layout import FlowLayout
+
 from PyQt6.QtCore import pyqtSignal
 
 class TagPill(QFrame):

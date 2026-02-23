@@ -1,16 +1,24 @@
-# frontend/components/casino_cards.py
+# frontend/components/features/casino.py
 
 from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QLabel, QSpinBox, 
     QDoubleSpinBox
 )
-from frontend.components.accordion_cards import BaseAccordionCard
+
+# Importamos la clase base visual desde nuestro nuevo CORE
+from frontend.components.core.cards import BaseAccordionCard
+
+# Importaciones del resto de la app
 from frontend.utils import get_icon
 from frontend.theme import STYLES
 
+# =========================================================================
+# CONFIGURACIÓN DE JUEGOS INDIVIDUALES (Dados, Slots, etc.)
+# =========================================================================
 class GameConfigCard(BaseAccordionCard):
     """
-    Tarjeta acordeón para configurar un juego específico (Dados, Slots, etc).
+    Tarjeta acordeón interactiva para configurar los multiplicadores 
+    y probabilidades de un juego de casino específico.
     """
     def __init__(self, service, icon_name, title, settings):
         super().__init__(title, "Configuración de pagos", is_active=True)
@@ -40,7 +48,7 @@ class GameConfigCard(BaseAccordionCard):
         lbl = QLabel(text)
         lbl.setStyleSheet("color:#aaa; font-size:12px; border:none;")
         
-        # Input (SpinBox o DoubleSpinBox)
+        # Input (SpinBox o DoubleSpinBox dependiendo de si es entero o decimal)
         if is_int:
             inp = QSpinBox()
             val = self.service.get_int_setting(key, default)
@@ -67,10 +75,13 @@ class GameConfigCard(BaseAccordionCard):
         
         return row_widget
 
-
+# =========================================================================
+# LÍMITES GLOBALES DEL CASINO
+# =========================================================================
 class LimitsCard(BaseAccordionCard):
     """
-    Tarjeta acordeón especial para los Límites Globales.
+    Tarjeta acordeón especial para configurar las restricciones 
+    globales de apuestas de los usuarios.
     """
     def __init__(self, service):
         super().__init__("Límites Globales", "Restricciones de apuestas", is_active=True)

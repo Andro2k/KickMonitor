@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QFrame,QFileDialog, QDialog, QAbstractItemView
 )
 from PyQt6.QtCore import Qt
-from frontend.factories import create_icon_btn, create_nav_btn, create_page_header
+from frontend.components.core.factories import create_icon_btn, create_nav_btn, create_page_header
 from frontend.theme import LAYOUT, THEME_DARK, STYLES
 from frontend.alerts.modal_alert import ModalConfirm
 from frontend.alerts.toast_alert import ToastNotification

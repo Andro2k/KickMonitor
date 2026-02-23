@@ -1,18 +1,18 @@
 # frontend/pages/alerts_page.py
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QPushButton, QApplication
+    QWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QPushButton, 
+    QApplication, QLabel, QComboBox, QLineEdit, QTextEdit, QFrame,
+    QSpinBox, QCheckBox, QColorDialog, QSizePolicy
 )
-from PyQt6.QtCore import QTimer, Qt
+from PyQt6.QtCore import QTimer, QUrl, Qt
+from PyQt6.QtGui import QColor, QCursor
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 
-from backend.workers import alert_worker
-from frontend.factories import create_page_header
+from frontend.components.core.factories import create_page_header
 from frontend.theme import LAYOUT, STYLES, THEME_DARK
-from frontend.utils import get_icon
-
+from frontend.utils import get_icon, get_icon_colored
 from backend.services.alerts_service import AlertsService
-from frontend.components.flow_layout import FlowLayout
-from frontend.components.accordion_cards import AlertCard, TimerCard
 
 class AlertsPage(QWidget):
     def __init__(self, db_handler, alert_worker=None, parent=None):
@@ -21,82 +21,199 @@ class AlertsPage(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        # 1. SCROLL AREA
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0,0,0,0)
-        
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        scroll.setStyleSheet("background: transparent;")
-        
-        content_widget = QWidget()
-        layout = QVBoxLayout(content_widget)
-        layout.setContentsMargins(*LAYOUT["level_03"])
-        layout.setSpacing(20)
-        
-        # -----------------------------------------------------------------
-        # HEADER PRINCIPAL Y BOTÓN DE URL OBS
-        # -----------------------------------------------------------------
-        header_layout = QHBoxLayout()
-        header_layout.addWidget(create_page_header("Alertas y Timers", "Gestión de Eventos visuales y mensajes."))
-        header_layout.addStretch()
+        main_layout = QHBoxLayout(self)
+        main_layout.setContentsMargins(*LAYOUT["level_03"])
+        main_layout.setSpacing(20)
 
-        # Botón para copiar URL
-        self.btn_copy_url = QPushButton(" URL OBS")
+        # =========================================================
+        # COLUMNA IZQUIERDA: PREVISUALIZACIÓN
+        # =========================================================
+        left_panel = QWidget()
+        left_panel.setMinimumWidth(400) 
+        
+        left_layout = QVBoxLayout(left_panel)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Header
+        left_layout.addWidget(create_page_header("Diseñador de Alertas", "Personaliza y previsualiza en tiempo real."))
+
+        # Contenedor del Visor Web
+        preview_container = QFrame()
+        preview_container.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px; border: 1px solid {THEME_DARK['Black_N1']};")
+        preview_layout = QVBoxLayout(preview_container)
+        
+        # Visor Web (Carga el HTML de OBS)
+        self.webview = QWebEngineView()
+        self.webview.page().setBackgroundColor(QColor(0, 0, 0, 0)) 
+        self.webview.setUrl(QUrl("http://localhost:6002/alerts")) 
+        
+        preview_layout.addWidget(self.webview)
+        
+        # Hacemos que el contenedor del visor se expanda en ambas direcciones
+        preview_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        left_layout.addWidget(preview_container, stretch=1)
+        
+        # Fila de botones debajo de la previsualización
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
+        
+        self.btn_copy_url = QPushButton(" Copiar URL")
         self.btn_copy_url.setIcon(get_icon("copy.svg"))
-        self.btn_copy_url.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_copy_url.setStyleSheet(STYLES["btn_nav"])
         self.btn_copy_url.clicked.connect(self._handle_copy_url)
         
-        header_layout.addWidget(self.btn_copy_url)
-        layout.addLayout(header_layout)
+        self.btn_test = QPushButton(" Reproducir Alerta")
+        self.btn_test.setIcon(get_icon_colored("play-circle.svg", THEME_DARK['White_N1']))
+        self.btn_test.setStyleSheet(STYLES["btn_primary"].replace(THEME_DARK['NeonGreen_Main'], THEME_DARK['Gray_N1']))
+        self.btn_test.clicked.connect(self._test_alert)
+        self.btn_test.setCursor(Qt.CursorShape.PointingHandCursor)
+        
+        btn_layout.addWidget(self.btn_copy_url)
+        btn_layout.addWidget(self.btn_test)
+        left_layout.addLayout(btn_layout)
 
-        # -----------------------------------------------------------------
-        # SECCIÓN 1: EVENTOS (Grid Responsivo)
-        # -----------------------------------------------------------------
-        events_container = QWidget()
-        events_container.setStyleSheet("background: transparent;")
-        events_flow = FlowLayout(events_container, margin=0, spacing=(LAYOUT["space_01"]))
-        
-        # Tarjetas de Eventos
-        events_flow.addWidget(AlertCard(self.service, "Nuevo Seguidor", "follow", "Mensaje al seguir.", "{user}, {count}"))
-        events_flow.addWidget(AlertCard(self.service, "Suscripción", "subscription", "Mensaje al suscribirse.", "{user}, {months}"))
-        events_flow.addWidget(AlertCard(self.service, "Host / Raid", "host", "Mensaje al alojar.", "{user}, {viewers}"))
-        
-        layout.addWidget(events_container)
+        # =========================================================
+        # COLUMNA DERECHA: PANEL DE EDICIÓN (SCROLL)
+        # =========================================================
+        right_panel = QWidget()
+        right_panel.setFixedWidth(360) 
+        right_layout = QVBoxLayout(right_panel)
+        right_layout.setContentsMargins(0, 0, 0, 0)
 
-        # -----------------------------------------------------------------
-        # SECCIÓN 2: TIMERS (Grid Responsivo)
-        # -----------------------------------------------------------------
-        layout.addWidget(create_page_header("Timers", "Mensajes Recurrentes en el chat."))
-        timers_container = QWidget()
-        timers_container.setStyleSheet("background: transparent;")
-        timers_flow = FlowLayout(timers_container, margin=0, spacing=(LAYOUT["space_01"]))
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setStyleSheet("background: transparent; border: none;")
         
-        # Tarjetas de Timers
-        timers_flow.addWidget(TimerCard(self.service, "Redes Sociales", "redes", "Ej: Sígueme en Twitter."))
-        timers_flow.addWidget(TimerCard(self.service, "Discord / Comunidad", "discord", "Ej: Únete al server."))
-        timers_flow.addWidget(TimerCard(self.service, "Promo / Reglas", "promo", "Ej: Respetar normas."))
+        content_widget = QWidget()
+        self.form_layout = QVBoxLayout(content_widget)
+        self.form_layout.setSpacing(15)
+
+        # -- SECCIÓN 1: GENERAL --
+        self.form_layout.addWidget(QLabel("<b>Ajustes Generales</b>", styleSheet="font-size: 14px;"))
         
-        layout.addWidget(timers_container)
+        self.combo_alert = QComboBox()
+        self.combo_alert.addItems(["Nuevo Seguidor", "Suscripción", "Host / Raid"])
+        self.form_layout.addLayout(self._create_input_group("Seleccionar Alerta a editar:", self.combo_alert))
         
-        # Spacer Final
-        layout.addStretch()
+        self.chk_active = QCheckBox("Activar esta alerta")
+        self.chk_active.setChecked(True)
+        self.form_layout.addWidget(self.chk_active)
+
+        # -- SECCIÓN 2: TEXTOS --
+        self.form_layout.addWidget(QLabel("<b>Textos</b>", styleSheet="font-size: 14px; margin-top: 10px;"))
         
+        self.inp_title = QLineEdit("{user} te está siguiendo!")
+        self.form_layout.addLayout(self._create_input_group("Título de la Alerta (Visual en pantalla):", self.inp_title))
+        
+        self.txt_msg = QTextEdit()
+        self.txt_msg.setFixedHeight(60)
+        self.form_layout.addLayout(self._create_input_group("Mensaje en el Chat del stream:", self.txt_msg))
+
+        # -- SECCIÓN 3: MULTIMEDIA --
+        self.form_layout.addWidget(QLabel("<b>Multimedia</b>", styleSheet="font-size: 14px; margin-top: 10px;"))
+        
+        self.inp_image = QLineEdit()
+        self.inp_image.setPlaceholderText("https://ejemplo.com/gif.gif")
+        self.form_layout.addLayout(self._create_input_group("URL de Imagen / GIF:", self.inp_image))
+
+        self.inp_sound = QLineEdit()
+        self.inp_sound.setPlaceholderText("https://ejemplo.com/sonido.mp3")
+        self.form_layout.addLayout(self._create_input_group("URL del Sonido:", self.inp_sound))
+
+        # -- SECCIÓN 4: APARIENCIA --
+        self.form_layout.addWidget(QLabel("<b>Apariencia y Animación</b>", styleSheet="font-size: 14px; margin-top: 10px;"))
+
+        row_layout = QHBoxLayout()
+
+        self.current_color = "#53fc18"
+        self.btn_color = QPushButton()
+        self.btn_color.setFixedHeight(34)
+        self.btn_color.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.btn_color.clicked.connect(self._pick_color)
+        self._update_color_btn()
+        row_layout.addLayout(self._create_input_group("Color Principal:", self.btn_color))
+        
+        self.spin_duration = QSpinBox()
+        self.spin_duration.setRange(1, 30)
+        self.spin_duration.setValue(5)
+        self.spin_duration.setSuffix(" seg")
+        row_layout.addLayout(self._create_input_group("Duración:", self.spin_duration))
+        self.form_layout.addLayout(row_layout)
+
+        self.combo_layout = QComboBox()
+        self.combo_layout.addItems(["Imagen Arriba, Texto Abajo", "Imagen a la Izquierda", "Imagen a la Derecha"])
+        self.form_layout.addLayout(self._create_input_group("Diseño (Layout):", self.combo_layout))
+
+        self.combo_anim = QComboBox()
+        self.combo_anim.addItems(["Pop In (Rebote)", "Fade In (Desvanecer)", "Slide Up (Deslizar)"])
+        self.form_layout.addLayout(self._create_input_group("Animación de Entrada:", self.combo_anim))
+
+        self.form_layout.addStretch()
+
+        # Botón Guardar
+        self.btn_save = QPushButton(" Guardar Cambios")
+        self.btn_save.setIcon(get_icon_colored("save.svg", THEME_DARK['NeonGreen_Main']))
+        self.btn_save.setStyleSheet(STYLES["btn_primary"])
+        self.btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.form_layout.addWidget(self.btn_save)
+
         scroll.setWidget(content_widget)
-        main_layout.addWidget(scroll)
+        right_layout.addWidget(scroll)
 
-    # -----------------------------------------------------------------
-    # LÓGICA DE COPIADO DE URL
-    # -----------------------------------------------------------------
+        main_layout.addWidget(left_panel, stretch=1)
+        main_layout.addWidget(right_panel, stretch=0)
+
+
+    # FUNCIONES DE COLOR
+    def _update_color_btn(self):
+        self.btn_color.setStyleSheet(
+            f"background-color: {self.current_color}; "
+            f"border: 1px solid {THEME_DARK['Black_N1']}; "
+            f"border-radius: 6px;"
+        )
+
+    def _pick_color(self):
+        dialog = QColorDialog(self)
+        dialog.setCurrentColor(QColor(self.current_color))
+        if dialog.exec():
+            self.current_color = dialog.selectedColor().name()
+            self._update_color_btn()
+
+    def _create_input_group(self, label_text, widget):
+        layout = QVBoxLayout()
+        layout.setSpacing(4)
+        lbl = QLabel(label_text)
+        lbl.setStyleSheet(f"color: {THEME_DARK['Gray_N1']}; font-size: 11px;")
+        
+        base_style = f"background: {THEME_DARK['Black_N3']}; padding: 8px; border-radius: 6px; color: {THEME_DARK['White_N1']}; border: 1px solid {THEME_DARK['Black_N1']};"
+        if isinstance(widget, (QLineEdit, QTextEdit, QComboBox, QSpinBox)):
+            widget.setStyleSheet(base_style)
+            
+        layout.addWidget(lbl)
+        layout.addWidget(widget)
+        return layout
+
     def _handle_copy_url(self):
-        # Copiamos la URL apuntando al puerto 6002 (Alertas)
         QApplication.clipboard().setText("http://localhost:6002/alerts")
+        self.btn_copy_url.setText(" ¡Copiado!")
+        QTimer.singleShot(1500, lambda: self.btn_copy_url.setText(" Copiar URL"))
+
+    def _test_alert(self):
+        event_map = {"Nuevo Seguidor": "follow", "Suscripción": "subscription", "Host / Raid": "host"}
+        selected_event = event_map[self.combo_alert.currentText()]
         
-        # Efecto visual de copiado exitoso
-        self.btn_copy_url.setText("¡Copiado!")
-        self.btn_copy_url.setStyleSheet(STYLES["btn_nav"] + f"color: {THEME_DARK['NeonGreen_Main']};")
+        mock_data = {
+            "count": 120, "months": 6, "viewers": 450,
+            "title_template": self.inp_title.text(),
+            "color": self.current_color,
+            "image_url": self.inp_image.text(),
+            "sound_url": self.inp_sound.text(),
+            "duration": self.spin_duration.value(),
+            "layout_style": self.combo_layout.currentText(),
+            "animation": self.combo_anim.currentText()
+        }
         
-        # Restauramos el botón a la normalidad después de 1.5 segundos
-        QTimer.singleShot(1500, lambda: (self.btn_copy_url.setText(" URL OBS"), self.btn_copy_url.setStyleSheet(STYLES["btn_nav"])))
+        custom_message = self.txt_msg.toPlainText() or "¡Mensaje de prueba!"
+        
+        self.service.trigger_alert(selected_event, "UsuarioTest", mock_data, custom_template=custom_message)

@@ -5,7 +5,7 @@
     <title>Kick Alerts Overlay</title>
     <style>
         :root {
-            /* Colores de Kick */
+            /* Colores de Kick (Por defecto) */
             --kick-green: #53fc18;
             --kick-dark: #191919;
             --text-light: #ffffff;
@@ -14,7 +14,7 @@
         body, html {
             height: 100%; width: 100%;
             margin: 0; padding: 0; overflow: hidden;
-            background-color: transparent;
+            background-color: transparent; /* Mantiene la transparencia para OBS */
             font-family: 'Arial', sans-serif;
             display: flex; align-items: center; justify-content: center;
         }
@@ -32,6 +32,7 @@
             box-shadow: 0 0 20px rgba(83, 252, 24, 0.4);
             transform: scale(0.5);
             opacity: 0;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
 
         /* Animaciones de entrada y salida */
@@ -61,23 +62,38 @@
             letter-spacing: 2px;
             margin-bottom: 8px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            transition: color 0.3s ease;
         }
+        
         .alert-message {
             color: var(--text-light);
             font-size: 20px;
             font-weight: bold;
             text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
         }
+        
+        /* Icono e Imagen Dinámicos */
         .alert-icon {
             font-size: 50px;
             margin-bottom: 10px;
+        }
+        
+        .alert-image {
+            max-width: 150px;
+            max-height: 150px;
+            object-fit: contain;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            display: none; /* Oculto por defecto, se activa si hay URL */
         }
     </style>
 </head>
 <body>
 
     <div id="alert-container">
+        <img id="alert-image" class="alert-image" src="" alt="Alerta">
         <div id="alert-icon" class="alert-icon">✨</div>
+        
         <div id="alert-title" class="alert-title">Nuevo Seguidor</div>
         <div id="alert-message" class="alert-message">¡Gracias por seguir el canal!</div>
     </div>
@@ -89,6 +105,7 @@
         const titleEl = document.getElementById('alert-title');
         const messageEl = document.getElementById('alert-message');
         const iconEl = document.getElementById('alert-icon');
+        const imgEl = document.getElementById('alert-image');
         const sound = document.getElementById('alert-sound');
         
         let alertQueue = [];
@@ -101,7 +118,6 @@
         };
 
         function connect() {
-            // 🔴 EL FIX: Cambiar el puerto de 6001 a 6002
             const socket = new WebSocket('ws://localhost:6002/ws');
             
             socket.onmessage = (event) => {
@@ -115,22 +131,51 @@
             socket.onclose = () => setTimeout(connect, 3000);
         }
 
+        function hexToRgba(hex, opacity) {
+            let r = parseInt(hex.slice(1, 3), 16),
+                g = parseInt(hex.slice(3, 5), 16),
+                b = parseInt(hex.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+        }
+
         function processQueue() {
             if (isPlaying || alertQueue.length === 0) return;
             
             isPlaying = true;
             const alertData = alertQueue.shift();
 
-            // Configurar textos e iconos
+            // 1. Configurar Textos
             titleEl.textContent = alertData.title;
             messageEl.textContent = alertData.message;
-            iconEl.textContent = ICONS[alertData.alert_type] || '✨';
+
+            // 2. Configurar Diseño (Color)
+            if (alertData.color && alertData.color.startsWith('#')) {
+                container.style.borderColor = alertData.color;
+                container.style.boxShadow = `0 0 20px ${hexToRgba(alertData.color, 0.4)}`;
+                titleEl.style.color = alertData.color;
+            } else {
+                // Volver a valores por defecto si no hay color personalizado
+                container.style.borderColor = 'var(--kick-green)';
+                container.style.boxShadow = '0 0 20px rgba(83, 252, 24, 0.4)';
+                titleEl.style.color = 'var(--kick-green)';
+            }
+
+            // 3. Configurar Diseño (Imagen vs Icono de texto)
+            if (alertData.image_url && alertData.image_url.trim() !== "") {
+                imgEl.src = alertData.image_url;
+                imgEl.style.display = 'block';
+                iconEl.style.display = 'none';
+            } else {
+                imgEl.style.display = 'none';
+                iconEl.style.display = 'block';
+                iconEl.textContent = ICONS[alertData.alert_type] || '✨';
+            }
 
             // Reproducir sonido si existe
             sound.volume = 0.5;
-            sound.play().catch(e => console.log("Sonido omitido por el navegador."));
+            sound.play().catch(e => console.log("Sonido omitido o no encontrado."));
 
-            // Mostrar
+            // Mostrar la alerta
             container.classList.remove('alert-out');
             container.classList.add('alert-in');
 

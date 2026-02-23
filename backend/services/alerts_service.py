@@ -7,7 +7,6 @@ class AlertsService:
     Servicio de Automatización de Mensajes y Alertas.
     """
     
-    # 🔴 1. Añadimos alert_worker al __init__
     def __init__(self, db_handler, alert_worker=None):
         self.db = db_handler
         self.alert_worker = alert_worker 
@@ -42,25 +41,34 @@ class AlertsService:
         """Guarda la configuración de una alerta de evento."""
         return self.db.set_text_alert(event_type, message, active)
 
-    # 🔴 2. NUEVA FUNCIÓN: El motor que dispara la alerta
-    def trigger_alert(self, event_type: str, username: str, extra_data: dict = None):
+    def trigger_alert(self, event_type: str, username: str, extra_data: dict = None, custom_template: str = None):
         """
         Verifica si la alerta está activa, formatea el texto y la envía a OBS.
-        Retorna el mensaje final por si también quieres enviarlo al chat de Kick.
+        Si se provee custom_template, ignora la base de datos (útil para la previsualización).
         """
-        msg_template, is_active = self.get_alert_config(event_type)
+        extra_data = extra_data or {}
+        
+        # 1. Determinar si usamos la BD o la plantilla de prueba en vivo
+        if custom_template is not None:
+            msg_template = custom_template
+            is_active = True  # Forzamos que esté activa para que se muestre en la previsualización
+        else:
+            msg_template, is_active = self.get_alert_config(event_type)
         
         if not is_active:
-            return None # Si está apagada en la UI, no hacemos nada
+            return None # Si está apagada en la UI (y no es prueba), no hacemos nada
             
-        # A. Formatear el mensaje (reemplazar variables)
+        # 2. Extraer variables de diseño (Las sacamos del dict usando .pop para que no interfieran)
+        color = extra_data.pop("color", None)
+        image_url = extra_data.pop("image_url", None)
+            
+        # 3. Formatear el mensaje (reemplazar variables de texto)
         final_msg = msg_template.replace("{user}", username)
         
-        if extra_data:
-            for key, value in extra_data.items():
-                final_msg = final_msg.replace(f"{{{key}}}", str(value))
+        for key, value in extra_data.items():
+            final_msg = final_msg.replace(f"{{{key}}}", str(value))
                 
-        # B. Títulos bonitos para el Overlay de OBS
+        # 4. Títulos bonitos para el Overlay de OBS
         titles = {
             "follow": "¡Nuevo Seguidor!",
             "subscription": "¡Nueva Suscripción!",
@@ -68,11 +76,17 @@ class AlertsService:
         }
         title = titles.get(event_type, "¡Alerta!")
 
-        # C. Enviar la señal visual a OBS a través del Worker
+        # 5. Enviar la señal visual a OBS a través del Worker (AHORA CON COLOR E IMAGEN)
         if self.alert_worker:
-            self.alert_worker.send_alert(event_type, title, final_msg)
+            self.alert_worker.send_alert(
+                alert_type=event_type, 
+                title=title, 
+                message=final_msg,
+                color=color,
+                image_url=image_url
+            )
             
-        # D. Retornamos el texto para que el Bot lo escriba en el chat
+        # 6. Retornamos el texto para que el Bot lo escriba en el chat
         return final_msg
 
     # =========================================================================

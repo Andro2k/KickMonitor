@@ -10,12 +10,13 @@ from PyQt6.QtCore import Qt
 
 from frontend.alerts.modal_alert import ModalConfirm
 from frontend.alerts.toast_alert import ToastNotification
-from frontend.factories import create_page_header
+from frontend.components.core.factories import create_page_header
+from frontend.components.core.layouts import FlowLayout
+from frontend.components.features.casino import GameConfigCard, LimitsCard
 from frontend.utils import get_icon
 from frontend.theme import LAYOUT, THEME_DARK, STYLES, get_switch_style
 from backend.services.gambling_service import GamblingService
-from frontend.components.flow_layout import FlowLayout 
-from frontend.components.casino_cards import GameConfigCard, LimitsCard
+
 
 class GamblingPage(QWidget):
     def __init__(self, db_handler, controller=None, parent=None):

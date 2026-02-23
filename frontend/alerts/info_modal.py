@@ -5,7 +5,8 @@ from PyQt6.QtWidgets import (
     QTextBrowser
 )
 from PyQt6.QtCore import Qt
-from frontend.components.base_modal import BaseModal
+
+from frontend.components.core.modals import BaseModal
 from frontend.theme import THEME_DARK, STYLES
 from frontend.utils import get_icon, get_assets_path
 

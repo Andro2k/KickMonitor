@@ -1,4 +1,4 @@
-# frontend/components/music_player.py
+# frontend/components/features/music.py
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
@@ -6,10 +6,22 @@ from PyQt6.QtWidgets import (
     QLineEdit
 )
 from PyQt6.QtCore import Qt, QSize
+
+# Importamos nuestra fábrica de botones desde el nuevo CORE
+from frontend.components.core.factories import create_icon_btn
+
+# Importaciones del resto de la app
 from frontend.theme import LAYOUT, STYLES, THEME_DARK, get_switch_style
 from frontend.utils import get_icon
 
+# =========================================================================
+# PANEL DEL REPRODUCTOR DE MÚSICA
+# =========================================================================
 class MusicPlayerPanel(QFrame):
+    """
+    Panel interactivo para controlar Spotify y configurar los comandos 
+    del chat relacionados con la música.
+    """
     def __init__(self, service, spotify_worker, parent=None):
         super().__init__(parent)
         self.service = service
@@ -39,12 +51,11 @@ class MusicPlayerPanel(QFrame):
         player_container = QWidget()
         player_container.setStyleSheet("background: transparent; border: none;")
         
-        # CAMBIO CLAVE: Layout Horizontal para: [ FOTO ]  [ INFO + BARRA + CONTROLES ]
         player_row = QHBoxLayout(player_container)
         player_row.setContentsMargins(0,0,0,0)
-        player_row.setSpacing(LAYOUT["space_01"]) # Espacio entre carátula y textos
+        player_row.setSpacing(LAYOUT["space_01"]) 
 
-        # A. CARÁTULA (Toda a la izquierda)
+        # A. CARÁTULA
         self.lbl_art = QLabel()
         self.lbl_art.setFixedSize(110, 110)
         self.lbl_art.setStyleSheet(f"background-color: {THEME_DARK['Black_N4']}; border-radius: 12px;")
@@ -61,7 +72,6 @@ class MusicPlayerPanel(QFrame):
         self.lbl_song = QLabel("No Song Playing")
         self.lbl_song.setStyleSheet(f"color: {THEME_DARK['White_N1']}; font-weight: bold; font-size: 14px;")
         self.lbl_song.setWordWrap(True)
-        # Limitar altura del texto para que no empuje demasiado si es muy largo
         self.lbl_song.setMaximumHeight(40) 
         
         self.lbl_artist = QLabel("Artist Name")
@@ -69,8 +79,7 @@ class MusicPlayerPanel(QFrame):
         
         right_col.addWidget(self.lbl_song)
         right_col.addWidget(self.lbl_artist)
-        
-        right_col.addSpacing(4) # Pequeño aire
+        right_col.addSpacing(4) 
 
         # -- Tiempos --
         time_layout = QHBoxLayout()
@@ -90,26 +99,22 @@ class MusicPlayerPanel(QFrame):
             QProgressBar::chunk {{ background: {THEME_DARK['NeonGreen_Main']}; border-radius: 3px; }}
         """)
         right_col.addWidget(self.progress)
-
         right_col.addSpacing(6)
 
         # -- Controles --
         ctrls = QHBoxLayout()
-        ctrls.setAlignment(Qt.AlignmentFlag.AlignLeft) # Alineados a la izquierda (bajo la barra)
+        ctrls.setAlignment(Qt.AlignmentFlag.AlignLeft) 
         ctrls.setSpacing(15)
         
-        self.btn_play = self._create_icon_btn("play-circle.svg", self.spotify.play_pause, 30)
+        # Usamos nuestra factory del CORE centralizado
+        self.btn_play = create_icon_btn("play-circle.svg", self.spotify.play_pause, size=30)
         
-        ctrls.addWidget(self._create_icon_btn("prev.svg", self.spotify.prev_track, 18))
+        ctrls.addWidget(create_icon_btn("prev.svg", self.spotify.prev_track, size=24))
         ctrls.addWidget(self.btn_play)
-        ctrls.addWidget(self._create_icon_btn("next.svg", self.spotify.next_track, 18))
+        ctrls.addWidget(create_icon_btn("next.svg", self.spotify.next_track, size=24))
         
         right_col.addLayout(ctrls)
-        
-        # Agregar columna derecha al row del player
         player_row.addLayout(right_col)
-        
-        # Agregar player al layout principal
         main_layout.addWidget(player_container, stretch=1)
 
         # ==========================================
@@ -128,7 +133,7 @@ class MusicPlayerPanel(QFrame):
         cmds_container.setFixedWidth(170)
         
         cmds_col = QVBoxLayout(cmds_container)
-        cmds_col.setContentsMargins(5,0,0,0) # Un poco de margen izq
+        cmds_col.setContentsMargins(5,0,0,0) 
         cmds_col.setSpacing(6)
         cmds_col.setAlignment(Qt.AlignmentFlag.AlignTop)
 
@@ -141,15 +146,6 @@ class MusicPlayerPanel(QFrame):
             
         cmds_col.addStretch()
         main_layout.addWidget(cmds_container)
-
-    def _create_icon_btn(self, icon, func, size):
-        btn = QPushButton()
-        btn.setIcon(get_icon(icon))
-        btn.setIconSize(QSize(size, size))
-        btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setStyleSheet(STYLES["btn_icon_ghost"])
-        btn.clicked.connect(func)
-        return btn
 
     def _add_cmd_input(self, parent_layout, key, default):
         """Añade un par (Switch + Input) al layout vertical dado."""
@@ -189,7 +185,10 @@ class MusicPlayerPanel(QFrame):
     def update_state(self, title, artist, art_pixmap, prog, dur, is_playing):
         self.lbl_song.setText(title[:45] + "." if len(title) > 45 else title)
         self.lbl_artist.setText(artist)
+        
+        # Aquí también usamos el factory implícitamente al setear el icono
         self.btn_play.setIcon(get_icon("pause.svg" if is_playing else "play-circle.svg"))
+        
         if art_pixmap: 
             self.lbl_art.setPixmap(art_pixmap)
         if dur > 0:

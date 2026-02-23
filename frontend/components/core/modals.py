@@ -1,4 +1,4 @@
-# frontend/components/base_modal.py
+# frontend/components/core/modals.py
 
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QFrame, QGraphicsOpacityEffect
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve
@@ -6,7 +6,8 @@ from frontend.theme import THEME_DARK, LAYOUT
 
 class BaseModal(QDialog):
     """
-    Clase base para todos los diálogos modales.
+    Clase base para todos los diálogos modales de la aplicación.
+    Maneja la ventana sin bordes, el fondo transparente y las animaciones.
     """
     def __init__(self, parent=None, width=400, height=450):
         super().__init__(parent)
