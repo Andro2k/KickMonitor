@@ -109,10 +109,10 @@ class OverlayServerWorker(QThread):
             app.router.add_static('/assets', path=str(assets_path))
 
     async def handle_index(self, request):
-        path = self._get_asset_path("overlay.html")
+        path = self._get_asset_path("triggers_overlay.html")
         if path.exists():
             return web.FileResponse(path)
-        return web.Response(status=404, text="<h1>Error 404</h1><p>overlay.html no encontrado en assets.</p>", content_type='text/html')
+        return web.Response(status=404, text="<h1>Error 404</h1><p>triggers_overlay.html no encontrado en assets.</p>", content_type='text/html')
 
     async def handle_media_request(self, request):
         filename = request.match_info['filename']
