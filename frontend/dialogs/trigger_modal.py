@@ -134,7 +134,7 @@ class ModalEditMedia(BaseModal):
         self.combo_rewards.setEditable(True) 
         self.combo_rewards.setPlaceholderText("Cargando lista...") 
         self.combo_rewards.lineEdit().setMaxLength(20) 
-        self.combo_rewards.setStyleSheet(STYLES["combobox"])
+        self.combo_rewards.setStyleSheet(STYLES["combobox_modern"])
         
         self.combo_rewards.editTextChanged.connect(self._validate_title)
         self.combo_rewards.currentIndexChanged.connect(self._on_reward_selected)
@@ -334,10 +334,10 @@ class ModalEditMedia(BaseModal):
     def _validate_title(self, text):
         pattern = r"^[a-zA-Z0-9\sñÑáéíóúÁÉÍÓÚ]*$"
         if not re.match(pattern, text):
-            self.combo_rewards.setStyleSheet(STYLES["combobox"] + "border: 2px solid #e74c3c;")
+            self.combo_rewards.setStyleSheet(STYLES["combobox_modern"] + "border: 2px solid #e74c3c;")
             self.btn_save.setEnabled(False) 
         else:
-            self.combo_rewards.setStyleSheet(STYLES["combobox"])
+            self.combo_rewards.setStyleSheet(STYLES["combobox_modern"])
             self._check_save_enabled()
 
     def _validate_desc(self):
@@ -400,9 +400,9 @@ class ModalEditMedia(BaseModal):
         if not is_connected:
             self.combo_rewards.setPlaceholderText("⚠️ Error de Conexión")
             self.combo_rewards.addItem("Offline - Revise conexión") 
-            self.combo_rewards.setStyleSheet(STYLES["combobox"] + "border: 1px solid #e74c3c; color: #e74c3c;")
+            self.combo_rewards.setStyleSheet(STYLES["combobox_modern"] + "border: 1px solid #e74c3c; color: #e74c3c;")
         else:
-            self.combo_rewards.setStyleSheet(STYLES["combobox"])
+            self.combo_rewards.setStyleSheet(STYLES["combobox_modern"])
             
             if not rewards:
                 self.combo_rewards.setPlaceholderText("Sin recompensas")

@@ -184,7 +184,7 @@ class TriggerPage(QWidget):
         lbl_filter.setStyleSheet("border:none; color:#888;")
         
         self.combo_filter = QComboBox()
-        self.combo_filter.setStyleSheet(STYLES["combobox"])
+        self.combo_filter.setStyleSheet(STYLES["combobox_modern"])
         self.combo_filter.addItems(["Todos", "Activos", "Desactivados", "Video", "Audio"])
         self.combo_filter.currentIndexChanged.connect(self._handle_filter_changed)
 

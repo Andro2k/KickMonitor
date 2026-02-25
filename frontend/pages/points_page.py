@@ -153,7 +153,7 @@ class PointsPage(QWidget):
         h_bar.addWidget(self.inp_search, stretch=1)
         
         self.combo_filter = QComboBox()
-        self.combo_filter.setStyleSheet(STYLES["combobox"].replace(f"background-color: {THEME_DARK['Black_N2']}", "background-color: transparent"))
+        self.combo_filter.setStyleSheet(STYLES["combobox_modern"].replace(f"background-color: {THEME_DARK['Black_N2']}", "background-color: transparent"))
         self.combo_filter.addItems(["Todos", "Pausados", "Silenciados"])
         self.combo_filter.setFixedWidth(110)
         self.combo_filter.setCursor(Qt.CursorShape.PointingHandCursor)

@@ -23,7 +23,6 @@ def asset_url(filename: str) -> str:
 # ==========================================
 class Palette:
     """Sistema de Color 'Kick Midnight' (Exclusivo Dark Mode)."""
-    Black_N0       = "#030303"
     Black_N1       = "#08090B"
     Black_N2       = "#191919"
     Black_N3       = "#242424"
@@ -51,8 +50,7 @@ class Palette:
 class Dims:
     """Dimensiones y Espaciados."""
     radius = {
-        "card": "12px", "modal": "16px", "input": "8px",
-        "button": "8px", "chip": "6px", "scroll": "4px"
+        "card": "12px", "input": "8px", "scroll": "4px"
     }
     layout = {
         "level_01": (10,10,10,10), "level_02": (16,16,16,16), 
@@ -332,7 +330,7 @@ STYLES = {
     """,
     
     # --- COMPLEX WIDGETS ---
-    "combobox": f"""
+    "combobox_modern": f"""
         QComboBox {{
             background-color: {c.Black_N3}; border: 1px solid {c.border};
             color: {c.White_N1}; border-radius: 6px; padding: 6px; min-height: 18px;
@@ -347,13 +345,13 @@ STYLES = {
 
         QComboBox QAbstractItemView {{
             background-color: {c.NeonGreen_Dark}; color: {c.Black_N3};
-            selection-background-color: {c.NeonGreen_Light}; selection-color: {c.Black_N0}; padding: 4px;
+            selection-background-color: {c.NeonGreen_Light}; selection-color: {c.Black_N2}; padding: 4px;
         }}
     """,
     "spinbox_modern": f"""
         QSpinBox, QDoubleSpinBox {{
             background-color: {c.Black_N3}; color: {c.White_N1}; border-radius: {r['input']};
-            padding: 6px 10px; padding-right: 25px; selection-color: {c.Black_N0};
+            padding: 6px 10px; padding-right: 25px; selection-color: {c.Black_N2}; selection-background-color: {c.NeonGreen_Light};
         }}
         QSpinBox:focus, QDoubleSpinBox:focus {{  background-color: {c.Black_N3}; }}
         QSpinBox::up-button, QDoubleSpinBox::up-button {{

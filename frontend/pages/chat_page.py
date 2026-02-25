@@ -185,7 +185,7 @@ class ChatPage(QWidget):
         l = QVBoxLayout(f); l.setContentsMargins(*LAYOUT["level_03"]); l.setSpacing(LAYOUT["space_01"])
         l.addWidget(QLabel("Configuración de Voz", objectName="h3"))
         
-        self.c_voice = QComboBox(); self.c_voice.setStyleSheet(STYLES["combobox"]); self.c_voice.currentIndexChanged.connect(self._handle_tts_settings_changed)
+        self.c_voice = QComboBox(); self.c_voice.setStyleSheet(STYLES["combobox_modern"]); self.c_voice.currentIndexChanged.connect(self._handle_tts_settings_changed)
         l.addWidget(QLabel("Voz del Sistema:", styleSheet="color:#aaa; font-size:11px;")); l.addWidget(self.c_voice)
         
         # Desempaquetado de tuplas (Container, Slider)
@@ -243,8 +243,8 @@ class ChatPage(QWidget):
         h_head.addWidget(self.btn_copy_url); h_head.addWidget(btn_test); l.addLayout(h_head)
 
         h_combos = QHBoxLayout()
-        self.c_anim = QComboBox(); self.c_anim.setStyleSheet(STYLES["combobox"]); self.c_anim.addItems(["Aparecer (Fade)", "Rebotar (Pop)", "Deslizar Izq", "Deslizar Der"])
-        self.c_theme = QComboBox(); self.c_theme.setStyleSheet(STYLES["combobox"]); self.c_theme.addItems(["Burbuja Clásica", "Transparente", "Estilo Neón", "Horizontal (Línea)"])
+        self.c_anim = QComboBox(); self.c_anim.setStyleSheet(STYLES["combobox_modern"]); self.c_anim.addItems(["Aparecer (Fade)", "Rebotar (Pop)", "Deslizar Izq", "Deslizar Der"])
+        self.c_theme = QComboBox(); self.c_theme.setStyleSheet(STYLES["combobox_modern"]); self.c_theme.addItems(["Burbuja Clásica", "Transparente", "Estilo Neón", "Horizontal (Línea)"])
         self.c_anim.currentIndexChanged.connect(self._handle_overlay_settings_changed)
         self.c_theme.currentIndexChanged.connect(self._handle_overlay_settings_changed)
         

@@ -23,13 +23,13 @@ class AlertsPage(QWidget):
     def init_ui(self):
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(*LAYOUT["level_03"])
-        main_layout.setSpacing(20)
+        main_layout.setSpacing(12)
 
         # =========================================================
         # COLUMNA IZQUIERDA: PREVISUALIZACIÓN
         # =========================================================
         left_panel = QWidget()
-        left_panel.setMinimumWidth(400) 
+        left_panel.setMinimumWidth(460) 
         
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(0, 0, 0, 0)
@@ -39,7 +39,7 @@ class AlertsPage(QWidget):
 
         # Contenedor del Visor Web
         preview_container = QFrame()
-        preview_container.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px; border: 1px solid {THEME_DARK['Black_N1']};")
+        preview_container.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
         preview_layout = QVBoxLayout(preview_container)
         
         # Visor Web (Carga el HTML de OBS)
@@ -57,14 +57,14 @@ class AlertsPage(QWidget):
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(10)
         
-        self.btn_copy_url = QPushButton(" Copiar URL")
+        self.btn_copy_url = QPushButton("Copiar URL")
         self.btn_copy_url.setIcon(get_icon("copy.svg"))
         self.btn_copy_url.setStyleSheet(STYLES["btn_nav"])
         self.btn_copy_url.clicked.connect(self._handle_copy_url)
         
-        self.btn_test = QPushButton(" Reproducir Alerta")
-        self.btn_test.setIcon(get_icon_colored("play-circle.svg", THEME_DARK['White_N1']))
-        self.btn_test.setStyleSheet(STYLES["btn_primary"].replace(THEME_DARK['NeonGreen_Main'], THEME_DARK['Gray_N1']))
+        self.btn_test = QPushButton("Reproducir Alerta")
+        self.btn_test.setIcon(get_icon_colored("play-circle.svg", THEME_DARK['NeonGreen_Main']))
+        self.btn_test.setStyleSheet(STYLES["btn_primary"])
         self.btn_test.clicked.connect(self._test_alert)
         self.btn_test.setCursor(Qt.CursorShape.PointingHandCursor)
         
@@ -76,7 +76,7 @@ class AlertsPage(QWidget):
         # COLUMNA DERECHA: PANEL DE EDICIÓN (SCROLL)
         # =========================================================
         right_panel = QWidget()
-        right_panel.setFixedWidth(360) 
+        right_panel.setFixedWidth(300) 
         right_layout = QVBoxLayout(right_panel)
         right_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -87,12 +87,13 @@ class AlertsPage(QWidget):
         
         content_widget = QWidget()
         self.form_layout = QVBoxLayout(content_widget)
-        self.form_layout.setSpacing(15)
+        self.form_layout.setSpacing(5)
 
         # -- SECCIÓN 1: GENERAL --
         self.form_layout.addWidget(QLabel("<b>Ajustes Generales</b>", styleSheet="font-size: 14px;"))
         
         self.combo_alert = QComboBox()
+        self.combo_alert.setStyleSheet(STYLES["combobox_modern"])
         self.combo_alert.addItems(["Nuevo Seguidor", "Suscripción", "Host / Raid"])
         self.form_layout.addLayout(self._create_input_group("Seleccionar Alerta a editar:", self.combo_alert))
         
@@ -107,7 +108,7 @@ class AlertsPage(QWidget):
         self.form_layout.addLayout(self._create_input_group("Título de la Alerta (Visual en pantalla):", self.inp_title))
         
         self.txt_msg = QTextEdit()
-        self.txt_msg.setFixedHeight(60)
+        self.txt_msg.setFixedHeight(100)
         self.form_layout.addLayout(self._create_input_group("Mensaje en el Chat del stream:", self.txt_msg))
 
         # -- SECCIÓN 3: MULTIMEDIA --
@@ -128,13 +129,15 @@ class AlertsPage(QWidget):
 
         self.current_color = "#53fc18"
         self.btn_color = QPushButton()
-        self.btn_color.setFixedHeight(34)
+        self.btn_color.setFixedHeight(32)
         self.btn_color.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_color.clicked.connect(self._pick_color)
         self._update_color_btn()
         row_layout.addLayout(self._create_input_group("Color Principal:", self.btn_color))
         
         self.spin_duration = QSpinBox()
+        self.spin_duration.setFixedHeight(32)
+        self.spin_duration.setStyleSheet(f"{STYLES['spinbox_modern']};")
         self.spin_duration.setRange(1, 30)
         self.spin_duration.setValue(5)
         self.spin_duration.setSuffix(" seg")
@@ -142,17 +145,19 @@ class AlertsPage(QWidget):
         self.form_layout.addLayout(row_layout)
 
         self.combo_layout = QComboBox()
+        self.combo_layout.setStyleSheet(STYLES["combobox_modern"])
         self.combo_layout.addItems(["Imagen Arriba, Texto Abajo", "Imagen a la Izquierda", "Imagen a la Derecha"])
         self.form_layout.addLayout(self._create_input_group("Diseño (Layout):", self.combo_layout))
 
         self.combo_anim = QComboBox()
+        self.combo_anim.setStyleSheet(STYLES["combobox_modern"])
         self.combo_anim.addItems(["Pop In (Rebote)", "Fade In (Desvanecer)", "Slide Up (Deslizar)"])
         self.form_layout.addLayout(self._create_input_group("Animación de Entrada:", self.combo_anim))
 
         self.form_layout.addStretch()
 
         # Botón Guardar
-        self.btn_save = QPushButton(" Guardar Cambios")
+        self.btn_save = QPushButton("Guardar Cambios")
         self.btn_save.setIcon(get_icon_colored("save.svg", THEME_DARK['NeonGreen_Main']))
         self.btn_save.setStyleSheet(STYLES["btn_primary"])
         self.btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -187,7 +192,7 @@ class AlertsPage(QWidget):
         lbl.setStyleSheet(f"color: {THEME_DARK['Gray_N1']}; font-size: 11px;")
         
         base_style = f"background: {THEME_DARK['Black_N3']}; padding: 8px; border-radius: 6px; color: {THEME_DARK['White_N1']}; border: 1px solid {THEME_DARK['Black_N1']};"
-        if isinstance(widget, (QLineEdit, QTextEdit, QComboBox, QSpinBox)):
+        if isinstance(widget, (QLineEdit, QTextEdit)):
             widget.setStyleSheet(base_style)
             
         layout.addWidget(lbl)

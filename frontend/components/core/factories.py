@@ -147,7 +147,7 @@ def create_styled_button(text: str, style_key: str, func=None) -> QPushButton:
 def create_styled_combobox(items: list[str], width: int = 0) -> QComboBox:
     combo = QComboBox()
     combo.addItems(items)
-    combo.setStyleSheet(STYLES.get("combobox", ""))
+    combo.setStyleSheet(STYLES.get("combobox_modern", ""))
     if width > 0: combo.setFixedWidth(width)
     return combo
 
