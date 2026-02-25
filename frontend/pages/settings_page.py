@@ -16,8 +16,8 @@ from frontend.components.core.factories import (
     create_styled_input, create_styled_button, create_styled_combobox 
 )
 from frontend.theme import LAYOUT, STYLES, get_switch_style
-from frontend.alerts.toast_alert import ToastNotification
-from frontend.alerts.modal_alert import ModalConfirm
+from frontend.notifications.toast_alert import ToastNotification
+from frontend.notifications.modal_alert import ModalConfirm
 from backend.services.settings_service import SettingsService
 
 class SettingsPage(QWidget):

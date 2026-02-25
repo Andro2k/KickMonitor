@@ -1,4 +1,4 @@
-# frontend/alerts/modal_alert.py
+# frontend/notifications/modal_alert.py
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                              QPushButton, QFrame)
@@ -10,7 +10,7 @@ class CustomModal(QDialog):
         "status_success":  {"icon": "✓", "color": THEME_DARK['status_success']},
         "status_error":    {"icon": "✕", "color": THEME_DARK['status_error']},
         "status_warning": {"icon": "!", "color": THEME_DARK['status_warning']},
-        "info":          {"icon": "i", "color": THEME_DARK['info']}
+        "info":          {"icon": "i", "color": THEME_DARK['status_info']}
     }
 
     def __init__(self, parent, titulo: str, mensaje: str, tipo: str = "info", mode: str = "alert"):

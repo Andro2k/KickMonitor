@@ -1,4 +1,4 @@
-# frontend/alerts/startup_alert.py
+# frontend/notifications/startup_alert.py
 
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QFrame
 from PyQt6.QtCore import Qt
@@ -11,14 +11,12 @@ class AlreadyRunningDialog(QDialog):
         super().__init__()
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        # Aumentamos el alto a 240 para acomodar la imagen cómodamente
         self.setFixedSize(320, 240)
 
         # Layout principal transparente
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
 
-        # Contenedor principal (el fondo visible)
         self.container = QFrame()
         self.container.setStyleSheet("""
             QFrame {
@@ -72,7 +70,7 @@ class AlreadyRunningDialog(QDialog):
         inner_layout.addWidget(self.lbl_image)
         inner_layout.addWidget(lbl_title)
         inner_layout.addWidget(lbl_msg)
-        inner_layout.addStretch() # Empuja el botón hacia abajo
+        inner_layout.addStretch()
         inner_layout.addWidget(btn_ok)
 
         layout.addWidget(self.container)

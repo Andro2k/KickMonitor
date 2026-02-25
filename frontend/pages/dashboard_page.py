@@ -11,8 +11,8 @@ from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkRepl
 
 # Servicios y Alertas
 from backend.services.dashboard_service import DashboardService
-from frontend.alerts.modal_alert import ModalConfirm
-from frontend.alerts.toast_alert import ToastNotification
+from frontend.notifications.modal_alert import ModalConfirm
+from frontend.notifications.toast_alert import ToastNotification
 
 # Estilos y Utilidades
 from frontend.components.core.factories import create_card_header, create_dashboard_action_btn, create_shortcut_btn

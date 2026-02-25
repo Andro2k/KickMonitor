@@ -10,7 +10,7 @@ from PyQt6.QtGui import QIcon
 from frontend.main_window import MainWindow
 from frontend.utils import resource_path
 # IMPORTAMOS LA NUEVA ALERTA
-from frontend.alerts.startup_alert import AlreadyRunningDialog 
+from frontend.notifications.startup_alert import AlreadyRunningDialog 
 
 class LockWheelFilter(QObject):
     """

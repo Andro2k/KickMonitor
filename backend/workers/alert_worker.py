@@ -132,7 +132,6 @@ class AlertOverlayWorker(QObject):
             return_exceptions=True
         )
 
-    # 🔴 AQUÍ ESTÁ EL CAMBIO: Agregamos color y image_url
     def send_alert(self, alert_type: str, title: str, message: str, color: str = None, image_url: str = None):
         """
         Llama a este método desde tu bot para disparar la alerta visual en OBS.

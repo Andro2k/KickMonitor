@@ -14,8 +14,7 @@ def asset_url(filename: str) -> str:
     if getattr(sys, 'frozen', False):
         base_path = sys._MEIPASS
     else:
-        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   
     return os.path.join(base_path, "assets", "icons", filename).replace("\\", "/")
 
 # ==========================================
@@ -23,10 +22,10 @@ def asset_url(filename: str) -> str:
 # ==========================================
 class Palette:
     """Sistema de Color 'Kick Midnight' (Exclusivo Dark Mode)."""
-    Black_N1       = "#08090B"
-    Black_N2       = "#191919"
-    Black_N3       = "#242424"
-    Black_N4       = "#333333"
+    Black_N1       = "#141414"
+    Black_N2       = "#1C1C1C"
+    Black_N3       = "#252525"
+    Black_N4       = "#404040"
     
     Gray_N1        = "#8B8B8B"
     Gray_N2        = "#666666"
@@ -43,9 +42,6 @@ class Palette:
     status_success  = "#32D74B"
     status_warning  = "#FFD60A"
     status_info     = "#0A84FF"
-
-    border          = Gray_Border
-    info            = status_info
 
 class Dims:
     """Dimensiones y Espaciados."""
@@ -90,13 +86,13 @@ def get_sheet() -> str:
     
     /* --- CONTENEDORES --- */
     QFrame {{ border: none; }}
-    QFrame#Sidebar {{ background-color: {c.Black_N2}; border-right: 1px solid {c.border}; }}
+    QFrame#Sidebar {{ background-color: {c.Black_N2}; border-right: 1px solid {c.Gray_Border}; }}
     QScrollArea {{ background: transparent; border: none; }}
 
     /* --- INPUTS --- */
     QLineEdit, QPlainTextEdit {{ 
         background-color: {c.Black_N2}; color: {c.White_N1}; 
-        border-radius: {r['input']}; padding: 4px; border: 1px solid {c.border};
+        border-radius: {r['input']}; padding: 4px; border: 1px solid {c.Gray_Border};
     }}
     QLineEdit:focus, QPlainTextEdit:focus {{ border: 1px solid {c.NeonGreen_Main}; background-color: {c.Black_N3}; }}
     QLineEdit[readOnly="true"] {{ color: {c.NeonGreen_Main}; font-family: Consolas; }}
@@ -148,7 +144,7 @@ STYLES = {
     "label_readonly": f"""
         QLabel {{ 
             background: {c.Black_N3}; color: {c.Gray_N1}; 
-            font-family: Consolas; border: 1px solid {c.border};
+            font-family: Consolas; border: 1px solid {c.Gray_Border};
             border-radius: {r['input']}; padding: 4px;
         }}
     """,
@@ -202,7 +198,7 @@ STYLES = {
         QPlainTextEdit {{
             background-color: {c.Black_N3};
             color: {c.White_N1};
-            border: 1px solid {c.border};
+            border: 1px solid {c.Gray_Border};
             border-radius: {r['input']};
             padding: 8px;
         }}
@@ -214,7 +210,7 @@ STYLES = {
         QTextBrowser {{
             background-color: {c.Black_N2}; 
             color: {c.White_N1};
-            border: 1px solid {c.border};
+            border: 1px solid {c.Gray_Border};
             border-radius: {r['input']};
             padding: 6px;
             font-size: 12px;
@@ -292,7 +288,7 @@ STYLES = {
     "btn_toggle": f"""
         QPushButton {{
             background-color: {c.Black_N3};
-            border: 1px solid {c.border};
+            border: 1px solid {c.Gray_Border};
             border-radius: 6px;
             color: {c.White_N1};
             padding: 6px 12px;
@@ -322,7 +318,7 @@ STYLES = {
             background-color: {c.Black_N2}; gridline-color: {c.Black_N4}; outline: none; border: none;
         }}
         QHeaderView::section {{
-            background-color: {c.Black_N3}; color: {c.Gray_N1}; border: none; border-bottom: 1px solid {c.border};
+            background-color: {c.Black_N3}; color: {c.Gray_N1}; border: none; border-bottom: 1px solid {c.Gray_Border};
             padding: 8px; font-weight: bold; text-transform: uppercase; font-size: 11px;
         }}
         QTableWidget::item {{ padding: 6px; border-bottom: 1px solid {c.Black_N4}; }}
@@ -332,7 +328,7 @@ STYLES = {
     # --- COMPLEX WIDGETS ---
     "combobox_modern": f"""
         QComboBox {{
-            background-color: {c.Black_N3}; border: 1px solid {c.border};
+            background-color: {c.Black_N3}; border: 1px solid {c.Gray_Border};
             color: {c.White_N1}; border-radius: 6px; padding: 6px; min-height: 18px;
         }}
         QComboBox:hover, QComboBox:focus {{

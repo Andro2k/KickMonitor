@@ -19,8 +19,8 @@ from frontend.components.core.factories import (
 )
 from frontend.theme import LAYOUT, THEME_DARK, STYLES
 from frontend.utils import get_icon, get_icon_colored
-from frontend.alerts.modal_alert import ModalConfirm
-from frontend.alerts.toast_alert import ToastNotification
+from frontend.notifications.modal_alert import ModalConfirm
+from frontend.notifications.toast_alert import ToastNotification
 from backend.services.points_service import PointsService
 
 class PointsPage(QWidget):

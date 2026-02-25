@@ -44,7 +44,7 @@ class InfoModal(BaseModal):
             QTextBrowser {{
                 background-color: {THEME_DARK['Black_N3']};
                 color: {THEME_DARK['White_N1']};
-                border: 1px solid {THEME_DARK['border']};
+                border: 1px solid {THEME_DARK['Gray_Border']};
                 border-radius: 8px;
                 padding: 10px;
                 font-family: 'Segoe UI';

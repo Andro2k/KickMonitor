@@ -8,8 +8,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from frontend.components.core.factories import create_icon_btn, create_nav_btn, create_page_header
 from frontend.theme import LAYOUT, THEME_DARK, STYLES
-from frontend.alerts.modal_alert import ModalConfirm
-from frontend.alerts.toast_alert import ToastNotification
+from frontend.notifications.modal_alert import ModalConfirm
+from frontend.notifications.toast_alert import ToastNotification
 from backend.services.commands_service import CommandsService
 
 # Modal importado (Ya refactorizado con BaseModal)
@@ -109,7 +109,7 @@ class CommandsPage(QWidget):
             btn_edit = create_icon_btn(
                 "edit.svg", 
                 lambda _, t=trigger, r=response, c=cooldown: self._open_edit_modal(t, r, c),
-                color_hover=THEME_DARK['info']
+                color_hover=THEME_DARK['status_info']
             )
             btn_del = create_icon_btn(
                 "trash.svg",

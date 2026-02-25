@@ -216,7 +216,7 @@ class ChatPage(QWidget):
         
         row_top.addWidget(btn_test); row_top.addWidget(self.voice_btn); l.addLayout(row_top)
         
-        sep = QFrame(); sep.setFixedHeight(1); sep.setStyleSheet(f"background: {THEME_DARK['border']};"); l.addWidget(sep)
+        sep = QFrame(); sep.setFixedHeight(1); sep.setStyleSheet(f"background: {THEME_DARK['Gray_Border']};"); l.addWidget(sep)
         
         self.chk_command_only = QCheckBox("Solo leer si inicia con comando"); self.chk_command_only.setCursor(Qt.CursorShape.PointingHandCursor)
         self.chk_command_only.setStyleSheet(f"QCheckBox {{ color: {THEME_DARK['Gray_N1']}; spacing: 8px; }}"); self.chk_command_only.stateChanged.connect(self._handle_filter_changed)
@@ -286,7 +286,7 @@ class ChatPage(QWidget):
         w_time, self.s_hide_time = self._create_slider_widget("Desaparecer después de (Seg)", 5, 60, self._handle_overlay_settings_changed)
         l.addWidget(w_time)
 
-        sep = QFrame(); sep.setFixedHeight(1); sep.setStyleSheet(f"background: {THEME_DARK['border']};"); l.addWidget(sep)
+        sep = QFrame(); sep.setFixedHeight(1); sep.setStyleSheet(f"background: {THEME_DARK['Gray_Border']};"); l.addWidget(sep)
         l.addWidget(QLabel("Usuarios ignorados (separados por coma):", styleSheet="color:#aaa; font-size:11px;"))
         
         self.txt_ignored = TagInputContainer()

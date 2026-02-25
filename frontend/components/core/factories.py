@@ -168,7 +168,7 @@ def create_dashboard_action_btn(text: str, icon_name: str, func=None) -> QPushBu
             background-color: {THEME_DARK['Black_N3']}; 
             color: {THEME_DARK['White_N1']}; 
             border-radius: 8px; font-weight: bold; font-size: 13px; text-align: left; padding-left: 15px; 
-            border: 1px solid {THEME_DARK['border']};
+            border: 1px solid {THEME_DARK['Gray_Border']};
         }}
     """)
     if func: btn.clicked.connect(func)
@@ -203,7 +203,7 @@ def create_help_btn(func=None) -> QPushButton:
     btn.setStyleSheet(f"""
         QPushButton {{
             background-color: transparent;
-            border: 1px solid {THEME_DARK['border']}; 
+            border: 1px solid {THEME_DARK['Gray_Border']}; 
             border-radius: 16px;
         }}
         QPushButton:hover {{

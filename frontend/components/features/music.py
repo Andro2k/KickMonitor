@@ -122,7 +122,7 @@ class MusicPlayerPanel(QFrame):
         # ==========================================
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.VLine)
-        sep.setStyleSheet(f"color: {THEME_DARK['border']}; margin: 2px;")
+        sep.setStyleSheet(f"color: {THEME_DARK['Gray_Border']}; margin: 2px;")
         main_layout.addWidget(sep)
 
         # ==========================================

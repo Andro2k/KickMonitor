@@ -12,8 +12,8 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
 from PyQt6.QtGui import QColor, QCursor, QTextCursor
 
 from backend.utils.paths import get_config_path
-from frontend.alerts.modal_alert import ModalConfirm
-from frontend.alerts.toast_alert import ToastNotification
+from frontend.notifications.modal_alert import ModalConfirm
+from frontend.notifications.toast_alert import ToastNotification
 from frontend.components.core.factories import create_icon_btn
 from frontend.theme import STYLES, THEME_DARK, get_switch_style
 from frontend.components.core.modals import BaseModal

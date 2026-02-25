@@ -8,8 +8,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
-from frontend.alerts.modal_alert import ModalConfirm
-from frontend.alerts.toast_alert import ToastNotification
+from frontend.notifications.modal_alert import ModalConfirm
+from frontend.notifications.toast_alert import ToastNotification
 from frontend.components.core.factories import create_page_header
 from frontend.components.core.layouts import FlowLayout
 from frontend.components.features.casino import GameConfigCard, LimitsCard

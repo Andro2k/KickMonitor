@@ -9,10 +9,10 @@ from PyQt6.QtCore import QThread, Qt, QTimer, pyqtSignal
 
 # --- MÓDULOS INTERNOS ---
 from backend.services.triggers_service import TriggerService
-from frontend.alerts.info_modal import InfoModal
+from frontend.dialogs.info_modal import InfoModal
 
-from frontend.alerts.modal_alert import ModalConfirm
-from frontend.alerts.toast_alert import ToastNotification
+from frontend.notifications.modal_alert import ModalConfirm
+from frontend.notifications.toast_alert import ToastNotification
 
 from frontend.components.core.cards import Card
 from frontend.components.core.factories import (

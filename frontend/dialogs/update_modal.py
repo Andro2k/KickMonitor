@@ -21,7 +21,7 @@ class UpdateModal(BaseModal):
         self.body.setStyleSheet(f"""
             QFrame#ModalBody {{
                 background-color: {THEME_DARK['Black_N1']};
-                border: 1px solid {THEME_DARK['border']};
+                border: 1px solid {THEME_DARK['Gray_Border']};
                 border-radius: 16px;
             }}
         """)

@@ -11,7 +11,7 @@ from frontend.components.core.cards import BaseAccordionCard
 
 # Importaciones del resto de la app
 from frontend.theme import THEME_DARK, STYLES, get_switch_style
-from frontend.alerts.toast_alert import ToastNotification
+from frontend.notifications.toast_alert import ToastNotification
 from frontend.utils import get_icon_colored
 
 # =========================================================================
@@ -49,7 +49,7 @@ class AlertCard(BaseAccordionCard):
                 background-color: {THEME_DARK['Black_N3']}; 
                 color: {THEME_DARK['White_N1']}; 
                 border-radius: 6px; padding: 6px 12px; font-weight: bold;
-                border: 1px solid {THEME_DARK['border']};
+                border: 1px solid {THEME_DARK['Gray_Border']};
             }}
             QPushButton:hover {{ background-color: {THEME_DARK['Black_N2']}; }}
         """)

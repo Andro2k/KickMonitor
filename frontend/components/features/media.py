@@ -15,8 +15,8 @@ from frontend.utils import ThumbnailWorker, get_icon_colored, get_icon, get_roun
 from frontend.components.core.factories import create_icon_btn
 
 # Importaciones del resto de la app
-from frontend.alerts.modal_alert import ModalConfirm
-from frontend.alerts.toast_alert import ToastNotification
+from frontend.notifications.modal_alert import ModalConfirm
+from frontend.notifications.toast_alert import ToastNotification
 from frontend.dialogs.trigger_modal import ModalEditMedia
 
 # =========================================================================
