@@ -130,7 +130,7 @@ class TriggerPage(QWidget):
 
     def _setup_config_section(self):
         """
-        Panel de control unificado: Añadir Archivos, Copiar URL y Estado Global del Overlay.
+        Panel de control unificado: Añadir Archivos, Copiar URL y Estado del Overlay.
         """
         card = Card(self)
         card.setFixedHeight(70)
@@ -150,10 +150,6 @@ class TriggerPage(QWidget):
         # 2. Botón Copiar URL (Secundario/Nav)
         btn_copy = create_nav_btn("Copiar URL Overlay", "copy.svg", self._handle_copy_url)
 
-        # 3. Estado Global (Switch)
-        title = QLabel("Estado Global:")
-        title.setStyleSheet(f"color: {THEME_DARK['Gray_N2']}; font-weight: bold; font-size: 13px;")
-
         self.chk_on = QCheckBox("Overlay Activo")
         self.chk_on.setCursor(Qt.CursorShape.PointingHandCursor)
         self.chk_on.setStyleSheet(get_switch_style())
@@ -164,7 +160,6 @@ class TriggerPage(QWidget):
         layout.addWidget(btn_add)
         layout.addWidget(btn_copy)
         layout.addStretch()
-        layout.addWidget(title)
         layout.addWidget(self.chk_on)
 
         card.layout.addLayout(layout)
