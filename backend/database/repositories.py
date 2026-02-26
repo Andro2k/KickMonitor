@@ -89,15 +89,15 @@ class EconomyRepository:
     def delete_user(self, username: str): 
         return self.conn.execute_query("DELETE FROM data_users WHERE username=?", (username,))
     
-    def add_gamble_entry(self, username, game, result, profit, is_win):
-        query = "INSERT INTO gamble_history (username, game_type, result_text, profit, is_win) VALUES (?, ?, ?, ?, ?)"
-        return self.conn.execute_query(query, (username, game, result, profit, int(is_win)))
+    # def add_gamble_entry(self, username, game, result, profit, is_win):
+    #     query = "INSERT INTO gamble_history (username, game_type, result_text, profit, is_win) VALUES (?, ?, ?, ?, ?)"
+    #     return self.conn.execute_query(query, (username, game, result, profit, int(is_win)))
 
-    def get_gamble_history(self, limit=50):
-        return self.conn.fetch_all("SELECT timestamp, username, game_type, result_text, is_win FROM gamble_history ORDER BY id DESC LIMIT ?", (limit,))
+    # def get_gamble_history(self, limit=50):
+    #     return self.conn.fetch_all("SELECT timestamp, username, game_type, result_text, is_win FROM gamble_history ORDER BY id DESC LIMIT ?", (limit,))
 
-    def clear_gamble_history(self): 
-        return self.conn.execute_query("DELETE FROM gamble_history")
+    # def clear_gamble_history(self): 
+    #     return self.conn.execute_query("DELETE FROM gamble_history")
 
 class TriggersRepository:
     def __init__(self, conn): self.conn = conn

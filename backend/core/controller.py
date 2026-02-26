@@ -21,18 +21,14 @@ from backend.workers.unified_server import UnifiedOverlayWorker
 from backend.workers.update_worker import UpdateCheckerWorker, UpdateDownloaderWorker
 from backend.workers.kick_worker import FollowMonitorWorker
 # --- LÓGICA DE NEGOCIO (SERVICIOS Y HANDLERS) ---
-from backend.game.casino import CasinoSystem
 from backend.services.commands_service import CommandsService
 from backend.handlers.chat_handler import ChatHandler
 from backend.handlers.music_handler import MusicHandler
-from backend.handlers.game_handler import GameHandler
 from backend.handlers.triggers_handler import TriggerHandler
 from frontend.dialogs.update_modal import UpdateModal
 
 class MainController(QObject):
     """Controlador Principal (Facade Pattern)."""
-    
-    # --- SEÑALES UI ---
     log_signal = pyqtSignal(str)
     chat_signal = pyqtSignal(str, str, str)
     status_signal = pyqtSignal(str)
@@ -48,8 +44,7 @@ class MainController(QObject):
         self.shared_scraper = cloudscraper.create_scraper()
         self._ignored_users_cache = set()
         self._update_ignored_users_cache()
-        self.cmd_service = CommandsService(self.db)
-        self.casino_system = CasinoSystem(self.db)       
+        self.cmd_service = CommandsService(self.db)     
 
         self._init_spotify()
         self._init_tts() 
@@ -57,8 +52,7 @@ class MainController(QObject):
 
         self.alerts_service = AlertsService(self.db, self.unified_server)
         self.chat_handler = ChatHandler(self.db)
-        self.music_handler = MusicHandler(self.db, self.spotify) 
-        self.game_handler = GameHandler(self.db, self.casino_system)
+        self.music_handler = MusicHandler(self.db, self.spotify)
         self.trigger_handler = TriggerHandler(self.db, self.unified_server, self.shared_scraper)
         self.antibot = AntibotHandler(self.db)
 
@@ -108,7 +102,6 @@ class MainController(QObject):
 
         command_handlers = [
             lambda: self.music_handler.handle_command(user, content, msg_lower, self.send_msg, self.emit_log),
-            lambda: self.game_handler.handle_command(user, msg_lower, self.send_msg, self.gamble_result_signal.emit),
             lambda: self._handle_custom_responses(user, msg_lower),
             lambda: self._handle_points_query(user, msg_lower)
         ]
@@ -319,7 +312,6 @@ class MainController(QObject):
         if self.tts_enabled: 
             self.tts.add_message(f"Gracias {name} por seguirme.")
         
-        # Usamos el servicio de alertas directamente desde el controlador
         final_msg = self.alerts_service.trigger_alert(
             event_type="follow", 
             username=name, 

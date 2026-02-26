@@ -40,12 +40,6 @@ class DBHandler:
             role TEXT DEFAULT ''
         """,
         "custom_commands": "trigger TEXT PRIMARY KEY, response TEXT, is_active INTEGER DEFAULT 1, cooldown INTEGER DEFAULT 5",
-        "gamble_history": """
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            username TEXT, game_type TEXT, result_text TEXT, 
-            profit INTEGER, is_win INTEGER
-        """,
         "stream_alerts": """
             event_type TEXT PRIMARY KEY, title_template TEXT, message_template TEXT, 
             is_active INTEGER DEFAULT 1, image_url TEXT, sound_url TEXT, 
@@ -62,8 +56,6 @@ class DBHandler:
         "points_name": "Créditos", "points_per_msg": "10", "points_per_min": "20", "points_command": "!puntos",
         "spotify_enabled": "0", "spotify_client_id": "", "spotify_secret": "", "spotify_redirect_uri": "http://127.0.0.1:8888",
         "music_cmd_song": "!song", "music_cmd_skip": "!skip", "music_cmd_pause": "!pause", "music_cmd_request": "!sr",
-        "gamble_enabled": "1", "gamble_win_rate": "45", "gamble_multiplier": "2.0", "gamble_min": "10", "gamble_max": "1000", "slots_jackpot_x": "10",
-        "roulette_multi_num": "35.0", "roulette_multi_col": "2.0", "highcard_multiplier": "2.0", 
         "auto_connect": "0", "minimize_to_tray": "0","app_language": "es", "date_format": "24h", "debug_mode": "0",
     }
 
@@ -180,10 +172,6 @@ class DBHandler:
     def set_user_muted(self, user: str, muted: bool): return self.economy.set_muted(user, muted)
     def is_muted(self, user: str) -> bool: return self.economy.is_muted(user)
     def update_user_role(self, user: str, role: str): return self.economy.update_role(user, role)
-    
-    def add_gamble_entry(self, user, game, res, profit, win): return self.economy.add_gamble_entry(user, game, res, profit, win)
-    def get_gamble_history(self, limit=50): return self.economy.get_gamble_history(limit)
-    def clear_gamble_history(self): return self.economy.clear_gamble_history()
 
     # =========================================================================
     # REGIÓN 6: FACHADA - CARACTERÍSTICAS (COMMANDS, OVERLAY, ALERTS)
@@ -232,5 +220,4 @@ class DBHandler:
     def wipe_economy_data(self):
         with QMutexLocker(self.conn_handler.mutex):
             self.conn_handler.conn.execute("UPDATE data_users SET points = 0")
-            self.conn_handler.conn.execute("DELETE FROM gamble_history")
             self.conn_handler.conn.commit()

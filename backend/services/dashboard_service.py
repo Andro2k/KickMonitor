@@ -74,9 +74,8 @@ class DashboardService:
             ("terminal.svg", "Comandos", 2),
             ("bell.svg", "Alertas", 3), 
             ("layers.svg", "Triggers", 4), 
-            ("users.svg", "Usuarios", 5), 
-            ("casino.svg", "Casino", 6), 
-            ("settings.svg", "Configuración", 7)
+            ("users.svg", "Usuarios", 5),
+            ("settings.svg", "Configuración", 6)
         ]
 
     # --- COMANDOS DE MÚSICA ---

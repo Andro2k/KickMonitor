@@ -124,14 +124,13 @@ class Sidebar(QFrame):
         self._add_btn("Alertas", "bell.svg", 3)
         self._add_btn("Triggers", "layers.svg", 4)
         self._add_btn("Usuarios", "users.svg", 5)
-        self._add_btn("Casino", "casino.svg", 6)
         
         self.menu_layout.addStretch()
         
         # OTHER
         self.menu_layout.addSpacing(15)
         self._add_section_label("PREFERENCIAS")
-        self._add_btn("Configuración", "settings.svg", 7)
+        self._add_btn("Configuración", "settings.svg", 6)
 
         scroll.setWidget(content)
         self.layout.addWidget(scroll)

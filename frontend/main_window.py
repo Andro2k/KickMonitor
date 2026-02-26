@@ -27,7 +27,7 @@ from frontend.pages.settings_page import SettingsPage
 from frontend.pages.trigger_page import TriggerPage
 from frontend.pages.points_page import PointsPage
 from frontend.pages.commands_page import CommandsPage
-from frontend.pages.casino_page import GamblingPage
+# from frontend.pages.casino_page import GamblingPage
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -66,13 +66,13 @@ class MainWindow(QMainWindow):
         self.ui_alerts = AlertsPage(db, self.controller.unified_server)
         self.ui_overlay = TriggerPage(self.controller.unified_server, db)
         self.ui_points = PointsPage(db)
-        self.ui_gamble = GamblingPage(db, self.controller)
+        # self.ui_gamble = GamblingPage(db, self.controller)
         self.ui_conf = SettingsPage(db, self.controller)
         
         self.pages_list = [
             self.ui_home, self.ui_chat, self.ui_cmds,
             self.ui_alerts, self.ui_overlay, self.ui_points,
-            self.ui_gamble, self.ui_conf
+            # self.ui_gamble, self.ui_conf
         ]
 
     def setup_ui(self):
@@ -125,7 +125,7 @@ class MainWindow(QMainWindow):
         self.controller.user_info_signal.connect(self.ui_chat.update_user_info)
         self.controller.user_info_signal.connect(lambda u,f,p: self.ui_home.refresh_data())
         self.controller.user_info_signal.connect(lambda u, f, p: self.sidebar.update_user_info(u, p))
-        self.controller.gamble_result_signal.connect(self.ui_gamble.add_history_entry)
+        # self.controller.gamble_result_signal.connect(self.ui_gamble.add_history_entry)
 
     def toggle_connection(self):
         if self.controller.worker is None: 
