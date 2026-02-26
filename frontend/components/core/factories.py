@@ -1,10 +1,11 @@
 # frontend/factories.py
 
 from PyQt6.QtWidgets import (
-    QComboBox, QPushButton, QWidget, QHBoxLayout, 
+    QComboBox, QFrame, QPushButton, QWidget, QHBoxLayout, 
     QCheckBox, QSizePolicy, QVBoxLayout, QLabel, QLineEdit, QGridLayout
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
+from frontend.components.core.layouts import FlowLayout
 from frontend.theme import STYLES, THEME_DARK, get_switch_style
 from frontend.utils import get_icon
 
@@ -202,3 +203,144 @@ def create_help_btn(func=None) -> QPushButton:
     """)
     if func: btn.clicked.connect(func)
     return btn
+
+# =============================================================================
+# INPUTS DINÁMICOS (TAGS Y ALIAS)
+# =============================================================================
+class ModernPill(QFrame):
+    """Componente visual reutilizable para Etiquetas (Tags) o Alias."""
+    def __init__(self, text: str, remove_callback, theme="green", parent=None):
+        super().__init__(parent)
+        self.text = text
+        self.setObjectName("pill")
+        
+        # Sistema de Temas
+        if theme == "green":
+            bg_color = "rgba(83, 252, 24, 0.15)"
+            border_color = "rgba(83, 252, 24, 0.3)"
+            text_color = "#53fc18"
+            hover_bg = "rgba(255, 76, 76, 0.2)" # Rojo suave al pasar el mouse
+        else: 
+            bg_color = "#191919"
+            border_color = "#4a4a5a"
+            text_color = "#d1d1e0"
+            hover_bg = "#3d3d4a"
+
+        self.setStyleSheet(f"""
+            #pill {{ background-color: {bg_color}; border: 1px solid {border_color}; border-radius: 12px; }}
+            QLabel {{ color: {text_color}; font-size: 11px; font-weight: bold; border: none; padding-left: 4px; background: transparent;}}
+            QPushButton {{
+                border: none; border-radius: 10px; background: transparent;
+            }}
+            QPushButton:hover {{ background-color: {hover_bg}; }}
+        """)
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 4, 4, 4)
+        layout.setSpacing(4)
+        
+        lbl = QLabel(text)
+        
+        # --- AQUÍ ESTÁ TU NUEVO BOTÓN CON SVG ---
+        btn = QPushButton()
+        # Cambia "x.svg" por el nombre de tu archivo si es diferente (ej: "close.svg", "trash.svg")
+        btn.setIcon(get_icon("x.svg")) 
+        from PyQt6.QtCore import QSize
+        btn.setIconSize(QSize(14, 14)) # Ajusta el tamaño del icono interno
+        btn.setFixedSize(20, 20)       # Ajusta el tamaño de la zona de click
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn.clicked.connect(lambda: remove_callback(self))
+        
+        layout.addWidget(lbl)
+        layout.addWidget(btn)
+
+
+class DynamicTagInput(QWidget):
+    """Contenedor universal para gestionar inputs de etiquetas, alias o usuarios."""
+    tags_changed = pyqtSignal()
+    
+    def __init__(self, placeholder="Escribe y presiona Enter...", theme="green", max_tags=10, max_length=30, prefix="", parent=None):
+        super().__init__(parent)
+        self.tags = []
+        self.theme = theme
+        self.max_tags = max_tags
+        self.max_length = max_length
+        self.prefix = prefix 
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        
+        self.input = QLineEdit()
+        self.input.setPlaceholderText(placeholder)
+        self.input.setMaxLength(100) 
+        self.input.returnPressed.connect(self._add_from_input)
+        
+        self.flow_container = QWidget()
+        self.flow_container.setStyleSheet("background-color: transparent;")
+        
+        # --- EL CAMBIO CLAVE ESTÁ AQUÍ (expand_items=False) ---
+        self.flow_layout = FlowLayout(self.flow_container, margin=0, spacing=5, expand_items=False)
+        
+        layout.addWidget(self.input)
+        layout.addWidget(self.flow_container)
+
+    def _add_from_input(self):
+        text = self.input.text().strip().lower()
+        if text:
+            for t in text.split(","):
+                if len(self.tags) >= self.max_tags:
+                    break 
+                    
+                clean_t = t.strip()
+                if clean_t:
+                    # --- NUEVO: Reemplazar espacios por guiones automáticamente ---
+                    clean_t = clean_t.replace(" ", "-")
+                    
+                    # Aplica el prefijo automáticamente si se requiere y no lo tiene
+                    if self.prefix and not clean_t.startswith(self.prefix):
+                        clean_t = self.prefix + clean_t
+                    
+                    if len(clean_t) > self.max_length:
+                        clean_t = clean_t[:self.max_length]
+                        
+                    if clean_t not in self.tags:
+                        self.tags.append(clean_t)
+                        pill = ModernPill(clean_t, self._remove_tag, theme=self.theme)
+                        self.flow_layout.addWidget(pill)
+            self.input.clear()
+            self.tags_changed.emit()
+
+    def _remove_tag(self, pill):
+        if pill.text in self.tags:
+            self.tags.remove(pill.text)
+        self.flow_layout.removeWidget(pill)
+        pill.deleteLater()
+        self.tags_changed.emit()
+
+    def get_tags_string(self):
+        return ",".join(self.tags)
+
+    def set_tags_from_string(self, text):
+        self.tags.clear()
+        for i in reversed(range(self.flow_layout.count())):
+            w = self.flow_layout.itemAt(i).widget()
+            if w:
+                self.flow_layout.removeWidget(w)
+                w.deleteLater()
+                
+        if not text: return
+        for t in text.split(","):
+            if len(self.tags) >= self.max_tags: break
+            
+            clean_t = t.strip()
+            if clean_t:
+                clean_t = clean_t.replace(" ", "-")
+                
+                if self.prefix and not clean_t.startswith(self.prefix):
+                    clean_t = self.prefix + clean_t
+                if len(clean_t) > self.max_length:
+                    clean_t = clean_t[:self.max_length]
+                self.tags.append(clean_t)
+                pill = ModernPill(clean_t, self._remove_tag, theme=self.theme)
+                self.flow_layout.addWidget(pill)

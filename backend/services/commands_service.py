@@ -19,12 +19,19 @@ class CommandsService:
         """Obtiene la lista completa de comandos para la frontend."""
         return self.db.get_all_commands()
 
-    def add_or_update_command(self, trigger: str, response: str, cooldown: int = 5) -> bool:
+    def add_or_update_command(self, trigger: str, response: str, cooldown: int = 5, aliases: str = "", cost: int = 0) -> bool:
         """Crea o actualiza un comando asegurando el formato correcto."""
         clean_trig = trigger.strip().lower()
         if not clean_trig.startswith("!"):
             clean_trig = "!" + clean_trig          
-        return self.db.add_command(clean_trig, response, cooldown)
+        clean_aliases = []
+        for a in aliases.split(','):
+            a_strip = a.strip().lower()
+            if a_strip:
+                if not a_strip.startswith("!"): a_strip = "!" + a_strip
+                clean_aliases.append(a_strip)
+                
+        return self.db.add_command(clean_trig, response, cooldown, ",".join(clean_aliases), cost)
 
     def delete_command(self, trigger: str) -> bool:
         """Elimina un comando de la base de datos."""
@@ -73,26 +80,39 @@ class CommandsService:
     # =========================================================================
     # REGIÓN 3: LÓGICA DE EJECUCIÓN (RUNTIME)
     # =========================================================================
-    def can_execute(self, trigger: str) -> Tuple[bool, Optional[str]]:
+    def can_execute(self, command_used: str, username: str) -> Tuple[bool, Optional[str]]:
         """
-        Verifica reglas de negocio para ejecutar un comando
+        Verifica reglas de negocio para ejecutar un comando (Cooldown, Costo, Alias).
         """
         now = time.time()
         
-        # 1. Obtener configuración
-        data = self.db.get_command_details(trigger)
+        # 1. Obtener configuración usando el buscador avanzado (trigger o alias)
+        data = self.db.get_command_by_trigger_or_alias(command_used)
         if not data: 
             return False, None      
-        response_text, is_active, cooldown_secs = data       
+            
+        response_text = data['response']
+        is_active = data['is_active']
+        cooldown_secs = data['cooldown']
+        cost = data['cost']
+        main_trigger = data['trigger'] # Usamos el principal para llevar el registro del cooldown
+        
         if not is_active:
             return False, None
 
         # 2. Verificar Cooldown
-        last_used = self._cooldown_tracker.get(trigger, 0.0)
+        last_used = self._cooldown_tracker.get(main_trigger, 0.0)
         time_passed = now - last_used
         if time_passed >= cooldown_secs:
-            self._cooldown_tracker[trigger] = now
+            
+            # 3. Verificar y Cobrar Costo
+            if cost > 0:
+                if not self.db.spend_points(username, cost):
+                    return False, f"@{username} necesitas {cost} puntos para usar este comando."
+            
+            # Si todo está bien, registramos el uso y ejecutamos
+            self._cooldown_tracker[main_trigger] = now
             return True, response_text
         else:
             remaining = int(cooldown_secs - time_passed) + 1
-            return False, f"⏳ El comando {trigger} estará listo en {remaining}s."
+            return False, f"⏳ El comando estará listo en {remaining}s."

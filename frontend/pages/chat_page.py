@@ -7,115 +7,11 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QColor
-from frontend.components.core.factories import create_page_header
+from frontend.components.core.factories import DynamicTagInput, create_page_header
 from frontend.components.core.layouts import FlowLayout
 from frontend.theme import LAYOUT, THEME_DARK, STYLES
 from frontend.utils import get_icon, get_icon_colored
 from backend.services.chat_service import ChatService
-
-from PyQt6.QtCore import pyqtSignal
-
-class TagPill(QFrame):
-    """Componente visual que representa el Pin/Tag con el botón X"""
-    def __init__(self, text, remove_callback, parent=None):
-        super().__init__(parent)
-        self.text = text
-        self.setObjectName("pill")
-        
-        # Estilo inspirado en la imagen (fondo oscuro, bordes suaves)
-        self.setStyleSheet("""
-            #pill {
-                background-color: #191919; 
-                border: 1px solid #4a4a5a;
-                border-radius: 12px;
-            }
-            QLabel { 
-                color: #d1d1e0; font-size: 11px; font-weight: bold; 
-                border: none; padding-left: 4px; 
-            }
-            QPushButton {
-                color: #888; border: none; font-weight: bold; font-size: 10px;
-                border-radius: 8px; padding-right: 4px; padding-left: 4px;
-            }
-            QPushButton:hover { color: #ff4c4c; background-color: #3d3d4a; }
-        """)
-        
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(8, 4, 4, 4)
-        layout.setSpacing(4)
-        
-        lbl = QLabel(text)
-        btn = QPushButton("x")
-        btn.setFixedSize(20, 20)
-        btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.clicked.connect(lambda: remove_callback(self))
-        
-        layout.addWidget(lbl)
-        layout.addWidget(btn)
-
-class TagInputContainer(QWidget):
-    """Contenedor que maneja el campo de texto y dibuja los TagPills"""
-    tags_changed = pyqtSignal()
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.tags = []
-        
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
-        
-        # 1. El campo donde el usuario escribe
-        self.input = QLineEdit()
-        self.input.setPlaceholderText("Escribe un usuario y presiona Enter...")
-        self.input.returnPressed.connect(self._add_from_input)
-        
-        # 2. El contenedor donde aparecerán los pines mágicamente
-        self.flow_container = QWidget()
-        self.flow_layout = FlowLayout(self.flow_container, margin=0, spacing=5)
-        
-        layout.addWidget(self.input)
-        layout.addWidget(self.flow_container)
-
-    def _add_from_input(self):
-        text = self.input.text().strip().lower()
-        if text:
-            # Permitir que el usuario pegue varios nombres separados por coma
-            for t in text.split(","):
-                clean_t = t.strip()
-                if clean_t and clean_t not in self.tags:
-                    self.tags.append(clean_t)
-                    pill = TagPill(clean_t, self._remove_tag)
-                    self.flow_layout.addWidget(pill)
-            self.input.clear()
-            self.tags_changed.emit()
-
-    def _remove_tag(self, pill):
-        if pill.text in self.tags:
-            self.tags.remove(pill.text)
-        self.flow_layout.removeWidget(pill)
-        pill.deleteLater()
-        self.tags_changed.emit()
-
-    def get_tags_string(self):
-        return ",".join(self.tags)
-
-    def set_tags_from_string(self, text):
-        self.tags.clear()
-        # Limpiar pines anteriores de la UI
-        for i in reversed(range(self.flow_layout.count())):
-            w = self.flow_layout.itemAt(i).widget()
-            if w:
-                self.flow_layout.removeWidget(w)
-                w.deleteLater()
-                
-        if not text: return
-        for t in text.split(","):
-            clean_t = t.strip()
-            if clean_t:
-                self.tags.append(clean_t)
-                pill = TagPill(clean_t, self._remove_tag)
-                self.flow_layout.addWidget(pill)
 
 class ChatPage(QWidget):
     def __init__(self, db, tts_worker, chat_overlay_worker=None, parent=None):
@@ -153,9 +49,10 @@ class ChatPage(QWidget):
         controls_container = QWidget()
         controls_layout = FlowLayout(controls_container, margin=0, spacing=10)
         
-        # Insertamos las tarjetas
-        for card in [self._create_tts_card(), self._create_actions_card(), 
-                     self._create_overlay_design_card(), self._create_overlay_behavior_card()]:
+        # --- EL CAMBIO ESTÁ AQUÍ: Pasamos de 4 funciones a 3 ---
+        for card in [self._create_tts_unified_card(), 
+                     self._create_overlay_design_card(), 
+                     self._create_overlay_behavior_card()]:
             controls_layout.addWidget(card)
         
         l_content.addWidget(controls_container)
@@ -178,51 +75,71 @@ class ChatPage(QWidget):
         layout.addLayout(h_box)
 
     # ==========================================
-    # TARJETAS DE TTS
+    # TARJETA UNIFICADA DE TTS
     # ==========================================
-    def _create_tts_card(self):
-        f = QFrame(); f.setMinimumWidth(280); f.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
+    def _create_tts_unified_card(self):
+        f = QFrame(); f.setMinimumWidth(320)
+        f.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
         l = QVBoxLayout(f); l.setContentsMargins(*LAYOUT["level_03"]); l.setSpacing(LAYOUT["space_01"])
-        l.addWidget(QLabel("Configuración de Voz", objectName="h3"))
         
-        self.c_voice = QComboBox(); self.c_voice.setStyleSheet(STYLES["combobox_modern"]); self.c_voice.currentIndexChanged.connect(self._handle_tts_settings_changed)
-        l.addWidget(QLabel("Voz del Sistema:", styleSheet="color:#aaa; font-size:11px;")); l.addWidget(self.c_voice)
+        # --- HEADER: Título + Comando + Switch ---
+        h_head = QHBoxLayout()
+        h_head.addWidget(QLabel("Texto a Voz (TTS)", objectName="h3"))
+        h_head.addStretch()
         
-        # Desempaquetado de tuplas (Container, Slider)
+        h_head.addWidget(QLabel("Comando:", styleSheet="color:#aaa; font-size:11px; font-weight:bold;"))
+        self.txt_cmd_tts = QLineEdit()
+        self.txt_cmd_tts.setPlaceholderText("!voz")
+        self.txt_cmd_tts.setFixedWidth(60)
+        self.txt_cmd_tts.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.txt_cmd_tts.setStyleSheet(STYLES["input_readonly"])
+        self.txt_cmd_tts.editingFinished.connect(self._handle_command_saved)
+        h_head.addWidget(self.txt_cmd_tts)
+        
+        self.chk_command_only = QCheckBox("Solo comando")
+        self.chk_command_only.setCursor(Qt.CursorShape.PointingHandCursor)
+        # Puedes usar get_switch_style() aquí si prefieres el diseño de interruptor verde
+        self.chk_command_only.setStyleSheet(f"QCheckBox {{ color: {THEME_DARK['Gray_N1']}; spacing: 6px; font-size: 11px; font-weight: bold; }}")
+        self.chk_command_only.stateChanged.connect(self._handle_filter_changed)
+        h_head.addWidget(self.chk_command_only)
+        
+        l.addLayout(h_head)
+
+        # --- FILA 1: Voz + Probar + Silenciar ---
+        v_voice = QVBoxLayout(); v_voice.setSpacing(5)
+        v_voice.addWidget(QLabel("Voz del Sistema:", styleSheet="color:#aaa; font-size:11px;"))
+        
+        h_voice = QHBoxLayout()
+        self.c_voice = QComboBox()
+        self.c_voice.setStyleSheet(STYLES["combobox_modern"])
+        self.c_voice.currentIndexChanged.connect(self._handle_tts_settings_changed)
+        h_voice.addWidget(self.c_voice, stretch=1) # stretch=1 hace que el combo ocupe el espacio sobrante
+        
+        btn_test = QPushButton(" Probar")
+        btn_test.setIcon(get_icon("play-circle.svg")); btn_test.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_test.setStyleSheet(STYLES["btn_nav"]); btn_test.clicked.connect(self._handle_test_audio)
+        h_voice.addWidget(btn_test)
+        
+        self.voice_btn = QPushButton(); self.voice_btn.setFixedSize(32, 32)
+        self.voice_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.voice_btn.setCheckable(True); self.voice_btn.setChecked(True)
+        self.voice_btn.clicked.connect(self._update_mute_visuals)
+        h_voice.addWidget(self.voice_btn)
+        
+        v_voice.addLayout(h_voice)
+        l.addLayout(v_voice)
+
+        # --- FILA 2: Sliders ---
         w_rate, self.s_rate = self._create_slider_widget("Velocidad", 50, 300, self._handle_tts_settings_changed)
         w_vol, self.s_vol = self._create_slider_widget("Volumen", 0, 100, self._handle_tts_settings_changed)
         
         grid = QGridLayout()
         grid.addWidget(w_rate, 0, 0); grid.addWidget(w_vol, 0, 1)
-        l.addLayout(grid); l.addStretch()
-        return f
+        l.addLayout(grid)
 
-    def _create_actions_card(self):
-        f = QFrame(); f.setMinimumWidth(280); f.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
-        l = QVBoxLayout(f); l.setContentsMargins(*LAYOUT["level_03"]); l.setSpacing(LAYOUT["space_01"])
-        l.addWidget(QLabel("Comportamiento TTS", objectName="h3"))
-        
-        row_top = QHBoxLayout()
-        self.txt_cmd_tts = QLineEdit(); self.txt_cmd_tts.setPlaceholderText("!voz"); self.txt_cmd_tts.setFixedWidth(80)
-        self.txt_cmd_tts.setAlignment(Qt.AlignmentFlag.AlignCenter); self.txt_cmd_tts.setStyleSheet(STYLES["input_readonly"])
-        self.txt_cmd_tts.editingFinished.connect(self._handle_command_saved)
-        row_top.addWidget(QLabel("Trigger:", styleSheet="color:#aaa; font-weight:bold;")); row_top.addWidget(self.txt_cmd_tts); row_top.addStretch()
-        
-        btn_test = QPushButton(" Test Audio"); btn_test.setIcon(get_icon("play-circle.svg")); btn_test.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_test.setStyleSheet(STYLES["btn_nav"]); btn_test.clicked.connect(self._handle_test_audio)
-        
-        self.voice_btn = QPushButton(); self.voice_btn.setFixedSize(36, 36); self.voice_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.voice_btn.setCheckable(True); self.voice_btn.setChecked(True); self.voice_btn.clicked.connect(self._update_mute_visuals)
-        
-        row_top.addWidget(btn_test); row_top.addWidget(self.voice_btn); l.addLayout(row_top)
-        
-        sep = QFrame(); sep.setFixedHeight(1); sep.setStyleSheet(f"background: {THEME_DARK['Gray_Border']};"); l.addWidget(sep)
-        
-        self.chk_command_only = QCheckBox("Solo leer si inicia con comando"); self.chk_command_only.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.chk_command_only.setStyleSheet(f"QCheckBox {{ color: {THEME_DARK['Gray_N1']}; spacing: 8px; }}"); self.chk_command_only.stateChanged.connect(self._handle_filter_changed)
-        l.addWidget(self.chk_command_only); l.addStretch()
-        return f
-
+        l.addStretch()
+        return f   
+    
     # ==========================================
     # TARJETAS DE OVERLAY
     # ==========================================
@@ -289,8 +206,13 @@ class ChatPage(QWidget):
         sep = QFrame(); sep.setFixedHeight(1); sep.setStyleSheet(f"background: {THEME_DARK['Gray_Border']};"); l.addWidget(sep)
         l.addWidget(QLabel("Usuarios ignorados (separados por coma):", styleSheet="color:#aaa; font-size:11px;"))
         
-        self.txt_ignored = TagInputContainer()
-        self.txt_ignored.input.setStyleSheet(STYLES["input_cmd"]) # Mantenemos tu estilo original en la caja
+        self.txt_ignored = DynamicTagInput(
+            placeholder="Escribe un usuario y presiona Enter...",
+            theme="dark",   # Tema gris/oscuro
+            max_tags=50,    # Límite alto para ignorados
+            prefix=""       # Sin prefijo
+        )
+        self.txt_ignored.input.setStyleSheet(STYLES["input_cmd"]) 
         self.txt_ignored.tags_changed.connect(self._handle_overlay_settings_changed)
         l.addWidget(self.txt_ignored); l.addStretch()
         return f

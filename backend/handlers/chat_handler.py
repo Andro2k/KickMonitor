@@ -61,24 +61,52 @@ class ChatHandler:
     def format_custom_message(self, message: str, user: str, args: str, extra_context: Dict[str, Any] = None) -> str:
         final = message
         ctx = extra_context or {}
+        
+        # --- Variables de Usuario y Texto ---
         final = final.replace("{user}", user)
         final = final.replace("{input}", args)
         final = final.replace("{target}", args if args else user)
         
         first_arg = args.split(" ")[0] if args else user
-        final = final.replace("{arg1}", first_arg)
-        final = final.replace("{touser}", first_arg.replace("@", ""))
+        clean_target = first_arg.replace("@", "") # Nombre sin el @
         
+        final = final.replace("{arg1}", first_arg)
+        final = final.replace("{touser}", clean_target)
+        
+        # --- Variables de Economía ---
         if "{points}" in final: 
             final = final.replace("{points}", str(self.db.get_points(user)))           
+        if "{target_points}" in final:
+            # Obtiene los puntos del usuario que fue mencionado en el comando
+            final = final.replace("{target_points}", str(self.db.get_points(clean_target)))
+
+        # --- Variables del Canal ---
         if "{streamer}" in final: 
             final = final.replace("{streamer}", self.db.get("kick_username") or "Streamer")
             
+        if "{followers}" in final:
+            streamer = self.db.get("kick_username")
+            followers = 0
+            if streamer:
+                streamer_data = self.db.get_kick_user(streamer)
+                if streamer_data: 
+                    followers = streamer_data.get("followers", 0)
+            # Formatea con puntos de miles (ej: 1.500)
+            final = final.replace("{followers}", "{:,}".format(followers).replace(',', '.'))
+            
+        # --- Variables de Azar y Juegos ---
         if "{random}" in final: final = final.replace("{random}", str(random.randint(1, 100)))
         if "{coin}" in final: final = final.replace("{coin}", random.choice(["Cara 🌕", "Cruz 🌑"]))
         if "{dice}" in final: final = final.replace("{dice}", str(random.randint(1, 6)))
+        if "{8ball}" in final: 
+            respuestas = ["Sí.", "No.", "Tal vez.", "Definitivamente.", "No cuentes con ello.", "Pregunta de nuevo más tarde."]
+            final = final.replace("{8ball}", random.choice(respuestas))
+
+        # --- Variables de Tiempo ---
         if "{time}" in final: final = final.replace("{time}", datetime.now().strftime("%H:%M"))
+        if "{date}" in final: final = final.replace("{date}", datetime.now().strftime("%d/%m/%Y"))
         
+        # --- Variables Externas ---
         if "{song}" in final:
             final = final.replace("{song}", ctx.get("song", "Música no disponible"))      
             

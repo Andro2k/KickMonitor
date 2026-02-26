@@ -39,7 +39,7 @@ class DBHandler:
             is_paused INTEGER DEFAULT 0, is_muted INTEGER DEFAULT 0,
             role TEXT DEFAULT ''
         """,
-        "custom_commands": "trigger TEXT PRIMARY KEY, response TEXT, is_active INTEGER DEFAULT 1, cooldown INTEGER DEFAULT 5",
+        "custom_commands": "trigger TEXT PRIMARY KEY, response TEXT, is_active INTEGER DEFAULT 1, cooldown INTEGER DEFAULT 5, aliases TEXT DEFAULT '', cost INTEGER DEFAULT 0",
         "stream_alerts": """
             event_type TEXT PRIMARY KEY, title_template TEXT, message_template TEXT, 
             is_active INTEGER DEFAULT 1, image_url TEXT, sound_url TEXT, 
@@ -109,7 +109,7 @@ class DBHandler:
                 ("path", "TEXT DEFAULT ''"), ("random_pos", "INTEGER DEFAULT 0")
             ],
             "data_users": [("is_paused", "INTEGER DEFAULT 0"), ("is_muted", "INTEGER DEFAULT 0"), ("role", "TEXT DEFAULT ''")],
-            "custom_commands": [("cooldown", "INTEGER DEFAULT 5")],
+            "custom_commands": [("cooldown", "INTEGER DEFAULT 5"), ("aliases", "TEXT DEFAULT ''"), ("cost", "INTEGER DEFAULT 0")],
             "timers": [("interval", "INTEGER DEFAULT 15"), ("last_run", "REAL DEFAULT 0")]
         }
         
@@ -185,8 +185,8 @@ class DBHandler:
     def clear_all_triggers(self): return self.triggers.clear_all()
     def get_active_shop_items(self) -> List: return self.triggers.get_shop_items()
 
-    def add_command(self, trig, resp, cd=5): return self.commands.add_command(trig, resp, cd)
-    def get_custom_response(self, trig: str) -> Optional[str]: return self.commands.get_response(trig)
+    def add_command(self, trig, resp, cd=5, aliases="", cost=0): return self.commands.add_command(trig, resp, cd, aliases, cost)
+    def get_command_by_trigger_or_alias(self, cmd: str): return self.commands.get_details_by_trigger_or_alias(cmd)
     def get_command_details(self, trig: str): return self.commands.get_details(trig)
     def get_all_commands(self) -> List: return self.commands.get_all()
     def delete_command(self, trig: str): return self.commands.delete(trig)
@@ -225,27 +225,20 @@ class DBHandler:
     def cleanup_obsolete_tables(self) -> List[str]:
         """
         Busca tablas en SQLite que no estén definidas en TABLE_SCHEMAS y las elimina.
-        Retorna una lista con los nombres de las tablas borradas.
         """
         dropped_tables = []
-        
-        # Obtenemos las tablas válidas actuales y agregamos la tabla interna de secuencias de SQLite
         valid_tables = list(self.TABLE_SCHEMAS.keys()) + ["sqlite_sequence"]
 
         with QMutexLocker(self.conn_handler.mutex):
             cursor = self.conn_handler.conn.cursor()
-            
-            # Consultamos a SQLite cuáles son TODAS las tablas que existen físicamente
+
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
             current_tables = [row['name'] for row in cursor.fetchall()]
 
             for table in current_tables:
-                # Si la tabla no está en nuestro esquema válido y no es una tabla oculta de SQLite
                 if table not in valid_tables and not table.startswith('sqlite_'):
                     cursor.execute(f"DROP TABLE IF EXISTS {table}")
                     dropped_tables.append(table)
-            
-            # Si borramos algo, usamos VACUUM para desfragmentar y recuperar el tamaño en disco
             if dropped_tables:
                 self.conn_handler.conn.commit()
                 self.conn_handler.conn.execute("VACUUM")

@@ -88,16 +88,6 @@ class EconomyRepository:
 
     def delete_user(self, username: str): 
         return self.conn.execute_query("DELETE FROM data_users WHERE username=?", (username,))
-    
-    # def add_gamble_entry(self, username, game, result, profit, is_win):
-    #     query = "INSERT INTO gamble_history (username, game_type, result_text, profit, is_win) VALUES (?, ?, ?, ?, ?)"
-    #     return self.conn.execute_query(query, (username, game, result, profit, int(is_win)))
-
-    # def get_gamble_history(self, limit=50):
-    #     return self.conn.fetch_all("SELECT timestamp, username, game_type, result_text, is_win FROM gamble_history ORDER BY id DESC LIMIT ?", (limit,))
-
-    # def clear_gamble_history(self): 
-    #     return self.conn.execute_query("DELETE FROM gamble_history")
 
 class TriggersRepository:
     def __init__(self, conn): self.conn = conn
@@ -142,17 +132,31 @@ class TriggersRepository:
 class ChatCommandsRepository:
     def __init__(self, conn): self.conn = conn
 
-    def add_command(self, trigger, response, cooldown=5):
+    def add_command(self, trigger, response, cooldown=5, aliases="", cost=0):
         trig = trigger.lower().strip()
         trig = trig if trig.startswith("!") else f"!{trig}"
-        return self.conn.execute_query("INSERT OR REPLACE INTO custom_commands (trigger, response, is_active, cooldown) VALUES (?, ?, 1, ?)", (trig, response, cooldown))
+        return self.conn.execute_query(
+            "INSERT OR REPLACE INTO custom_commands (trigger, response, is_active, cooldown, aliases, cost) VALUES (?, ?, 1, ?, ?, ?)", 
+            (trig, response, cooldown, aliases, cost)
+        )
 
-    def get_response(self, trigger):
-        res = self.conn.fetch_one("SELECT response FROM custom_commands WHERE trigger = ? AND is_active = 1", (trigger.lower(),))
-        return res['response'] if res else None
+    def get_details_by_trigger_or_alias(self, cmd: str) -> Optional[Dict]:
+        """Busca un comando verificando tanto su trigger principal como sus alias."""
+        cmd_lower = cmd.lower().strip()
+        rows = self.conn.fetch_all("SELECT trigger, response, is_active, cooldown, aliases, cost FROM custom_commands")
+        
+        for row in rows:
+            # Coincidencia exacta con el trigger
+            if row['trigger'] == cmd_lower:
+                return dict(row)
+            
+            # Coincidencia con algún alias
+            aliases_list = [a.strip().lower() for a in row['aliases'].split(',') if a.strip()]
+            if cmd_lower in aliases_list:
+                return dict(row)         
+        return None
 
-    def get_details(self, trigger): return self.conn.fetch_one("SELECT response, is_active, cooldown FROM custom_commands WHERE trigger = ?", (trigger.lower(),))
-    def get_all(self): return self.conn.fetch_all("SELECT trigger, response, is_active, cooldown FROM custom_commands")
+    def get_all(self): return self.conn.fetch_all("SELECT trigger, response, is_active, cooldown, aliases, cost FROM custom_commands")
     def delete(self, trigger): return self.conn.execute_query("DELETE FROM custom_commands WHERE trigger = ?", (trigger,))
     def toggle_active(self, trigger, is_active): return self.conn.execute_query("UPDATE custom_commands SET is_active = ? WHERE trigger = ?", (int(is_active), trigger))
 

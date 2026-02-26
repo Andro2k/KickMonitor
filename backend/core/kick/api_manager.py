@@ -108,8 +108,15 @@ class KickAPIManager:
         if not self.broadcaster_user_id:
             self.log(LoggerText.error("No se puede enviar el mensaje: Falta el ID del canal (broadcaster_user_id)."))
             return
+
+        # --- NUEVO: LÍMITE ESTRICTO DE KICK (500 CARACTERES) ---
+        if len(text) > 500:
+            text = text[:497] + "..."
+            self.log(LoggerText.warning("Un mensaje fue truncado por exceder el límite de 500 caracteres de Kick."))
+
         headers = { "Authorization": f"Bearer {self.auth.access_token}", "Content-Type": "application/json" }
         payload = { "broadcaster_user_id": int(self.broadcaster_user_id), "content": text, "type": "bot" }
+        
         try:
             async with self.session.post("https://api.kick.com/public/v1/chat", json=payload, headers=headers) as resp:
                 if resp.status == 401 and retry:
