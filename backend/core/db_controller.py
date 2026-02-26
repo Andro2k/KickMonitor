@@ -221,3 +221,33 @@ class DBHandler:
         with QMutexLocker(self.conn_handler.mutex):
             self.conn_handler.conn.execute("UPDATE data_users SET points = 0")
             self.conn_handler.conn.commit()
+
+    def cleanup_obsolete_tables(self) -> List[str]:
+        """
+        Busca tablas en SQLite que no estén definidas en TABLE_SCHEMAS y las elimina.
+        Retorna una lista con los nombres de las tablas borradas.
+        """
+        dropped_tables = []
+        
+        # Obtenemos las tablas válidas actuales y agregamos la tabla interna de secuencias de SQLite
+        valid_tables = list(self.TABLE_SCHEMAS.keys()) + ["sqlite_sequence"]
+
+        with QMutexLocker(self.conn_handler.mutex):
+            cursor = self.conn_handler.conn.cursor()
+            
+            # Consultamos a SQLite cuáles son TODAS las tablas que existen físicamente
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            current_tables = [row['name'] for row in cursor.fetchall()]
+
+            for table in current_tables:
+                # Si la tabla no está en nuestro esquema válido y no es una tabla oculta de SQLite
+                if table not in valid_tables and not table.startswith('sqlite_'):
+                    cursor.execute(f"DROP TABLE IF EXISTS {table}")
+                    dropped_tables.append(table)
+            
+            # Si borramos algo, usamos VACUUM para desfragmentar y recuperar el tamaño en disco
+            if dropped_tables:
+                self.conn_handler.conn.commit()
+                self.conn_handler.conn.execute("VACUUM")
+                
+        return dropped_tables

@@ -43,10 +43,8 @@ class SettingsService:
     # =========================================================================
     def reset_user_data(self):
         """Wrapper para el reset de usuario y eliminación de sesión OAuth."""
-        # 1. Limpiamos la base de datos (Usuario, IDs, etc)
         self.db.factory_reset_user()
 
-        # 2. 🔴 EL FIX: Eliminamos el archivo físico que mantiene abierta la sesión de Kick
         session_file = os.path.join(get_config_path(), "session.json")
         if os.path.exists(session_file):
             try:
@@ -96,3 +94,7 @@ class SettingsService:
             
         except Exception as e:
             raise Exception(f"Error al restaurar: {str(e)}")
+        
+    def cleanup_obsolete_tables(self) -> list:
+        """Llama al controlador de DB para eliminar tablas que ya no existen en el esquema actual."""
+        return self.db.cleanup_obsolete_tables()

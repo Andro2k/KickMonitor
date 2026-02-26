@@ -47,17 +47,6 @@ def create_icon_btn(icon_name: str, func=None, **kwargs) -> QPushButton:
     if func: btn.clicked.connect(func)
     return btn
 
-def create_table_actions_widget(buttons: list) -> QWidget:
-    container = QWidget()
-    container.setStyleSheet("background: transparent;")
-    layout = QHBoxLayout(container)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(4)
-    layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    
-    for btn in buttons: layout.addWidget(btn)
-    return container
-
 def create_switch_widget(checked: bool, func=None, tooltip: str = "") -> QWidget:
     container = QWidget()
     container.setStyleSheet("background: transparent;")

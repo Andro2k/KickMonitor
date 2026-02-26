@@ -140,6 +140,9 @@ class SettingsPage(QWidget):
         l_backup.addWidget(create_styled_button("Importar", "btn_outlined", self._handle_restore_backup))
 
         self.content_layout.addWidget(create_setting_row("Copia de Seguridad", "Exporta tus datos o restaura un .db anterior.", backup_container))
+      
+        # --- NUEVO BOTÓN DE LIMPIEZA ---
+        self._create_action_row("Limpiar Base de Datos", "Elimina tablas antiguas (ej. casino) y optimiza el archivo.", "Limpiar Tablas Obsoletas", "btn_outlined", self._handle_cleanup_db)       
         self._create_action_row("Reiniciar Economía", "Establece los puntos de TODOS a 0. Irreversible.", "Reiniciar Puntos", "btn_danger_outlined", self._handle_reset_economy)
         self._create_action_row("Cerrar Sesión", "Elimina las credenciales y desconecta el bot.", "Desvincular Cuenta", "btn_danger_outlined", self._handle_unlink_account)
 
@@ -190,6 +193,17 @@ class SettingsPage(QWidget):
 
     def _handle_open_logs_folder(self):
         QDesktopServices.openUrl(QUrl.fromLocalFile(get_app_data_path()))
+
+    def _handle_cleanup_db(self):
+        mensaje = "¿Deseas buscar y eliminar tablas obsoletas de la base de datos?<br><br>Esto liberará espacio borrando características antiguas que ya no usas."
+        if ModalConfirm(self, "Limpiar Tablas", mensaje).exec():
+            # Llamamos al servicio para que ejecute la limpieza
+            tablas_borradas = self.service.cleanup_obsolete_tables()
+            
+            if tablas_borradas:
+                ToastNotification(self, "Limpieza Exitosa", f"Se eliminaron: {', '.join(tablas_borradas)}", "status_success").show_toast()
+            else:
+                ToastNotification(self, "Optimizado", "No se encontraron tablas obsoletas. Todo está limpio.", "status_info").show_toast()
 
     def _debug_check_db(self):
         ToastNotification(self, "DB Debug", f"Archivo: {self.db.get_db_path()}", "status_info").show_toast()
