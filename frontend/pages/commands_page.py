@@ -135,7 +135,7 @@ class CommandsPage(QWidget):
             if not alias_list:
                 lbl = QLabel("Sin alias")
                 lbl.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-                lbl.setStyleSheet("background-color: rgba(255, 60, 60, 0.15); color: #ff5c5c; padding: 4px 10px; border-radius: 10px; font-size: 11px; font-weight: bold;")
+                lbl.setStyleSheet("background-color: rgba(255, 60, 60, 0.15); color: #ff5c5c; padding: 4px 10px; border-radius: 10px; font-size: 12px; font-weight: bold;")
                 l_alias.addWidget(lbl)
             else:
                 for a in alias_list:
@@ -144,9 +144,9 @@ class CommandsPage(QWidget):
                     lbl.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
                     
                     if is_active:
-                        lbl.setStyleSheet("background-color: rgba(83, 252, 24, 0.15); color: #53fc18; padding: 4px 10px; border-radius: 10px; font-size: 11px; font-weight: bold;")
+                        lbl.setStyleSheet("background-color: rgba(83, 252, 24, 0.15); color: #53fc18; padding: 4px 10px; border-radius: 10px; font-size: 12px; font-weight: bold;")
                     else:
-                        lbl.setStyleSheet("background-color: rgba(150, 150, 150, 0.15); color: #888; padding: 4px 10px; border-radius: 10px; font-size: 11px; font-weight: bold;")
+                        lbl.setStyleSheet("background-color: rgba(150, 150, 150, 0.15); color: #888; padding: 4px 10px; border-radius: 10px; font-size: 12px; font-weight: bold;")
                     l_alias.addWidget(lbl)
             
             # --- 4. COSTO ---

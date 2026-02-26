@@ -214,7 +214,7 @@ class Sidebar(QFrame):
     # ==========================================
     def _add_section_label(self, text: str):
         lbl = QLabel(text)
-        lbl.setStyleSheet(f"color: {THEME_DARK['Gray_N2']}; font-size: 11px; font-weight: bold; margin: 5px 0px 5px 5px;")
+        lbl.setStyleSheet(f"color: {THEME_DARK['Gray_N2']}; font-size: 12px; font-weight: bold; margin: 5px 0px 5px 5px;")
         self.menu_layout.addWidget(lbl)
         self.section_labels.append(lbl)
 

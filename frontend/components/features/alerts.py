@@ -32,7 +32,7 @@ class AlertCard(BaseAccordionCard):
         self.txt_msg.setPlainText(msg)
         self.txt_msg.setPlaceholderText(f"Variables disponibles: {default_vars}")
         self.txt_msg.setFixedHeight(60)
-        self.txt_msg.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 6px; padding: 6px; border: 1px solid {THEME_DARK['Gray_Border']};")
+        self.txt_msg.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 6px; padding: 6px;")
         
         # Switch Activar
         self.chk_active = QCheckBox("Activar Alerta")
@@ -48,8 +48,7 @@ class AlertCard(BaseAccordionCard):
             QPushButton {{ 
                 background-color: {THEME_DARK['Black_N3']}; 
                 color: {THEME_DARK['White_N1']}; 
-                border-radius: 6px; padding: 6px 12px; font-weight: bold;
-                border: 1px solid {THEME_DARK['Gray_Border']};
+                border-radius: 6px; padding: 6px 12px; font-weight: bold;               
             }}
             QPushButton:hover {{ background-color: {THEME_DARK['Black_N2']}; }}
         """)
@@ -85,22 +84,17 @@ class AlertCard(BaseAccordionCard):
             ToastNotification(self, "Guardado", "Configuración actualizada", "status_success").show_toast()
 
     def _test_alert(self):
-        # 1. Forzamos un guardado rápido para probar exactamente el texto que acabas de modificar
         self._save()
-        
-        # 2. Si la alerta no está activa en el Switch, el servicio la ignorará. Avisamos al usuario:
+
         if not self.chk_active.isChecked():
             ToastNotification(self, "Aviso", "Activa la alerta para poder probarla.", "status_warning").show_toast()
             return
 
-        # 3. Creamos datos falsos para que las variables tengan sentido
         mock_data = {
             "count": 120,      
             "months": 6,       
             "viewers": 450     
         }
-        
-        # 4. Disparamos la alerta mediante el servicio
         self.service.trigger_alert(self.event_type, "UsuarioTest", mock_data)
         ToastNotification(self, "Prueba Enviada", "¡Revisa tu OBS!", "info").show_toast()
 
@@ -134,7 +128,7 @@ class TimerCard(BaseAccordionCard):
         self.txt_msg = QTextEdit()
         self.txt_msg.setPlainText(msg)
         self.txt_msg.setFixedHeight(60)
-        self.txt_msg.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 6px; padding: 6px; border: 1px solid {THEME_DARK['Gray_Border']};")
+        self.txt_msg.setStyleSheet(f"background-color: {THEME_DARK['Black_N3']}; border-radius: 6px; padding: 6px; ")
 
         # 3. Footer (Switch + Guardar)
         self.chk_active = QCheckBox("Activar")

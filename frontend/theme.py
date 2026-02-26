@@ -103,7 +103,7 @@ def get_sheet() -> str:
     QPushButton#MenuBtnMini:checked {{ background-color: rgba(83, 252, 24, 0.1); border: 1px solid {c.NeonGreen_Dark}; }}
 
     /* --- SLIDERS --- */
-    QSlider::groove:horizontal {{ border: 1px solid {c.Black_N4}; height: 6px; border-radius: 3px; background-color: transparent; }}
+    QSlider::groove:horizontal {{ background-color: {c.Black_N3}; border: 1px solid {c.Black_N4}; height: 6px; border-radius: 3px; }}
     QSlider::handle:horizontal {{ background-color: {c.NeonGreen_Main}; width: 16px; height: 16px; margin: -5px 0; border-radius: 8px; }}
 
     /* --- SCROLLBARS --- */
@@ -190,7 +190,7 @@ STYLES = {
     """,
     "text_edit_console": f"""
          QTextEdit {{
-            background-color: {c.Black_N2}; color: {c.Gray_N1};
+            background-color: {c.Black_N3}; color: {c.Gray_N1};
             font-family: Consolas, monospace; font-size: 12px; padding: 10px; border: none;
         }}
     """,
@@ -319,7 +319,7 @@ STYLES = {
         }}
         QHeaderView::section {{
             background-color: {c.Black_N3}; color: {c.Gray_N1}; border: none; border-bottom: 1px solid {c.Gray_Border};
-            padding: 8px; font-weight: bold; text-transform: uppercase; font-size: 11px;
+            padding: 8px; font-weight: bold; text-transform: uppercase; font-size: 12px;
         }}
         QTableWidget::item {{ padding: 6px; border-bottom: 1px solid {c.Black_N4}; }}
         QTableWidget::item:selected {{ background-color: {c.White_N2}; color: {c.NeonGreen_Main}; }}

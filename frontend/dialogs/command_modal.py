@@ -17,8 +17,7 @@ class ModalEditCommand(BaseModal):
         self.body.setStyleSheet(f"""
             QFrame#ModalBody {{
                 background-color: {THEME_DARK['Black_N1']};
-                border: 1px solid {THEME_DARK['Gray_Border']};
-                border-radius: 16px;
+                border-radius: 12px;
             }}
         """)
         self.original_trigger = trigger
@@ -67,7 +66,7 @@ class ModalEditCommand(BaseModal):
         h_resp.addStretch()
         
         # Contador visual de caracteres
-        self.lbl_char_count = QLabel("0/450", styleSheet="color: #666; font-size: 11px; border: none; margin-top: 5px;")
+        self.lbl_char_count = QLabel("0/450", styleSheet="color: #666; font-size: 12px; border: none; margin-top: 5px;")
         h_resp.addWidget(self.lbl_char_count)
         layout.addLayout(h_resp)
         
@@ -79,7 +78,7 @@ class ModalEditCommand(BaseModal):
         self._on_response_changed() # Llamada inicial para setear el contador
         
         texto_variables = "Variables: {user}, {touser}, {input}, {points}, {target_points}, {followers}, {8ball}, {coin}, {dice}, {time}, {date}"
-        lbl_vars = QLabel(texto_variables, styleSheet=f"color: {THEME_DARK['Gray_N2']}; font-size: 11px; border: none;")
+        lbl_vars = QLabel(texto_variables, styleSheet=f"color: {THEME_DARK['Gray_N2']}; font-size: 12px; border: none;")
         lbl_vars.setWordWrap(True)
         layout.addWidget(lbl_vars)
 
@@ -143,7 +142,7 @@ class ModalEditCommand(BaseModal):
             text = text[:max_chars]
             
         color = "#ff4c4c" if len(text) >= max_chars else "#666"
-        self.lbl_char_count.setStyleSheet(f"color: {color}; font-size: 11px; font-weight: bold; border: none; margin-top: 5px;")
+        self.lbl_char_count.setStyleSheet(f"color: {color}; font-size: 12px; font-weight: bold; border: none; margin-top: 5px;")
         self.lbl_char_count.setText(f"{len(text)}/{max_chars}")
 
     def _save(self):

@@ -83,8 +83,8 @@ class MusicPlayerPanel(QFrame):
 
         # -- Tiempos --
         time_layout = QHBoxLayout()
-        self.lbl_curr = QLabel("0:00", styleSheet="color: #888; font-size: 11px;")
-        self.lbl_total = QLabel("0:00", styleSheet="color: #888; font-size: 11px;")
+        self.lbl_curr = QLabel("0:00", styleSheet="color: #888; font-size: 12px;")
+        self.lbl_total = QLabel("0:00", styleSheet="color: #888; font-size: 12px;")
         time_layout.addWidget(self.lbl_curr)
         time_layout.addStretch()
         time_layout.addWidget(self.lbl_total)

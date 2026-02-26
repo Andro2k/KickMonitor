@@ -84,7 +84,7 @@ class OAuthTemplates:
         .btn { border: none; padding: 12px 24px; border-radius: 6px; font-weight: bold;
                font-size: 14px; cursor: pointer; transition: transform 0.2s; text-transform: uppercase; }
         .btn:hover { transform: translateY(-2px); }
-        .timer { font-size: 11px; color: #555; margin-top: 20px; }
+        .timer { font-size: 12px; color: #555; margin-top: 20px; }
         @keyframes fadeIn { from { opacity: 0; transform: -20px; } to { opacity: 1; transform: 0; } }
     """
 

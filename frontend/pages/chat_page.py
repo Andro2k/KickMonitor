@@ -99,7 +99,7 @@ class ChatPage(QWidget):
         self.chk_command_only = QCheckBox("Solo comando")
         self.chk_command_only.setCursor(Qt.CursorShape.PointingHandCursor)
         # Puedes usar get_switch_style() aquí si prefieres el diseño de interruptor verde
-        self.chk_command_only.setStyleSheet(f"QCheckBox {{ color: {THEME_DARK['Gray_N1']}; spacing: 6px; font-size: 11px; font-weight: bold; }}")
+        self.chk_command_only.setStyleSheet(f"QCheckBox {{ color: {THEME_DARK['Gray_N1']}; spacing: 6px; font-size: 12px; font-weight: bold; }}")
         self.chk_command_only.stateChanged.connect(self._handle_filter_changed)
         h_head.addWidget(self.chk_command_only)
         

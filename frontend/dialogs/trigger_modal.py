@@ -56,7 +56,12 @@ class RewardsLoaderWorker(QThread):
 class ModalEditMedia(BaseModal):
     def __init__(self, parent_page, filename, ftype, data, used_commands=None):
         super().__init__(parent_page, width=500, height=620)
-        
+        self.body.setStyleSheet(f"""
+            QFrame#ModalBody {{
+                background-color: {THEME_DARK['Black_N1']};
+                border-radius: 12px;
+            }}
+        """)
         self.page = parent_page 
         self.filename = filename
         self.ftype = ftype
@@ -147,7 +152,7 @@ class ModalEditMedia(BaseModal):
 
     def _setup_kick_appearance(self, layout):
         frame_kick = QFrame()
-        frame_kick.setStyleSheet(f"background-color: {THEME_DARK['Black_N1']}; border-radius: 8px; padding: 5px;")
+        frame_kick.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 8px;")
         lk = QVBoxLayout(frame_kick)
         
         # Color
@@ -166,7 +171,7 @@ class ModalEditMedia(BaseModal):
         h_desc_lbl = QHBoxLayout()
         h_desc_lbl.addWidget(QLabel("Descripción:", styleSheet="border:none; color: #DDD;"))
         self.lbl_desc_count = QLabel("0/200")
-        self.lbl_desc_count.setStyleSheet("border:none; color: #666; font-size: 11px;")
+        self.lbl_desc_count.setStyleSheet("border:none; color: #666; font-size: 12px;")
         h_desc_lbl.addWidget(self.lbl_desc_count)
         h_desc_lbl.addStretch()
         lk.addLayout(h_desc_lbl)

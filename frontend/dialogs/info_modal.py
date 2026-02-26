@@ -16,7 +16,12 @@ class InfoModal(BaseModal):
     """
     def __init__(self, parent, title: str, html_content: str):
         super().__init__(parent, width=700, height=700)
-        
+        self.body.setStyleSheet(f"""
+            QFrame#ModalBody {{
+                background-color: {THEME_DARK['Black_N1']};
+                border-radius: 12px;
+            }}
+        """)
         # 1. HEADER (Icono + Título)
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 10)
@@ -43,8 +48,7 @@ class InfoModal(BaseModal):
         self.browser.setStyleSheet(f"""
             QTextBrowser {{
                 background-color: {THEME_DARK['Black_N3']};
-                color: {THEME_DARK['White_N1']};
-                border: 1px solid {THEME_DARK['Gray_Border']};
+                color: {THEME_DARK['White_N1']};             
                 border-radius: 8px;
                 padding: 10px;
                 font-family: 'Segoe UI';

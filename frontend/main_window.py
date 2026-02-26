@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
             
         html = f"""
         <div style="line-height: 150%; margin-bottom: 6px;">
-            <span style="color:#666; font-size: 11px;">[{final_time}] </span>
+            <span style="color:#666; font-size: 12px;">[{final_time}] </span>
             <span style="color:{c_user}; font-weight: 700; padding-left: 4px;">{real_user}: </span>
             <span style="color:#DDD; padding-left: 4px;">{display_content}</span>
         </div>

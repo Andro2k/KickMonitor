@@ -83,7 +83,7 @@ class BaseAccordionCard(QFrame):
         self.lbl_title.setStyleSheet("font-weight: bold; font-size: 14px;")
         
         self.lbl_subtitle = QLabel(subtitle)
-        self.lbl_subtitle.setStyleSheet(f"color: {THEME_DARK['Gray_N1']}; font-size: 11px;")
+        self.lbl_subtitle.setStyleSheet(f"color: {THEME_DARK['Gray_N1']}; font-size: 12px;")
         
         text_container.addWidget(self.lbl_title)
         text_container.addWidget(self.lbl_subtitle)

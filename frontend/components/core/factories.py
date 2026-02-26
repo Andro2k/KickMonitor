@@ -157,8 +157,7 @@ def create_dashboard_action_btn(text: str, icon_name: str, func=None) -> QPushBu
         QPushButton {{ 
             background-color: {THEME_DARK['Black_N3']}; 
             color: {THEME_DARK['White_N1']}; 
-            border-radius: 8px; font-weight: bold; font-size: 13px; text-align: left; padding-left: 15px; 
-            border: 1px solid {THEME_DARK['Gray_Border']};
+            border-radius: 8px; font-weight: bold; font-size: 13px; text-align: left; padding-left: 15px;          
         }}
     """)
     if func: btn.clicked.connect(func)
@@ -192,8 +191,7 @@ def create_help_btn(func=None) -> QPushButton:
     
     btn.setStyleSheet(f"""
         QPushButton {{
-            background-color: transparent;
-            border: 1px solid {THEME_DARK['Gray_Border']}; 
+            background-color: transparent;            
             border-radius: 16px;
         }}
         QPushButton:hover {{
@@ -228,7 +226,7 @@ class ModernPill(QFrame):
 
         self.setStyleSheet(f"""
             #pill {{ background-color: {bg_color}; border: 1px solid {border_color}; border-radius: 12px; }}
-            QLabel {{ color: {text_color}; font-size: 11px; font-weight: bold; border: none; padding-left: 4px; background: transparent;}}
+            QLabel {{ color: {text_color}; font-size: 12px; font-weight: bold; border: none; padding-left: 4px; background: transparent;}}
             QPushButton {{
                 border: none; border-radius: 10px; background: transparent;
             }}
@@ -243,11 +241,10 @@ class ModernPill(QFrame):
         
         # --- AQUÍ ESTÁ TU NUEVO BOTÓN CON SVG ---
         btn = QPushButton()
-        # Cambia "x.svg" por el nombre de tu archivo si es diferente (ej: "close.svg", "trash.svg")
         btn.setIcon(get_icon("x.svg")) 
         from PyQt6.QtCore import QSize
-        btn.setIconSize(QSize(14, 14)) # Ajusta el tamaño del icono interno
-        btn.setFixedSize(20, 20)       # Ajusta el tamaño de la zona de click
+        btn.setIconSize(QSize(14, 14))
+        btn.setFixedSize(20, 20)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.clicked.connect(lambda: remove_callback(self))
         
@@ -278,8 +275,6 @@ class DynamicTagInput(QWidget):
         
         self.flow_container = QWidget()
         self.flow_container.setStyleSheet("background-color: transparent;")
-        
-        # --- EL CAMBIO CLAVE ESTÁ AQUÍ (expand_items=False) ---
         self.flow_layout = FlowLayout(self.flow_container, margin=0, spacing=5, expand_items=False)
         
         layout.addWidget(self.input)
@@ -294,10 +289,7 @@ class DynamicTagInput(QWidget):
                     
                 clean_t = t.strip()
                 if clean_t:
-                    # --- NUEVO: Reemplazar espacios por guiones automáticamente ---
                     clean_t = clean_t.replace(" ", "-")
-                    
-                    # Aplica el prefijo automáticamente si se requiere y no lo tiene
                     if self.prefix and not clean_t.startswith(self.prefix):
                         clean_t = self.prefix + clean_t
                     

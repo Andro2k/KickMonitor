@@ -20,9 +20,8 @@ class UpdateModal(BaseModal):
         super().__init__(parent, width=750, height=480)
         self.body.setStyleSheet(f"""
             QFrame#ModalBody {{
-                background-color: {THEME_DARK['Black_N1']};
-                border: 1px solid {THEME_DARK['Gray_Border']};
-                border-radius: 16px;
+                background-color: {THEME_DARK['Black_N1']};            
+                border-radius: 12px;
             }}
         """)
         

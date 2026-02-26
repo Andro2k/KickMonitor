@@ -25,7 +25,6 @@ from frontend.dialogs.trigger_modal import ModalEditMedia
 class MediaCard(QFrame):
     """
     Tarjeta visual para gestionar un archivo multimedia (video/audio).
-    Permite asignarlo a una recompensa de Kick y probarlo localmente.
     """
     def __init__(self, filename, ftype, config, parent_page):
         super().__init__()
@@ -81,7 +80,7 @@ class MediaCard(QFrame):
         layout.addWidget(bg_icon)
 
         # 2. Nombre del Archivo
-        name_text = f"⚠️ Falta: {self.filename}" if is_missing else self.filename
+        name_text = f"Falta: {self.filename}" if is_missing else self.filename
         name_color = "#e74c3c" if is_missing else "#AAA"
         
         self.lbl_name = QLabel(name_text)

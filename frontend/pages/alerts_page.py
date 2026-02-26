@@ -192,7 +192,7 @@ class AlertsPage(QWidget):
         layout = QVBoxLayout()
         layout.setSpacing(4)
         lbl = QLabel(label_text)
-        lbl.setStyleSheet(f"color: {THEME_DARK['Gray_N1']}; font-size: 11px;")
+        lbl.setStyleSheet(f"color: {THEME_DARK['Gray_N1']}; font-size: 12px;")
         
         base_style = f"background: {THEME_DARK['Black_N3']}; padding: 8px; border-radius: 6px; color: {THEME_DARK['White_N1']}; border: 1px solid {THEME_DARK['Black_N1']};"
         if isinstance(widget, (QLineEdit, QTextEdit)):

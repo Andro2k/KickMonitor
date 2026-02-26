@@ -125,7 +125,7 @@ class ToastNotification(QWidget):
         lbl_title.setStyleSheet(f"color: {self.title_color}; font-weight: bold; font-size: 12px; background: transparent;")
         
         lbl_msg = QLabel(self.mensaje_text)
-        lbl_msg.setStyleSheet(f"color: {self.body_color}; font-size: 11px; background: transparent;")
+        lbl_msg.setStyleSheet(f"color: {self.body_color}; font-size: 12px; background: transparent;")
         lbl_msg.setWordWrap(True)
         
         text_layout.addWidget(lbl_title)
