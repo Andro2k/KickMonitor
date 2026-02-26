@@ -21,10 +21,6 @@ from frontend.components.features.music import MusicPlayerPanel
 from frontend.theme import LAYOUT, STYLES, THEME_DARK
 from frontend.utils import crop_to_square, get_icon_colored, get_icon, get_rounded_pixmap
 
-# Componentes
-
-
-
 class DashboardPage(QWidget):
     navigate_signal = pyqtSignal(int) 
     connect_signal = pyqtSignal()
@@ -43,8 +39,8 @@ class DashboardPage(QWidget):
 
     def _connect_signals(self):
         self.spotify.track_changed.connect(self.update_music_ui)
-        self.spotify.status_msg.connect(self.refresh_data)
         self.spotify.status_msg.connect(self._handle_spotify_status_alert)
+        self.spotify.status_msg.connect(lambda msg: self._update_spotify_btn_style(self.spotify.is_active))
 
     # ==========================================
     # 1. UI SETUP
@@ -200,13 +196,27 @@ class DashboardPage(QWidget):
     # ==========================================
     # LÓGICA DE ACTUALIZACIÓN
     # ==========================================
+    def update_kick_profile(self, username="", followers=0, pic_url=""):
+        """Actualiza la UI visualmente con los datos recién llegados del bot en tiempo real."""
+        display_name = username if username else "Streamer"
+        
+        self.lbl_welcome.setText(f"Hola, {display_name}")
+        self.lbl_stats.setText(f"{followers:,} seguidores • Kick Monitor")
+        
+        if pic_url:
+            if not hasattr(self, '_current_avatar_url') or self._current_avatar_url != pic_url:
+                self._current_avatar_url = pic_url
+                self._start_download(pic_url, "avatar")
+
     def refresh_data(self):
         data = self.service.get_profile_data()
         self.lbl_welcome.setText(data["greeting"])
         self.lbl_stats.setText(data["stats"])
-        
+
         if data["pic_url"]: 
-            self._start_download(data["pic_url"], "avatar")
+            if not hasattr(self, '_current_avatar_url') or self._current_avatar_url != data["pic_url"]:
+                self._current_avatar_url = data["pic_url"]
+                self._start_download(data["pic_url"], "avatar")
         else:
             size = self.lbl_avatar.width()
             default_pix = get_icon("user.svg").pixmap(size, size)

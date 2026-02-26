@@ -122,7 +122,7 @@ class MainWindow(QMainWindow):
         self.controller.connection_changed.connect(self.ui_home.update_connection_state)
         self.controller.toast_signal.connect(self.show_toast)
         self.controller.user_info_signal.connect(self.ui_chat.update_user_info)
-        self.controller.user_info_signal.connect(lambda u,f,p: self.ui_home.refresh_data())
+        self.controller.user_info_signal.connect(self.ui_home.update_kick_profile)
         self.controller.user_info_signal.connect(lambda u, f, p: self.sidebar.update_user_info(u, p))
 
     def toggle_connection(self):
