@@ -56,12 +56,6 @@ class RewardsLoaderWorker(QThread):
 class ModalEditMedia(BaseModal):
     def __init__(self, parent_page, filename, ftype, data, used_commands=None):
         super().__init__(parent_page, width=500, height=620)
-        self.body.setStyleSheet(f"""
-            QFrame#ModalBody {{
-                background-color: {THEME_DARK['Black_N1']};
-                border-radius: 12px;
-            }}
-        """)
         self.page = parent_page 
         self.filename = filename
         self.ftype = ftype

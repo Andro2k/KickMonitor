@@ -97,12 +97,14 @@ class ToastNotification(QWidget):
 
     def _configure_window(self):
         self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint | 
-            Qt.WindowType.Tool | 
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.ToolTip |
+            Qt.WindowType.WindowStaysOnTopHint |
             Qt.WindowType.NoDropShadowWindowHint
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self.setFixedWidth(340)
 
     def _setup_ui(self):

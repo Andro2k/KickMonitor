@@ -13,13 +13,7 @@ from frontend.components.core.modals import BaseModal
 # =============================================================================
 class ModalEditCommand(BaseModal):
     def __init__(self, parent=None, trigger="", response="", cooldown=5, aliases="", cost=0):
-        super().__init__(parent, width=500, height=640) 
-        self.body.setStyleSheet(f"""
-            QFrame#ModalBody {{
-                background-color: {THEME_DARK['Black_N1']};
-                border-radius: 12px;
-            }}
-        """)
+        super().__init__(parent, width=500, height=640)
         self.original_trigger = trigger
         
         self.trigger_result = trigger
