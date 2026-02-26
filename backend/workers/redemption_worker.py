@@ -12,16 +12,18 @@ class RedemptionWorker(QThread):
     redemption_detected = pyqtSignal(str, str, str)
     log_signal = pyqtSignal(str)
 
-    def __init__(self, db_handler):
+    def __init__(self, db_handler, shared_scraper=None):
         super().__init__()
         self.db = db_handler
         self.is_running = True
         
-        self.rewards_api = RewardsService()
+        # Inyectamos el scraper compartido al servicio de recompensas
+        self.rewards_api = RewardsService(shared_scraper)
         self.normal_interval = 3.5  
         self.burst_interval = 1.5   
         self.processed_ids = set() 
         self.first_scan = True
+
     # =========================================================================
     # REGIÓN 1: BUCLE PRINCIPAL
     # =========================================================================

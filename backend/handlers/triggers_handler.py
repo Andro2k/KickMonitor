@@ -12,10 +12,10 @@ class TriggerHandler:
     """
     Maneja la lógica de negocio para las Alertas Multimedia (Triggers).
     """  
-    def __init__(self, db_handler, overlay_worker):
+    def __init__(self, db_handler, overlay_worker, shared_scraper=None):
         self.db = db_handler
         self.server = overlay_worker
-        self.rewards_api = RewardsService() 
+        self.rewards_api = RewardsService(shared_scraper) 
 
     def handle_redemption(self, user: str, reward_title: str, user_input: str, log_callback: Callable) -> bool:
         """

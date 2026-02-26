@@ -20,6 +20,7 @@ from backend.utils.paths import get_cache_path
 SPOTIFY_SCOPES = "user-read-playback-state user-read-currently-playing user-modify-playback-state"
 DEFAULT_PORT = 8888
 POLL_INTERVAL_MS = 3000
+ERROR_BACKOFF_MS = 15000  # 15 segundos de espera si hay errores de red
 
 # =========================================================================
 # REGIÓN 1: SERVIDOR LOCAL OAUTH (EJECUTADO EN HILO APARTE)
@@ -44,6 +45,10 @@ class SpotifyAuthHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(html_content.encode("utf-8"))
 
+    def log_message(self, format, *args):
+        """Silencia los logs por defecto del servidor HTTP para mantener la consola limpia."""
+        pass
+
 class SpotifyLoginThread(QThread):
     """Hilo que levanta el servidor HTTP temporalmente para esperar el login."""
     code_received = pyqtSignal(str)
@@ -61,7 +66,8 @@ class SpotifyLoginThread(QThread):
             self.server.auth_code = None
             self.server.error_msg = None
 
-            self.server.timeout = 1.0 
+            # Reducimos a 0.5 para que responda el doble de rápido al cierre
+            self.server.timeout = 0.5 
 
             while self._is_running and not self.server.auth_code and not self.server.error_msg:
                 self.server.handle_request() 
@@ -77,7 +83,6 @@ class SpotifyLoginThread(QThread):
             if self.server: self.server.server_close()
 
     def stop(self):
-        """TRUCO 3: Detención segura de hilos"""
         self._is_running = False
         self.quit()
         self.wait(1000)
@@ -100,6 +105,7 @@ class SpotifyWorker(QObject):
         self.auth_manager: Optional[SpotifyOAuth] = None
         self.is_active = False
         self.login_thread: Optional[SpotifyLoginThread] = None
+        self.error_count = 0 # Controlador de fallos de red
         
         self.timer = QTimer(self)
         self.timer.setInterval(POLL_INTERVAL_MS)
@@ -131,7 +137,7 @@ class SpotifyWorker(QObject):
                 scope=SPOTIFY_SCOPES, open_browser=False, cache_path=cache_path 
             )
             if self.auth_manager.get_cached_token():
-                self.status_msg.emit(LoggerText.info("Recuperando sesión guardada."))
+                self.status_msg.emit(LoggerText.info("Recuperando sesión guardada de Spotify."))
                 self._init_client()
             else:
                 self._start_browser_flow(uri)
@@ -169,10 +175,12 @@ class SpotifyWorker(QObject):
 
     def _init_client(self):
         try:
-            self.sp = spotipy.Spotify(auth_manager=self.auth_manager)
+            # Optimización: autoreintentos nativos
+            self.sp = spotipy.Spotify(auth_manager=self.auth_manager, retries=3) 
             user = self.sp.current_user()
             
             self.is_active = True
+            self.error_count = 0
             self.status_msg.emit(LoggerText.success(f"Spotify Vinculado: {user.get('display_name', 'Usuario')}"))
 
             self._start_timer_signal.emit()
@@ -192,12 +200,19 @@ class SpotifyWorker(QObject):
             self.login_thread.stop()
 
     # =========================================================================
-    # REGIÓN 4: MONITOREO (POLLING)
+    # REGIÓN 4: MONITOREO INTELIGENTE (POLLING)
     # =========================================================================
     def _poll_current_song(self):
         if not self.sp: return
         try:
             current = self.sp.current_playback()
+            
+            # Si tuvo éxito, reiniciamos el contador de errores y restauramos la velocidad
+            if self.error_count > 0:
+                self.error_count = 0
+                if self.timer.interval() != POLL_INTERVAL_MS:
+                    self.timer.setInterval(POLL_INTERVAL_MS)
+
             if not current:
                 self.track_changed.emit("No reproduciendo", "", "", 0, 100, False)
                 return
@@ -208,8 +223,12 @@ class SpotifyWorker(QObject):
                     data['title'], data['artist'], data['art'], 
                     data['progress'], data['duration'], data['is_playing']
                 )
-        except Exception as e:
-            print(f"[DEBUG_SPOTIFY] Error en polling: {e}")
+        except Exception:
+            self.error_count += 1
+            
+            # Sistema de Backoff: si falla varias veces (ej. sin internet), relentiza el polling
+            if self.error_count >= 3 and self.timer.interval() == POLL_INTERVAL_MS:
+                self.timer.setInterval(ERROR_BACKOFF_MS)
 
     def _parse_track_data(self, playback_json: Dict) -> Optional[Dict]:
         """Extrae datos limpios del JSON crudo de Spotify."""

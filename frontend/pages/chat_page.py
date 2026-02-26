@@ -461,7 +461,7 @@ class ChatPage(QWidget):
         )
         
     def _handle_copy_url(self):
-        QApplication.clipboard().setText("http://localhost:6001/chat")
+        QApplication.clipboard().setText("http://127.0.0.1:8081/chat")
         self.btn_copy_url.setText("¡Copiado!"); self.btn_copy_url.setStyleSheet(STYLES["btn_nav"] + f"color: {THEME_DARK['NeonGreen_Main']};")
         QTimer.singleShot(1500, lambda: (self.btn_copy_url.setText(" URL"), self.btn_copy_url.setStyleSheet(STYLES["btn_nav"])))
 

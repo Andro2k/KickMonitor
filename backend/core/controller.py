@@ -5,6 +5,7 @@ import os
 import re
 from typing import Optional
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer, QThread
+import cloudscraper
 
 # --- INFRAESTRUCTURA Y WORKERS ---
 from backend.core.db_controller import DBHandler
@@ -12,15 +13,13 @@ from backend.handlers.antibot_handler import AntibotHandler
 from backend.services.alerts_service import AlertsService
 from backend.utils.logger_text import LoggerText
 from backend.utils.paths import get_cache_path
-from backend.workers.alert_worker import AlertOverlayWorker
-from backend.workers.trigger_worker import OverlayServerWorker
 from backend.core.kick_bot import KickBotWorker   
 from backend.workers.redemption_worker import RedemptionWorker
 from backend.workers.spotify_worker import SpotifyWorker
 from backend.workers.tts_worker import TTSWorker   
+from backend.workers.unified_server import UnifiedOverlayWorker
 from backend.workers.update_worker import UpdateCheckerWorker, UpdateDownloaderWorker
 from backend.workers.kick_worker import FollowMonitorWorker
-from backend.workers.chat_worker import ChatOverlayWorker
 # --- LÓGICA DE NEGOCIO (SERVICIOS Y HANDLERS) ---
 from backend.game.casino import CasinoSystem
 from backend.services.commands_service import CommandsService
@@ -46,20 +45,21 @@ class MainController(QObject):
     def __init__(self):
         super().__init__()       
         self.db = DBHandler()
+        self.shared_scraper = cloudscraper.create_scraper()
+        self._ignored_users_cache = set()
+        self._update_ignored_users_cache()
         self.cmd_service = CommandsService(self.db)
         self.casino_system = CasinoSystem(self.db)       
 
         self._init_spotify()
-        self._init_tts()
-        self._init_overlay()
-        self._init_chat_overlay()
-        self._init_alert_overlay()  
+        self._init_tts() 
+        self._init_unified_server()
 
-        self.alerts_service = AlertsService(self.db, self.alert_overlay)
+        self.alerts_service = AlertsService(self.db, self.unified_server)
         self.chat_handler = ChatHandler(self.db)
         self.music_handler = MusicHandler(self.db, self.spotify) 
         self.game_handler = GameHandler(self.db, self.casino_system)
-        self.trigger_handler = TriggerHandler(self.db, self.overlay_server)
+        self.trigger_handler = TriggerHandler(self.db, self.unified_server, self.shared_scraper)
         self.antibot = AntibotHandler(self.db)
 
         self.worker: Optional[KickBotWorker] = None          
@@ -85,7 +85,12 @@ class MainController(QObject):
         self.msg_timer = QTimer()
         self.msg_timer.timeout.connect(self._check_timers_execution)
         self.msg_timer.start(60000)
-
+        
+    def _init_unified_server(self):
+        self.unified_server = UnifiedOverlayWorker()
+        self.unified_server.log_signal.connect(self.emit_log)
+        self.unified_server.error_occurred.connect(self.emit_log)
+        self.unified_server.start()
     # =========================================================================
     # REGIÓN 1: PIPELINE DE PROCESAMIENTO DE CHAT
     # =========================================================================
@@ -117,8 +122,7 @@ class MainController(QObject):
 
         if self._should_send_to_overlay(user, content):
             is_streamer = user.lower() == (self.db.get("kick_username") or "").lower()
-            
-            self.chat_overlay.send_chat_message_to_overlay(
+            self.unified_server.send_chat_message_to_overlay(
                 sender=user, content=content, badges=badges,
                 user_color="#53fc18" if is_streamer else "#ffffff",
                 timestamp=timestamp
@@ -126,15 +130,17 @@ class MainController(QObject):
 
         self._update_ui_chat(timestamp, user, content)
 
+    def _update_ignored_users_cache(self):
+        """Actualiza la caché de usuarios ignorados una sola vez."""
+        ignored_users = self.db.get("chat_ignored_users") or ""
+        self._ignored_users_cache = {u.strip().lower() for u in ignored_users.split(",") if u.strip()}
+
     def _should_send_to_overlay(self, user, content) -> bool:
         """Filtro inteligente para enviar mensajes a OBS."""
         if self.db.get_bool("chat_hide_bots") and self.chat_handler.is_bot(user): return False
         if self.db.get_bool("chat_hide_cmds") and content.strip().startswith("!"): return False
         
-        ignored_users = self.db.get("chat_ignored_users") or ""
-        ignored_set = {u.strip().lower() for u in ignored_users.split(",") if u.strip()}
-        
-        return user.lower() not in ignored_set
+        return user.lower() not in self._ignored_users_cache
 
     def _ban_user(self, username: str):
         if not self.worker: return
@@ -198,19 +204,6 @@ class MainController(QObject):
     def _init_tts(self):
         self.tts = TTSWorker(); self.tts.start()
 
-    def _init_overlay(self):
-        self.overlay_server = OverlayServerWorker()
-        self.overlay_server.log_signal.connect(self.emit_log); self.overlay_server.start()
-        
-    def _init_chat_overlay(self):
-        self.chat_overlay = ChatOverlayWorker(port=6001)
-        self.chat_overlay.error_occurred.connect(self.emit_log); self.chat_overlay.start()
-
-    def _init_alert_overlay(self):
-        self.alert_overlay = AlertOverlayWorker(port=6002)
-        self.alert_overlay.error_occurred.connect(self.emit_log)
-        self.alert_overlay.start()
-
     def start_bot(self):
         if self.worker and self.worker.isRunning():
             self.worker.finished.connect(self._do_start_bot)
@@ -243,7 +236,7 @@ class MainController(QObject):
         self.worker.start()
         
         if not self.redemption_worker:
-            self.redemption_worker = RedemptionWorker(self.db)
+            self.redemption_worker = RedemptionWorker(self.db, self.shared_scraper)
             self.redemption_worker.log_signal.connect(self.emit_log)
             self.redemption_worker.redemption_detected.connect(self.on_redemption_received)
             self.redemption_worker.finished.connect(self.redemption_worker.deleteLater)
@@ -280,15 +273,25 @@ class MainController(QObject):
         self.toast_signal.emit("Sistema", "Desconectado", "status_warning")
 
     def shutdown(self):
+        """Apaga todos los workers y hilos de forma segura."""
+        # 1. Detener bot principal y monitores
         self.stop_bot()
 
-        for server in filter(None, [getattr(self, 'tts', None), getattr(self, 'overlay_server', None), getattr(self, 'chat_overlay', None), getattr(self, 'alert_overlay', None)]): 
-            server.stop()
+        # 2. Detener el servidor TTS
+        if hasattr(self, 'tts') and self.tts:
+            self.tts.stop()
 
+        # 3. Detener el NUEVO Servidor Unificado
+        if hasattr(self, 'unified_server') and self.unified_server:
+            self.unified_server.stop()
+
+        # 4. Detener el worker de Spotify (Hilo separado)
         if hasattr(self, 'spotify_thread') and self.spotify_thread.isRunning():
             self.spotify.sig_do_disconnect.emit()
             self.spotify_thread.quit()
             self.spotify_thread.wait(1000)
+            
+        self.emit_log(LoggerText.system("Backend apagado correctamente. Todos los hilos cerrados."))
 
     def on_disconnected(self): 
         if self.worker: self.worker.deleteLater(); self.worker = None
@@ -305,7 +308,7 @@ class MainController(QObject):
 
     def _start_monitor(self, username):
         if not self.monitor_worker:
-            self.monitor_worker = FollowMonitorWorker(username)
+            self.monitor_worker = FollowMonitorWorker(username, self.shared_scraper)
             self.monitor_worker.new_follower.connect(self.on_new_follower)
             self.monitor_worker.start()
 

@@ -16,12 +16,13 @@ class TriggerService:
     """
     Servicio de Lógica para el Overlay Multimedia + Gestión de Recompensas de Kick.
     """
-    def __init__(self, db_handler, server_worker):
+    def __init__(self, db_handler, server_worker, shared_scraper=None):
         self.db = db_handler
         self.server = server_worker
-        self.scraper = cloudscraper.create_scraper()
+        self.scraper = shared_scraper if shared_scraper else cloudscraper.create_scraper()
         
-        self.rewards_api = RewardsService()
+        # Le inyectamos el scraper compartido al servicio de recompensas
+        self.rewards_api = RewardsService(self.scraper)
         
         self.VIDEO_EXTS = {'.mp4', '.webm'}
         self.AUDIO_EXTS = {'.mp3', '.wav', '.ogg'}

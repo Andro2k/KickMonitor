@@ -35,8 +35,10 @@ class TTSWorker(QThread):
         self.rate = 175
 
         self.edge_voice = "es-MX-JorgeNeural"
+        self.loop = None 
+
         with suppress(Exception):
-            pygame.mixer.init()
+            pygame.mixer.init(frequency=24000, size=-16, channels=1, buffer=2048)
 
         self.re_html = re.compile(r'<[^>]+>')
         self.re_url = re.compile(r'http\S+|www\.\S+')
@@ -59,7 +61,7 @@ class TTSWorker(QThread):
         self.is_running = False
         self.immediate_stop()
         self.quit()
-        self.wait(1000)
+        self.wait(1500)
 
     def immediate_stop(self):
         with self.queue.mutex:
@@ -70,11 +72,11 @@ class TTSWorker(QThread):
                 self.current_engine.stop()
                 
         with suppress(Exception):
-            if pygame.mixer.music.get_busy():
+            if pygame.mixer.get_init() and pygame.mixer.music.get_busy():
                 pygame.mixer.music.stop()
 
     # ==========================================
-    # LOOP PRINCIPAL
+    # LOOP PRINCIPAL Y LIMPIEZA
     # ==========================================
     def run(self):
         self.loop = asyncio.new_event_loop()
@@ -82,7 +84,7 @@ class TTSWorker(QThread):
         
         while self.is_running:
             try:
-                text = self.queue.get(timeout=1)
+                text = self.queue.get(timeout=0.5) 
                 self._speak(text)
                 self.queue.task_done()
             except queue.Empty:
@@ -90,7 +92,22 @@ class TTSWorker(QThread):
             except Exception as e:
                 self.error_signal.emit(LoggerText.error(f"TTS Error: {e}"))
 
-        self.loop.close()
+        self._cleanup_loop()
+
+    def _cleanup_loop(self):
+        """Cierra conexiones de Edge-TTS y libera la tarjeta de sonido de Windows."""
+        if self.loop and not self.loop.is_closed():
+            try:
+                tasks = asyncio.all_tasks(self.loop)
+                for t in tasks: t.cancel()
+                self.loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
+                self.loop.close()
+            except Exception as e:
+                print(f"Error limpiando loop TTS: {e}")
+                
+        with suppress(Exception):
+            if pygame.mixer.get_init():
+                pygame.mixer.quit()
 
     # ==========================================
     # PROCESAMIENTO INTERNO (ENRUTADOR)
@@ -107,6 +124,8 @@ class TTSWorker(QThread):
 
     def _speak_edge(self, text: str):
         try:
+            if not self.loop or self.loop.is_closed(): return
+            
             audio_bytes = self.loop.run_until_complete(self._get_edge_bytes(text))
             
             if not audio_bytes:

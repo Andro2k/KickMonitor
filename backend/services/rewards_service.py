@@ -14,8 +14,8 @@ URL_REDEMPTIONS = "https://api.kick.com/public/v1/channels/rewards/redemptions"
 URL_TOKEN = "https://id.kick.com/oauth/token"
 
 class RewardsService:
-    def __init__(self):
-        self.scraper = cloudscraper.create_scraper()
+    def __init__(self, shared_scraper=None):
+        self.scraper = shared_scraper if shared_scraper else cloudscraper.create_scraper()
         self.db = DBHandler()
 
     def _get_random_color(self):

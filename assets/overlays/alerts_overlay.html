@@ -119,7 +119,7 @@
         const ICONS = { 'follow': '💚', 'subscription': '👑', 'host': '🚀' };
 
         function connect() {
-            const socket = new WebSocket('ws://localhost:6002/ws');
+            const socket = new WebSocket('ws://127.0.0.1:8081/ws/alerts');
             socket.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 if (data.type === 'new_alert') {

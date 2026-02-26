@@ -111,8 +111,7 @@
             let safeText = document.createElement('div');
             safeText.textContent = rawText;
             let htmlText = safeText.innerHTML;
-
-            // 2. Buscamos el patrón de Kick: [emote:ID:Nombre] y lo volvemos imagen
+            // 2. Reemplazamos los códigos de emotes por imágenes reales
             const kickEmoteRegex = /\[emote:(\d+):([^\]]+)\]/g;
             htmlText = htmlText.replace(kickEmoteRegex, '<img src="https://files.kick.com/emotes/$1/fullsize" class="emote" alt="$2" title="$2">');
             
@@ -120,7 +119,7 @@
         }
 
         function connect() {
-            socket = new WebSocket('ws://localhost:6001/ws');
+            socket = new WebSocket('ws://127.0.0.1:8081/ws/chat');
             socket.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 if (data.type === 'new_message') addChatMessage(data.payload);

@@ -45,7 +45,7 @@ class AlertsPage(QWidget):
         # Visor Web (Carga el HTML de OBS)
         self.webview = QWebEngineView()
         self.webview.page().setBackgroundColor(QColor(0, 0, 0, 0)) 
-        self.webview.setUrl(QUrl("http://localhost:6002/alerts")) 
+        self.webview.setUrl(QUrl("http://127.0.0.1:8081/alerts"))
         
         preview_layout.addWidget(self.webview)
         
@@ -203,7 +203,7 @@ class AlertsPage(QWidget):
         return layout
 
     def _handle_copy_url(self):
-        QApplication.clipboard().setText("http://localhost:6002/alerts")
+        QApplication.clipboard().setText("http://127.0.0.1:8081/alerts")
         self.btn_copy_url.setText(" ¡Copiado!")
         QTimer.singleShot(1500, lambda: self.btn_copy_url.setText(" Copiar URL"))
 
