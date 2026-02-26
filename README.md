@@ -5,14 +5,14 @@
 
   <p>
     <a href="https://github.com/Andro2k/KickMonitor/releases/latest">
-      <img src="https://img.shields.io/github/v/release/Andro2k/KickMonitor?style=for-the-badge&color=10BB10&labelColor=191919" alt="Latest Release" />
+      <img src="https://img.shields.io/github/v/release/Andro2k/KickMonitor?style=for-the-badge&logo=kick&color=10BB10&labelColor=191919" alt="Latest Release" height="35"/>
     </a>
-    <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version" />
-    <img src="https://img.shields.io/badge/GUI-PyQt6-41CD52?style=for-the-badge&logo=qt&logoColor=white" alt="PyQt6" />
-    <img src="https://img.shields.io/github/license/Andro2k/KickMonitor?style=for-the-badge&color=blue" alt="License" />
+    <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=blue&labelColor=191919" alt="Python Version" height="35"/>
+    <img src="https://img.shields.io/badge/GUI-PyQt6-41CD52?style=for-the-badge&logo=qt&logoColor=celeste&labelColor=191919" alt="PyQt6" height="35"/>
+    <img src="https://img.shields.io/github/license/Andro2k/KickMonitor?style=for-the-badge&color=blue&labelColor=191919" alt="License" height="35"/>
   </p>
   <a href="https://github.com/Andro2k/KickMonitor/releases/latest">
-    <img src="https://img.shields.io/badge/DESCARGA_LA_ÚLTIMA_VERSIÓN_PARA_WINDOWS-10BB10?style=flat&color=green" alt="Descargar Última Versión" height="35">
+    <img src="https://img.shields.io/badge/DESCARGA_LA_ÚLTIMA_VERSIÓN-ffffff?style=flat&color=#0FFE27" alt="Descargar Última Versión" height="64">
   </a>
 </div>
 
@@ -45,19 +45,15 @@ Servidores web internos ultraligeros que transmiten directamente a tus fuentes d
 </div>
 
 ### Chat Bot y Moderación Automática
-* **Voces IA (Edge-TTS):** Text-to-Speech de altísima calidad para leer los mensajes del chat en vivo con acentos realistas.
-* **Comandos Personalizados:** Crea respuestas dinámicas usando variables (`{user}`, `{points}`, `{random}`, etc.).
-* **Filtros Inteligentes:** Píldoras de etiquetas interactivas (Tag Pills) para ignorar comandos de bots o silenciar usuarios molestos.
-* **Timers:** Programa mensajes recurrentes para promocionar tus redes o servidor de Discord.
+* **Voces IA (Edge-TTS):** Text-to-Speech de altísima calidad para leer los mensajes del chat en vivo con acentos realistas. Gestión unificada en un solo panel de control.
+* **Comandos Avanzados y Alias:** Crea respuestas dinámicas, asigna hasta 5 nombres (Alias) diferentes a un mismo comando y cóbrale puntos a los usuarios por utilizarlos.
+* **Variables Mágicas:** Respuestas interactivas con variables en tiempo real como `{followers}`, azar como `{8ball}`, `{coin}`, `{dice}`, y tiempo `{time}`, `{date}`.
+* **Filtros Inteligentes:** Píldoras de etiquetas interactivas (Dynamic Tag Pills) para ignorar comandos de bots o silenciar usuarios molestos, autocompletando guiones y prefijos.
+* **Protección API:** Límite inteligente de 500 caracteres para evitar desconexiones por spam en el chat de Kick.
 
 ### Economía, Puntos y Casino
 * **Sistema de Lealtad:** Otorga puntos automáticamente a los espectadores activos por cada mensaje o por tiempo de visualización.
-* **Minijuegos Integrados:** Tragamonedas (`!slots`), Ruleta (`!roulette`) y Carta Alta (`!cartas`).
 * **Sincronización Bidireccional:** Pausar, silenciar o banear usuarios desde la tabla de base de datos se refleja inmediatamente en el motor de lectura de voz y en la pantalla de OBS.
-
-<div align="center">
-  <img src="screenshots/economy_casino.png" alt="Gestión de Puntos y Casino" width="800"/>
-</div>
 
 ---
 
@@ -68,7 +64,7 @@ Servidores web internos ultraligeros que transmiten directamente a tus fuentes d
 1. Haz clic en el gran botón verde de arriba o ve a la pestaña de **[Lanzamientos (Releases)](https://github.com/Andro2k/KickMonitor/releases)**.
 2. Descarga el ejecutable `KickMonitor_Setup_vX.X.X.exe`.
 3. Instala la aplicación (creará un acceso directo en tu escritorio).
-4. La aplicación incluye un **Actualizador Automático**, por lo que siempre tendrás las últimas novedades sin tener que volver a descargar instaladores.
+4. La aplicación incluye un **Actualizador Automático** inteligente, por lo que siempre tendrás las últimas novedades sin tener que volver a descargar instaladores.
 
 ### Para Desarrolladores (Código Fuente)
 
@@ -85,13 +81,14 @@ python -m venv venv
 pip install -r requirements.txt
 # 4. Ejecutar la aplicación
 python main.py
+
 ```
 
 ## Configuración Básica
 
 Para conectar el Bot a tu canal de Kick, ve a la pestaña **Ajustes** dentro de la app:
 
-* **Kick OAuth:** Simplemente haz clic en "Conectar Bot" desde el Dashboard, se abrirá tu navegador para autorizar la conexión de forma segura (sin necesidad de contraseñas).
+* **Kick OAuth:** Simplemente haz clic en "Conectar Bot" desde el Dashboard, se abrirá tu navegador para autorizar la conexión de forma segura (sin necesidad de contraseñas). El Dashboard se actualizará en tiempo real con tu avatar.
 * **Spotify (Opcional):** Crea una app en *Spotify for Developers*, obtén tu Client ID y Client Secret para mostrar la música actual en tu stream.
 * **OBS Studio:** Añade fuentes de navegador apuntando a `http://localhost:6001/chat` y `http://localhost:6002/alerts`. ¡Usa los botones "Copiar URL" dentro de KickMonitor para facilitar el proceso!
 
@@ -100,9 +97,9 @@ Para conectar el Bot a tu canal de Kick, ve a la pestaña **Ajustes** dentro de 
 ## Stack Tecnológico
 
 * **Core & Backend:** Python 3.12.10, `asyncio`
-* **Interfaz Gráfica (GUI):** PyQt6
+* **Interfaz Gráfica (GUI):** PyQt6 (Ventanas modales Frameless, Draggables y animaciones por QPropertyAnimation).
 * **WebSockets & Scraping:** `aiohttp`, `Pusher`, `cloudscraper`
-* **Base de Datos:** SQLite (Sincronización segura con QMutexLocker)
+* **Base de Datos:** SQLite con auto-mantenimiento de espacio (VACUUM) y sincronización segura con QMutexLocker.
 * **Texto a Voz (TTS):** `edge-tts`, `pyttsx3`, `pygame`
 * **Empaquetado:** PyInstaller y compilador Inno Setup 6
 
@@ -114,9 +111,6 @@ Este proyecto se distribuye bajo la licencia **MIT**. Consulte el archivo `LICEN
 
 <div align="center">
 
-
-
-
-
 <sub>Desarrollado con 💚 por <strong>TheAndro2K</strong></sub>
+
 </div>
