@@ -5,9 +5,7 @@
     <title>Kick Alerts Overlay</title>
     <style>
         :root {
-            /* Colores de Kick (Por defecto) */
             --kick-green: #53fc18;
-            --kick-dark: #191919;
             --text-light: #ffffff;
         }
 
@@ -19,10 +17,10 @@
             display: flex; align-items: center; justify-content: center;
         }
 
+        /* --- 1. CONTENEDOR BASE --- */
         #alert-container {
             position: relative;
-            display: none; /* Oculto por defecto */
-            flex-direction: column;
+            display: none; /* Controlado por JS */
             align-items: center;
             text-align: center;
             background: rgba(25, 25, 25, 0.85);
@@ -30,20 +28,39 @@
             border-radius: 16px;
             padding: 20px 40px;
             box-shadow: 0 0 20px rgba(83, 252, 24, 0.4);
-            transform: scale(0.5);
             opacity: 0;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            gap: 15px; /* Separación entre imagen y texto */
         }
 
-        /* Animaciones de entrada y salida */
-        .alert-in {
-            display: flex !important;
-            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        /* --- 2. LAYOUTS DINÁMICOS --- */
+        .layout-top { flex-direction: column; }
+        .layout-left { flex-direction: row; text-align: left; }
+        .layout-right { flex-direction: row-reverse; text-align: right; }
+
+        /* --- 3. TIPOGRAFÍA --- */
+        .text-wrapper { display: flex; flex-direction: column; justify-content: center; }
+        
+        .alert-title {
+            font-size: 28px; font-weight: 900; text-transform: uppercase;
+            letter-spacing: 2px; margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
         }
-        .alert-out {
-            animation: popOut 0.5s ease-in forwards;
+        .alert-message {
+            color: var(--text-light); font-size: 20px; font-weight: bold;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+        
+        /* --- 4. MULTIMEDIA --- */
+        .alert-icon { font-size: 50px; }
+        .alert-image {
+            max-width: 150px; max-height: 150px;
+            object-fit: contain; border-radius: 8px;
+            display: none;
         }
 
+        /* --- 5. ANIMACIONES (KEYFRAMES) --- */
+        
+        /* A. Pop In (Rebote) */
         @keyframes popIn {
             0% { transform: translateY(50px) scale(0.5); opacity: 0; }
             100% { transform: translateY(0) scale(1); opacity: 1; }
@@ -53,38 +70,24 @@
             100% { transform: scale(0.8); opacity: 0; }
         }
 
-        /* Tipografía */
-        .alert-title {
-            color: var(--kick-green);
-            font-size: 28px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 8px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-            transition: color 0.3s ease;
+        /* B. Fade In (Desvanecer) */
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
         }
-        
-        .alert-message {
-            color: var(--text-light);
-            font-size: 20px;
-            font-weight: bold;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
         }
-        
-        /* Icono e Imagen Dinámicos */
-        .alert-icon {
-            font-size: 50px;
-            margin-bottom: 10px;
+
+        /* C. Slide Up (Deslizar) */
+        @keyframes slideUpIn {
+            0% { transform: translateY(100px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
         }
-        
-        .alert-image {
-            max-width: 150px;
-            max-height: 150px;
-            object-fit: contain;
-            margin-bottom: 15px;
-            border-radius: 8px;
-            display: none; /* Oculto por defecto, se activa si hay URL */
+        @keyframes slideUpOut {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-100px); opacity: 0; }
         }
     </style>
 </head>
@@ -94,8 +97,10 @@
         <img id="alert-image" class="alert-image" src="" alt="Alerta">
         <div id="alert-icon" class="alert-icon">✨</div>
         
-        <div id="alert-title" class="alert-title">Nuevo Seguidor</div>
-        <div id="alert-message" class="alert-message">¡Gracias por seguir el canal!</div>
+        <div class="text-wrapper">
+            <div id="alert-title" class="alert-title">Nuevo Seguidor</div>
+            <div id="alert-message" class="alert-message">¡Gracias por seguir el canal!</div>
+        </div>
     </div>
 
     <audio id="alert-sound" src="alert.mp3" preload="auto"></audio>
@@ -111,15 +116,10 @@
         let alertQueue = [];
         let isPlaying = false;
 
-        const ICONS = {
-            'follow': '💚',
-            'subscription': '👑',
-            'host': '🚀'
-        };
+        const ICONS = { 'follow': '💚', 'subscription': '👑', 'host': '🚀' };
 
         function connect() {
             const socket = new WebSocket('ws://localhost:6002/ws');
-            
             socket.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 if (data.type === 'new_alert') {
@@ -127,7 +127,6 @@
                     processQueue();
                 }
             };
-            
             socket.onclose = () => setTimeout(connect, 3000);
         }
 
@@ -140,27 +139,24 @@
 
         function processQueue() {
             if (isPlaying || alertQueue.length === 0) return;
-            
             isPlaying = true;
             const alertData = alertQueue.shift();
 
-            // 1. Configurar Textos
+            // --- 1. RESETEAR ANIMACIONES (ESTO ARREGLA EL BUG) ---
+            container.style.animation = 'none'; // Quitar animación atascada
+            container.style.display = 'flex'; // Volver a mostrar el contenedor
+            void container.offsetWidth; // TRUCO JS: Forzar al navegador a reiniciar el ciclo de dibujo
+
+            // --- 2. CONFIGURAR TEXTOS Y COLOR ---
             titleEl.textContent = alertData.title;
             messageEl.textContent = alertData.message;
 
-            // 2. Configurar Diseño (Color)
-            if (alertData.color && alertData.color.startsWith('#')) {
-                container.style.borderColor = alertData.color;
-                container.style.boxShadow = `0 0 20px ${hexToRgba(alertData.color, 0.4)}`;
-                titleEl.style.color = alertData.color;
-            } else {
-                // Volver a valores por defecto si no hay color personalizado
-                container.style.borderColor = 'var(--kick-green)';
-                container.style.boxShadow = '0 0 20px rgba(83, 252, 24, 0.4)';
-                titleEl.style.color = 'var(--kick-green)';
-            }
+            const color = (alertData.color && alertData.color.startsWith('#')) ? alertData.color : 'var(--kick-green)';
+            container.style.borderColor = color;
+            container.style.boxShadow = `0 0 20px ${alertData.color ? hexToRgba(color, 0.4) : 'rgba(83, 252, 24, 0.4)'}`;
+            titleEl.style.color = color;
 
-            // 3. Configurar Diseño (Imagen vs Icono de texto)
+            // --- 3. IMAGEN VS ICONO ---
             if (alertData.image_url && alertData.image_url.trim() !== "") {
                 imgEl.src = alertData.image_url;
                 imgEl.style.display = 'block';
@@ -171,25 +167,47 @@
                 iconEl.textContent = ICONS[alertData.alert_type] || '✨';
             }
 
-            // Reproducir sonido si existe
+            // --- 4. APLICAR LAYOUT ---
+            container.className = ''; // Limpiar layout viejo
+            if (alertData.layout_style === "Imagen a la Izquierda") {
+                container.classList.add('layout-left');
+            } else if (alertData.layout_style === "Imagen a la Derecha") {
+                container.classList.add('layout-right');
+            } else {
+                container.classList.add('layout-top');
+            }
+
+            // --- 5. SONIDO DINÁMICO ---
+            sound.src = (alertData.sound_url && alertData.sound_url.trim() !== "") ? alertData.sound_url : "alert.mp3";
             sound.volume = 0.5;
-            sound.play().catch(e => console.log("Sonido omitido o no encontrado."));
+            sound.play().catch(e => console.log("Audio omitido", e));
 
-            // Mostrar la alerta
-            container.classList.remove('alert-out');
-            container.classList.add('alert-in');
+            // --- 6. APLICAR ANIMACIÓN DE ENTRADA ---
+            let animOut = "popOut"; // Por defecto
+            if (alertData.animation === "Fade In (Desvanecer)") {
+                container.style.animation = "fadeIn 0.5s forwards";
+                animOut = "fadeOut";
+            } else if (alertData.animation === "Slide Up (Deslizar)") {
+                container.style.animation = "slideUpIn 0.5s forwards";
+                animOut = "slideUpOut";
+            } else {
+                container.style.animation = "popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards";
+            }
 
-            // Ocultar después de 5 segundos
+            // --- 7. OCULTAR TRAS LA DURACIÓN SELECCIONADA ---
+            const durationMs = (alertData.duration || 5) * 1000;
+            
             setTimeout(() => {
-                container.classList.remove('alert-in');
-                container.classList.add('alert-out');
+                // Ejecutar animación de salida dinámica
+                container.style.animation = `${animOut} 0.5s forwards`;
                 
-                // Dar tiempo a la animación de salida antes de la siguiente alerta
+                // Dar tiempo a la animación para terminar antes de la siguiente
                 setTimeout(() => {
+                    container.style.display = 'none';
                     isPlaying = false;
                     processQueue();
-                }, 600);
-            }, 5000);
+                }, 500);
+            }, durationMs);
         }
 
         connect();

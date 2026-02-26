@@ -46,7 +46,12 @@ class DBHandler:
             username TEXT, game_type TEXT, result_text TEXT, 
             profit INTEGER, is_win INTEGER
         """,
-        "text_alerts": "event_type TEXT PRIMARY KEY, message_template TEXT, is_active INTEGER DEFAULT 1",
+        "stream_alerts": """
+            event_type TEXT PRIMARY KEY, title_template TEXT, message_template TEXT, 
+            is_active INTEGER DEFAULT 1, image_url TEXT, sound_url TEXT, 
+            color TEXT DEFAULT '#53fc18', duration INTEGER DEFAULT 5, 
+            layout_style TEXT, animation TEXT
+        """,
         "timers": "name TEXT PRIMARY KEY, message TEXT, interval INTEGER DEFAULT 15, is_active INTEGER DEFAULT 0, last_run REAL DEFAULT 0",
     }
     
@@ -199,8 +204,8 @@ class DBHandler:
     def delete_command(self, trig: str): return self.commands.delete(trig)
     def toggle_command_active(self, trig: str, active: bool): return self.commands.toggle_active(trig, active)
 
-    def set_text_alert(self, type, msg, active): return self.automations.set_text_alert(type, msg, active)
-    def get_text_alert(self, type): return self.automations.get_text_alert(type)
+    def set_stream_alert(self, event_type, data: dict): return self.automations.set_stream_alert(event_type, data)
+    def get_stream_alert(self, event_type): return self.automations.get_stream_alert(event_type)
     
     def set_timer(self, name, msg, interval, active): return self.automations.set_timer(name, msg, interval, active)
     def get_timer(self, name): return self.automations.get_timer(name)

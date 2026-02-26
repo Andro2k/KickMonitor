@@ -10,7 +10,8 @@ from PyQt6.QtCore import QThread, pyqtSignal
 # CONSTANTES Y CONFIGURACIÓN
 # ==========================================
 KICK_API_BASE = "https://kick.com/api/v1/channels"
-DEFAULT_MONITOR_INTERVAL = 30
+# Bajamos el intervalo de 30 a 10 segundos para que sea mucho más responsivo
+DEFAULT_MONITOR_INTERVAL = 10  
 
 # =========================================================================
 # WORKER 1: API CHECKER (Búsqueda inicial de un solo uso)
@@ -108,10 +109,17 @@ class FollowMonitorWorker(QThread):
     def _fetch_latest_follower_name(self) -> str:
         """Obtiene el nombre del seguidor más reciente desde la lista."""
         with suppress(Exception):
-            resp = self.scraper.get(f"{KICK_API_BASE}/{self.username}/followers", timeout=10)            
+            # Usamos la API v2 de Kick que es la que actualmente maneja la lista de seguidores
+            resp = self.scraper.get(f"https://kick.com/api/v2/channels/{self.username}/followers", timeout=10)            
+            
             if resp.status_code == 200:
                 data = resp.json().get('data', [])
-                if data:
-                    return data[0].get('follower', {}).get('username', 'Nuevo Seguidor')
+                if data and isinstance(data, list):
+                    # Kick a veces envía el username directo, o a veces anidado dentro de un objeto 'follower'
+                    primer_item = data[0]
+                    nombre = primer_item.get('username') or primer_item.get('follower', {}).get('username')
                     
+                    if nombre:
+                        return nombre
+                        
         return "Nuevo Seguidor"

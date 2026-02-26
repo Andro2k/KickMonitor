@@ -9,6 +9,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, QTimer, QThread
 # --- INFRAESTRUCTURA Y WORKERS ---
 from backend.core.db_controller import DBHandler
 from backend.handlers.antibot_handler import AntibotHandler
+from backend.services.alerts_service import AlertsService
 from backend.utils.logger_text import LoggerText
 from backend.utils.paths import get_cache_path
 from backend.workers.alert_worker import AlertOverlayWorker
@@ -54,6 +55,7 @@ class MainController(QObject):
         self._init_chat_overlay()
         self._init_alert_overlay()  
 
+        self.alerts_service = AlertsService(self.db, self.alert_overlay)
         self.chat_handler = ChatHandler(self.db)
         self.music_handler = MusicHandler(self.db, self.spotify) 
         self.game_handler = GameHandler(self.db, self.casino_system)
@@ -308,28 +310,21 @@ class MainController(QObject):
             self.monitor_worker.start()
 
     def on_new_follower(self, current_count, diff, name):
-        # Ahora recibimos correctamente: Total (current_count), Diferencia (diff) y Nombre (name)
         self.toast_signal.emit("¡NUEVO!", f"{name} (+{diff})", "status_success")
         self.emit_log(LoggerText.success(f"NUEVO SEGUIDOR: {name}"))
         
         if self.tts_enabled: 
             self.tts.add_message(f"Gracias {name} por seguirme.")
         
-        msg_tpl, is_active = self.db.get_text_alert("follow")
-        if is_active and msg_tpl:
-            # Reemplazamos usando las variables correctas (y convirtiendo el número a string por seguridad)
-            final_msg = msg_tpl.replace("{user}", name).replace("{count}", str(current_count))
-            
-            # 1. Enviar al chat de Kick
+        # Usamos el servicio de alertas directamente desde el controlador
+        final_msg = self.alerts_service.trigger_alert(
+            event_type="follow", 
+            username=name, 
+            extra_data={"count": current_count} 
+        )
+        
+        if final_msg:
             self.send_msg(final_msg)
-            
-            # 2. Enviar la animación a OBS
-            if hasattr(self, 'alert_overlay') and self.alert_overlay:
-                self.alert_overlay.send_alert(
-                    alert_type="follow",
-                    title="¡Nuevo Seguidor!",
-                    message=final_msg
-                )
 
     def force_user_refresh_ui(self):
         username = self.db.get("kick_username")

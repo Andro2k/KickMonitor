@@ -159,12 +159,23 @@ class ChatCommandsRepository:
 class AutomationsRepository:
     def __init__(self, conn): self.conn = conn
 
-    def set_text_alert(self, event_type, message, is_active):
-        return self.conn.execute_query("INSERT OR REPLACE INTO text_alerts (event_type, message_template, is_active) VALUES (?, ?, ?)",(event_type, message, int(is_active)))
+    # En la clase AutomationsRepository (repositories.py)
+    def set_stream_alert(self, event_type, data: dict):
+        query = """
+            INSERT OR REPLACE INTO stream_alerts 
+            (event_type, title_template, message_template, is_active, image_url, sound_url, color, duration, layout_style, animation) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        return self.conn.execute_query(query, (
+            event_type, data.get('title_template', ''), data.get('message_template', ''), 
+            int(data.get('is_active', 1)), data.get('image_url', ''), data.get('sound_url', ''), 
+            data.get('color', '#53fc18'), int(data.get('duration', 5)), 
+            data.get('layout_style', 'Imagen Arriba, Texto Abajo'), data.get('animation', 'Pop In (Rebote)')
+        ))
 
-    def get_text_alert(self, event_type):
-        row = self.conn.fetch_one("SELECT message_template, is_active FROM text_alerts WHERE event_type=?", (event_type,))
-        return (row['message_template'], bool(row['is_active'])) if row else ("", False)
+    def get_stream_alert(self, event_type):
+        row = self.conn.fetch_one("SELECT * FROM stream_alerts WHERE event_type=?", (event_type,))
+        return dict(row) if row else None
 
     def set_timer(self, name, message, interval, is_active):
         query = "INSERT OR REPLACE INTO timers (name, message, interval, is_active, last_run) VALUES (?, ?, ?, ?, COALESCE((SELECT last_run FROM timers WHERE name=?), 0))"

@@ -6,7 +6,6 @@ class AlertsService:
     """
     Servicio de Automatización de Mensajes y Alertas.
     """
-    
     def __init__(self, db_handler, alert_worker=None):
         self.db = db_handler
         self.alert_worker = alert_worker 
@@ -17,76 +16,69 @@ class AlertsService:
             "host": "Gracias {user} por el host con {viewers} espectadores 🙌"
         }
         
+        # Agrega esto para evitar el AttributeError
         self.DEFAULTS_TIMERS = {
-            "redes": ("¡Sígueme en mis redes! twitter.com/usuario", 15),
-            "discord": ("¡Únete a la comunidad! discord.gg/ejemplo", 30),
-            "promo": ("¡Usa el código KICK para descuentos!", 45)
+            "discord": ("¡Únete a nuestro Discord! discord.gg/tu-enlace", 15),
+            "redes": ("Sígueme en mis redes sociales para no perderte nada.", 20)
         }
 
     # =========================================================================
     # REGIÓN 1: ALERTAS DE CHAT (EVENTOS)
     # =========================================================================
-    def get_alert_config(self, event_type: str) -> Tuple[str, bool]:
-        """Obtiene mensaje y estado. Si no existe, crea uno por defecto."""
-        msg, active = self.db.get_text_alert(event_type)
+    def get_alert_config(self, event_type: str) -> dict:
+        """Obtiene la configuración completa de la alerta."""
+        config = self.db.get_stream_alert(event_type)
         
-        if not msg and event_type in self.DEFAULTS_ALERTS:
-            msg = self.DEFAULTS_ALERTS[event_type]
-            self.db.set_text_alert(event_type, msg, False) 
-            active = False
+        if not config:
+            # Valores por defecto si no existe en BD
+            default_msg = self.DEFAULTS_ALERTS.get(event_type, "¡Gracias {user}!")
+            config = {
+                "event_type": event_type, "title_template": "¡Alerta!",
+                "message_template": default_msg, "is_active": False,
+                "image_url": "", "sound_url": "", "color": "#53fc18",
+                "duration": 5, "layout_style": "Imagen Arriba, Texto Abajo",
+                "animation": "Pop In (Rebote)"
+            }
+            self.save_alert(event_type, config)
             
-        return msg, active
+        return config
 
-    def save_alert(self, event_type: str, message: str, active: bool) -> bool:
-        """Guarda la configuración de una alerta de evento."""
-        return self.db.set_text_alert(event_type, message, active)
+    def save_alert(self, event_type: str, data: dict) -> bool:
+        """Guarda la configuración completa."""
+        return self.db.set_stream_alert(event_type, data)
 
     def trigger_alert(self, event_type: str, username: str, extra_data: dict = None, custom_template: str = None):
-        """
-        Verifica si la alerta está activa, formatea el texto y la envía a OBS.
-        Si se provee custom_template, ignora la base de datos (útil para la previsualización).
-        """
+        """Dispara la alerta combinando los datos de la base de datos con posibles datos de prueba."""
         extra_data = extra_data or {}
+        config = self.get_alert_config(event_type)
         
-        # 1. Determinar si usamos la BD o la plantilla de prueba en vivo
+        # Si estamos en previsualización (custom_template), sobrescribimos la config de la BD
         if custom_template is not None:
-            msg_template = custom_template
-            is_active = True  # Forzamos que esté activa para que se muestre en la previsualización
-        else:
-            msg_template, is_active = self.get_alert_config(event_type)
+            config.update(extra_data)
+            config["message_template"] = custom_template
+            config["is_active"] = True 
         
-        if not is_active:
-            return None # Si está apagada en la UI (y no es prueba), no hacemos nada
+        if not config.get("is_active"):
+            return None
             
-        # 2. Extraer variables de diseño (Las sacamos del dict usando .pop para que no interfieran)
-        color = extra_data.pop("color", None)
-        image_url = extra_data.pop("image_url", None)
-            
-        # 3. Formatear el mensaje (reemplazar variables de texto)
-        final_msg = msg_template.replace("{user}", username)
+        # Formatear textos
+        final_msg = config["message_template"].replace("{user}", username)
+        final_title = config["title_template"].replace("{user}", username)
         
-        for key, value in extra_data.items():
-            final_msg = final_msg.replace(f"{{{key}}}", str(value))
-                
-        # 4. Títulos bonitos para el Overlay de OBS
-        titles = {
-            "follow": "¡Nuevo Seguidor!",
-            "subscription": "¡Nueva Suscripción!",
-            "host": "¡Raid / Host!"
-        }
-        title = titles.get(event_type, "¡Alerta!")
-
-        # 5. Enviar la señal visual a OBS a través del Worker (AHORA CON COLOR E IMAGEN)
+        # Enviar al worker
         if self.alert_worker:
             self.alert_worker.send_alert(
                 alert_type=event_type, 
-                title=title, 
+                title=final_title, 
                 message=final_msg,
-                color=color,
-                image_url=image_url
+                color=config.get("color"),
+                image_url=config.get("image_url"),
+                sound_url=config.get("sound_url"),
+                duration=config.get("duration", 5),
+                layout_style=config.get("layout_style"),
+                animation=config.get("animation")
             )
             
-        # 6. Retornamos el texto para que el Bot lo escriba en el chat
         return final_msg
 
     # =========================================================================

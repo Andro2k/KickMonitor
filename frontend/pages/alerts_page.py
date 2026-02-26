@@ -95,6 +95,7 @@ class AlertsPage(QWidget):
         self.combo_alert = QComboBox()
         self.combo_alert.setStyleSheet(STYLES["combobox_modern"])
         self.combo_alert.addItems(["Nuevo Seguidor", "Suscripción", "Host / Raid"])
+        self.combo_alert.currentTextChanged.connect(self._load_alert_data)
         self.form_layout.addLayout(self._create_input_group("Seleccionar Alerta a editar:", self.combo_alert))
         
         self.chk_active = QCheckBox("Activar esta alerta")
@@ -161,6 +162,7 @@ class AlertsPage(QWidget):
         self.btn_save.setIcon(get_icon_colored("save.svg", THEME_DARK['NeonGreen_Main']))
         self.btn_save.setStyleSheet(STYLES["btn_primary"])
         self.btn_save.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_save.clicked.connect(self._save_alert_data)
         self.form_layout.addWidget(self.btn_save)
 
         scroll.setWidget(content_widget)
@@ -169,6 +171,7 @@ class AlertsPage(QWidget):
         main_layout.addWidget(left_panel, stretch=1)
         main_layout.addWidget(right_panel, stretch=0)
 
+        self._load_alert_data()
 
     # FUNCIONES DE COLOR
     def _update_color_btn(self):
@@ -222,3 +225,48 @@ class AlertsPage(QWidget):
         custom_message = self.txt_msg.toPlainText() or "¡Mensaje de prueba!"
         
         self.service.trigger_alert(selected_event, "UsuarioTest", mock_data, custom_template=custom_message)
+
+    def _load_alert_data(self):
+        event_map = {"Nuevo Seguidor": "follow", "Suscripción": "subscription", "Host / Raid": "host"}
+        selected_event = event_map.get(self.combo_alert.currentText())
+        if not selected_event: return
+
+        config = self.service.get_alert_config(selected_event)
+        
+        self.chk_active.setChecked(bool(config.get("is_active", True)))
+        self.inp_title.setText(config.get("title_template", ""))
+        self.txt_msg.setPlainText(config.get("message_template", ""))
+        self.inp_image.setText(config.get("image_url", ""))
+        self.inp_sound.setText(config.get("sound_url", ""))
+        self.spin_duration.setValue(int(config.get("duration", 5)))
+        self.current_color = config.get("color", "#53fc18")
+        self._update_color_btn()
+        self.combo_layout.setCurrentText(config.get("layout_style", "Imagen Arriba, Texto Abajo"))
+        self.combo_anim.setCurrentText(config.get("animation", "Pop In (Rebote)"))
+
+    def _save_alert_data(self):
+        event_map = {"Nuevo Seguidor": "follow", "Suscripción": "subscription", "Host / Raid": "host"}
+        selected_event = event_map[self.combo_alert.currentText()]
+        
+        data = {
+            "title_template": self.inp_title.text(),
+            "message_template": self.txt_msg.toPlainText(),
+            "is_active": self.chk_active.isChecked(),
+            "image_url": self.inp_image.text(),
+            "sound_url": self.inp_sound.text(),
+            "color": self.current_color,
+            "duration": self.spin_duration.value(),
+            "layout_style": self.combo_layout.currentText(),
+            "animation": self.combo_anim.currentText()
+        }
+        self.service.save_alert(selected_event, data)
+        
+        # --- NUEVO: Feedback visual ---
+        texto_original = self.btn_save.text()
+        self.btn_save.setText("¡Guardado!")
+        
+        # Volver al estado normal después de 1.5 segundos
+        QTimer.singleShot(1500, lambda: [
+            self.btn_save.setText(texto_original),
+            self.btn_save.setStyleSheet(STYLES["btn_primary"])
+        ])

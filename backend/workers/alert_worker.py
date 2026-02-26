@@ -132,11 +132,9 @@ class AlertOverlayWorker(QObject):
             return_exceptions=True
         )
 
-    def send_alert(self, alert_type: str, title: str, message: str, color: str = None, image_url: str = None):
-        """
-        Llama a este método desde tu bot para disparar la alerta visual en OBS.
-        alert_type: 'follow', 'subscription', 'host', etc.
-        """
+    def send_alert(self, alert_type: str, title: str, message: str, color: str = None, 
+                   image_url: str = None, sound_url: str = None, duration: int = 5, 
+                   layout_style: str = "Imagen Arriba", animation: str = "Pop In"):
         if not self.loop: return
         payload = {
             "type": "new_alert",
@@ -144,8 +142,12 @@ class AlertOverlayWorker(QObject):
                 "alert_type": alert_type, 
                 "title": title,
                 "message": message,
-                "color": color,           # <- Nuevo
-                "image_url": image_url    # <- Nuevo
+                "color": color,
+                "image_url": image_url,
+                "sound_url": sound_url,
+                "duration": duration,
+                "layout_style": layout_style,
+                "animation": animation
             }
         }
         asyncio.run_coroutine_threadsafe(self.broadcast_data(payload), self.loop)
