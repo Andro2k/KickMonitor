@@ -142,7 +142,7 @@ class SettingsPage(QWidget):
         self.content_layout.addWidget(create_setting_row("Copia de Seguridad", "Exporta tus datos o restaura un .db anterior.", backup_container))
       
         # --- NUEVO BOTÓN DE LIMPIEZA ---
-        self._create_action_row("Limpiar Base de Datos", "Elimina tablas antiguas (ej. casino) y optimiza el archivo.", "Limpiar Tablas Obsoletas", "btn_outlined", self._handle_cleanup_db)       
+        self._create_action_row("Limpiar Base de Datos", "Elimina tablas antiguas y optimiza el archivo.", "Limpiar Tablas Obsoletas", "btn_outlined", self._handle_cleanup_db)       
         self._create_action_row("Reiniciar Economía", "Establece los puntos de TODOS a 0. Irreversible.", "Reiniciar Puntos", "btn_danger_outlined", self._handle_reset_economy)
         self._create_action_row("Cerrar Sesión", "Elimina las credenciales y desconecta el bot.", "Desvincular Cuenta", "btn_danger_outlined", self._handle_unlink_account)
 

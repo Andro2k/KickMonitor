@@ -158,7 +158,7 @@ class DBHandler:
         return self.users.get_user(slug)
 
     # =========================================================================
-    # REGIÓN 5: FACHADA - ECONOMÍA (PUNTOS & CASINO)
+    # REGIÓN 5: FACHADA - ECONOMÍA
     # =========================================================================
     def add_points(self, user: str, amount: int) -> int: return self.economy.add_points(user, amount)
     def spend_points(self, user: str, cost: int) -> bool: return self.economy.spend_points(user, cost)

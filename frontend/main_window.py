@@ -27,7 +27,6 @@ from frontend.pages.settings_page import SettingsPage
 from frontend.pages.trigger_page import TriggerPage
 from frontend.pages.points_page import PointsPage
 from frontend.pages.commands_page import CommandsPage
-# from frontend.pages.casino_page import GamblingPage
 
 class MainWindow(QMainWindow):
     def __init__(self):

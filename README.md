@@ -51,7 +51,7 @@ Servidores web internos ultraligeros que transmiten directamente a tus fuentes d
 * **Filtros Inteligentes:** Píldoras de etiquetas interactivas (Dynamic Tag Pills) para ignorar comandos de bots o silenciar usuarios molestos, autocompletando guiones y prefijos.
 * **Protección API:** Límite inteligente de 500 caracteres para evitar desconexiones por spam en el chat de Kick.
 
-### Economía, Puntos y Casino
+### Economía
 * **Sistema de Lealtad:** Otorga puntos automáticamente a los espectadores activos por cada mensaje o por tiempo de visualización.
 * **Sincronización Bidireccional:** Pausar, silenciar o banear usuarios desde la tabla de base de datos se refleja inmediatamente en el motor de lectura de voz y en la pantalla de OBS.
 

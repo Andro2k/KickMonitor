@@ -35,7 +35,6 @@ class MainController(QObject):
     connection_changed = pyqtSignal(bool)
     user_info_signal = pyqtSignal(str, int, str)
     toast_signal = pyqtSignal(str, str, str)
-    gamble_result_signal = pyqtSignal(str, str, str, bool)
     username_needed = pyqtSignal()
 
     def __init__(self):
