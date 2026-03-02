@@ -27,33 +27,24 @@ class PointsService:
     # NUEVA LÓGICA: IMPORTAR / EXPORTAR
     # =========================================================================
     def export_points_csv(self, path: str) -> bool:
-        """Prepara los datos de la DB y los guarda usando DataManager."""
-        headers = ["Username", "Points", "Last_Seen", "Is_Paused", "Is_Muted", "Role"]
+        headers = ["Username", "Points", "Last_Seen", "Is_Paused", "Is_Muted", "Role", "Color"]
         users = self.db.get_all_points()
 
         formatted_rows = []
         for u in users:
-            # u = (user, pts, last_seen, paused, muted, role)
             role_val = u[5] if u[5] else "user"
+            color_val = u[6] if u[6] else ""
             formatted_rows.append([
-                u[0], 
-                u[1], 
-                str(u[2]), 
-                int(u[3]), 
-                int(u[4]), 
-                role_val
+                u[0], u[1], str(u[2]), int(u[3]), int(u[4]), role_val, color_val
             ])
-
         return DataManager.export_csv(path, headers, formatted_rows)
 
     def import_points_csv(self, path: str) -> Tuple[bool, str, str]:
         """
         Importa puntos calculando la diferencia para ajustar el total.
         """
-        # 1. Definimos columnas OBLIGATORIAS
+
         required = ["username", "points"]
-        
-        # 2. DataManager valida el archivo
         rows, error_msg = DataManager.import_csv(path, required)
         
         if rows is None:
@@ -62,7 +53,6 @@ class PointsService:
         count = 0
         errors = 0
         
-        # 3. Procesamos la lógica de negocio
         for row in rows:
             try:
                 user = row.get("username")
@@ -83,6 +73,9 @@ class PointsService:
                 
                 if "role" in row:
                     self.db.update_user_role(user, row["role"])
+
+                if "color" in row and row["color"]:
+                    self.db.set_user_color(user, row["color"])
                 
                 count += 1
             except ValueError:

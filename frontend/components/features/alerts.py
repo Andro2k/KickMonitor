@@ -18,9 +18,6 @@ from frontend.utils import get_icon_colored
 # COMPONENTE 1: TARJETA DE ALERTA (Follow, Sub, Host)
 # =========================================================================
 class AlertCard(BaseAccordionCard):
-    """
-    Tarjeta interactiva para configurar las alertas que van hacia el OBS/Chat.
-    """
     def __init__(self, service, title, event_type, desc, default_vars):
         self.service = service
         self.event_type = event_type

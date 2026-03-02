@@ -31,10 +31,30 @@ class ChatHandler:
     # REGIÓN 2: LÓGICA DE NEGOCIO (PUNTOS Y ECONOMÍA)
     # =========================================================================
     def process_points(self, user: str, msg: str, badges: List[str] = None):
-        """Asigna puntos por actividad."""
-        new_role = "bot" if self.is_bot(user) else "user"
+        """Asigna puntos por actividad y detecta el rango (rol) en Kick."""
+        # 1. Analizar los badges para determinar el rango real
+        new_role = "user"
+        
+        if self.is_bot(user):
+            new_role = "bot"
+        elif badges:
+            # Convertimos a minúsculas para evitar errores de mayúsculas
+            badges_lower = [b.lower() for b in badges]
+            
+            # Orden de jerarquía (de mayor a menor importancia)
+            if "broadcaster" in badges_lower or "creator" in badges_lower:
+                new_role = "broadcaster"
+            elif "moderator" in badges_lower:
+                new_role = "moderator"
+            elif "vip" in badges_lower:
+                new_role = "vip"
+            elif "subscriber" in badges_lower or "founder" in badges_lower:
+                new_role = "subscriber"
+
+        # 2. Guardar el rol en la base de datos
         self.db.update_user_role(user, new_role)
         
+        # 3. Lógica de puntos (los bots y los comandos no dan puntos)
         if new_role == "bot" or msg.startswith("!"):
             return
             

@@ -9,12 +9,9 @@ from PyQt6.QtCore import Qt, pyqtSignal, QUrl
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 
-# Servicios y Alertas
 from backend.services.dashboard_service import DashboardService
 from frontend.notifications.modal_alert import ModalConfirm
 from frontend.notifications.toast_alert import ToastNotification
-
-# Estilos y Utilidades
 from frontend.components.core.factories import create_card_header, create_dashboard_action_btn, create_shortcut_btn
 from frontend.components.core.layouts import FlowLayout
 from frontend.components.features.music import MusicPlayerPanel

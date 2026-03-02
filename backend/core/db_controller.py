@@ -37,7 +37,7 @@ class DBHandler:
             username TEXT PRIMARY KEY, points INTEGER DEFAULT 0, 
             last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
             is_paused INTEGER DEFAULT 0, is_muted INTEGER DEFAULT 0,
-            role TEXT DEFAULT ''
+            role TEXT DEFAULT '', color TEXT DEFAULT ''
         """,
         "custom_commands": "trigger TEXT PRIMARY KEY, response TEXT, is_active INTEGER DEFAULT 1, cooldown INTEGER DEFAULT 5, aliases TEXT DEFAULT '', cost INTEGER DEFAULT 0",
         "stream_alerts": """
@@ -108,7 +108,7 @@ class DBHandler:
                 ("description", "TEXT DEFAULT 'Trigger KickMonitor'"),
                 ("path", "TEXT DEFAULT ''"), ("random_pos", "INTEGER DEFAULT 0")
             ],
-            "data_users": [("is_paused", "INTEGER DEFAULT 0"), ("is_muted", "INTEGER DEFAULT 0"), ("role", "TEXT DEFAULT ''")],
+            "data_users": [("is_paused", "INTEGER DEFAULT 0"), ("is_muted", "INTEGER DEFAULT 0"), ("role", "TEXT DEFAULT ''"), ("color", "TEXT DEFAULT ''")],
             "custom_commands": [("cooldown", "INTEGER DEFAULT 5"), ("aliases", "TEXT DEFAULT ''"), ("cost", "INTEGER DEFAULT 0")],
             "timers": [("interval", "INTEGER DEFAULT 15"), ("last_run", "REAL DEFAULT 0")]
         }
@@ -172,6 +172,9 @@ class DBHandler:
     def set_user_muted(self, user: str, muted: bool): return self.economy.set_muted(user, muted)
     def is_muted(self, user: str) -> bool: return self.economy.is_muted(user)
     def update_user_role(self, user: str, role: str): return self.economy.update_role(user, role)
+
+    def set_user_color(self, user: str, color: str): return self.economy.set_color(user, color)
+    def get_user_color(self, user: str) -> str: return self.economy.get_color(user)
 
     # =========================================================================
     # REGIÓN 6: FACHADA - CARACTERÍSTICAS (COMMANDS, OVERLAY, ALERTS)

@@ -10,7 +10,7 @@ from backend.services.rewards_service import RewardsService
 
 class TriggerHandler:
     """
-    Maneja la lógica de negocio para las Alertas Multimedia (Triggers).
+    Maneja la lógica de negocio para las Triggers Multimedia (Triggers).
     """  
     def __init__(self, db_handler, overlay_worker, shared_scraper=None):
         self.db = db_handler

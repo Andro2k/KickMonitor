@@ -1,5 +1,7 @@
 # frontend/pages/points_page.py
 
+from PyQt6.QtGui import QColor
+
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QTableWidget, QTableWidgetItem, QHeaderView, 
@@ -9,13 +11,9 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QTimer
 
-# --- IMPORTS DE FACTORÍAS ---
 from frontend.components.core.factories import (
-    create_icon_btn, 
-    create_nav_btn, 
-    create_page_header, 
-    create_styled_input, 
-    create_switch_widget
+    create_icon_btn, create_nav_btn, 
+    create_page_header, create_styled_input, create_switch_widget
 )
 from frontend.theme import LAYOUT, THEME_DARK, STYLES
 from frontend.utils import get_icon, get_icon_colored
@@ -38,7 +36,7 @@ class PointsPage(QWidget):
         
         self.init_ui()
         self.load_table_data()
-
+    
     def init_ui(self):
         # 1. LAYOUT PRINCIPAL (Scroll Vertical)
         main_layout = QVBoxLayout(self)
@@ -168,12 +166,12 @@ class PointsPage(QWidget):
 
         # Tabla
         self.table = QTableWidget()
-        self.table.setColumnCount(6)
-        self.table.setHorizontalHeaderLabels(["Usuario", "Puntos", "Visto", "Pausar", "Silenciar", "Acción"])
+        self.table.setColumnCount(7)
+        self.table.setHorizontalHeaderLabels(["Usuario", "Color", "Puntos", "Visto", "Pausar", "Silenciar", "Acción"])
         self.table.setStyleSheet(STYLES["table_clean"] + "QTableWidget { border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }")
         
         self.table.setShowGrid(False)
-        self.table.setAlternatingRowColors(True)
+        self.table.setAlternatingRowColors(False)
         self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(50)
         self.table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
@@ -183,11 +181,12 @@ class PointsPage(QWidget):
         
         h = self.table.horizontalHeader()
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        h.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed); self.table.setColumnWidth(1, 100)
-        h.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed); self.table.setColumnWidth(2, 120)
-        h.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed); self.table.setColumnWidth(3, 80)
-        h.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed); self.table.setColumnWidth(4, 80)
-        h.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed); self.table.setColumnWidth(5, 60)
+        h.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed); self.table.setColumnWidth(1, 60) # Color
+        h.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed); self.table.setColumnWidth(2, 90) # Puntos
+        h.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed); self.table.setColumnWidth(3, 110) # Visto
+        h.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed); self.table.setColumnWidth(4, 70) # Pausar
+        h.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed); self.table.setColumnWidth(5, 80) # Silenciar
+        h.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed); self.table.setColumnWidth(6, 70) # Acción
 
         l.addWidget(self.table)
         
@@ -200,69 +199,117 @@ class PointsPage(QWidget):
         scroll_val = self.table.verticalScrollBar().value()
         self.table.setRowCount(0)
         
-        role_svgs = { "bot": "bot.svg", "user": "user.svg" }
+        role_svgs = { 
+            "broadcaster": "video.svg",
+            "moderator": "shield.svg",
+            "vip": "star.svg",
+            "subscriber": "heart.svg",
+            "bot": "bot.svg", 
+            "user": "user.svg" 
+        }
+
+        role_colors = {
+            "broadcaster": "#FF4500",
+            "moderator": "#53fc18",
+            "vip": "#FF69B4",
+            "subscriber": "#FFD700",
+            "bot": "#00FFFF",
+            "user": "#FFFFFF"
+        }
+
         users = self.service.get_users_data() 
 
-        for idx, (user, points, last_seen, is_paused, is_muted, role) in enumerate(users):
+        # OJO: Desempaquetamos los 7 valores (incluyendo 'color' de nuestra modificación anterior)
+        for idx, (user, points, last_seen, is_paused, is_muted, role, chat_color) in enumerate(users):
+            
+            # 1. PRIMERO: Limpiamos el rol y forzamos el estado si es bot
+            clean_role = str(role).lower().strip() if role else "user"
+            if clean_role == "bot":
+                is_paused = True
+                is_muted = True
+                
+            # 2. SEGUNDO: Aplicamos los filtros basándonos en el estado real/forzado
             if self.search_text and self.search_text not in user.lower(): continue
             if self.filter_mode == "Pausados" and not is_paused: continue
             if self.filter_mode == "Silenciados" and not is_muted: continue
             
+            # 3. Insertar fila si pasó los filtros
             row = self.table.rowCount()
             self.table.insertRow(row)
             
-            clean_role = str(role).lower().strip() if role else "user"
+            # Obtenemos su icono y color para la UI
             svg_name = role_svgs.get(clean_role, "user.svg")
+            user_text_color = role_colors.get(clean_role, "#FFFFFF")
             
-            # 1. Usuario
+            if clean_role == "bot":
+                is_paused = True
+                is_muted = True
+            
+            # 1. Usuario (Columna 0)
             item_user = QTableWidgetItem(user)
             item_user.setIcon(get_icon(svg_name))
-            item_user.setForeground(Qt.GlobalColor.white)
-            if clean_role == "bot": item_user.setForeground(Qt.GlobalColor.green)
+            item_user.setForeground(QColor(user_text_color))
             item_user.setTextAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
             
-            # 2. Puntos
+            # 2. Indicador de Color del Chat (Columna 1)
+            w_color = QWidget()
+            l_color = QHBoxLayout(w_color)
+            l_color.setContentsMargins(0, 0, 0, 0)
+            l_color.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            circle = QLabel()
+            circle.setFixedSize(16, 16)
+            
+            valid_color = chat_color if chat_color else "transparent"
+            circle.setStyleSheet(f"background-color: {valid_color}; border-radius: 8px; border: 1px solid #555;")
+            l_color.addWidget(circle)
+            
+            # 3. Puntos (Columna 2)
             item_points = QTableWidgetItem(f"{points:,}")
             item_points.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             item_points.setForeground(Qt.GlobalColor.green)
             
-            # 3. Visto
+            # 4. Visto (Columna 3)
             t_str = str(last_seen).split(".")[0]
             item_time = QTableWidgetItem(t_str)
             item_time.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             item_time.setForeground(Qt.GlobalColor.gray)
             
-            # 4. Switch Pause (Usando Factory)
+            # 5. Switch Pause (Columna 4)
             w_pause = create_switch_widget(
                 checked=is_paused, 
                 func=lambda chk, u=user: self._handle_toggle_pause(u, chk), 
                 tooltip="Pausar obtención de puntos"
             )
             
-            # 5. Switch Mute (Usando Factory)
+            # 6. Switch Mute (Columna 5)
             w_mute = create_switch_widget(
                 checked=is_muted, 
                 func=lambda chk, u=user: self._handle_toggle_mute(u, chk), 
                 tooltip="Silenciar en TTS"
             )
+
+            if clean_role == "bot":
+                w_pause.setEnabled(False)
+                w_mute.setEnabled(False)
             
-            # 6. Botón Eliminar (Usando Factory + Wrapper de Centrado)
+            # 7. Botón Eliminar (Columna 6)
             btn_del = create_icon_btn(
                 "trash.svg", 
                 lambda _, u=user: self._handle_delete_user(u), 
                 color_hover="#ff453a"
             )
-            # Wrapper para centrar el botón en la celda
             w_del = QWidget(); w_del.setStyleSheet("background: transparent;")
             l_del = QHBoxLayout(w_del); l_del.setContentsMargins(0,0,0,0); l_del.setAlignment(Qt.AlignmentFlag.AlignCenter)
             l_del.addWidget(btn_del)
             
+            # Insertamos todo en la tabla
             self.table.setItem(row, 0, item_user)
-            self.table.setItem(row, 1, item_points)
-            self.table.setItem(row, 2, item_time)
-            self.table.setCellWidget(row, 3, w_pause)
-            self.table.setCellWidget(row, 4, w_mute)
-            self.table.setCellWidget(row, 5, w_del)
+            self.table.setCellWidget(row, 1, w_color)
+            self.table.setItem(row, 2, item_points)
+            self.table.setItem(row, 3, item_time)
+            self.table.setCellWidget(row, 4, w_pause)
+            self.table.setCellWidget(row, 5, w_mute)
+            self.table.setCellWidget(row, 6, w_del)
 
         self.table.verticalScrollBar().setValue(scroll_val)
 

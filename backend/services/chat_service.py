@@ -2,7 +2,6 @@
 
 from typing import List, Dict, Any
 import pyttsx3
-from backend.utils.logger_text import LoggerText
 
 class ChatService:
     def __init__(self, db_handler, tts_worker):
@@ -43,9 +42,9 @@ class ChatService:
     # =========================================================================
     def get_tts_settings(self) -> Dict[str, Any]:
         return {
-            "voice_id": self.db.get("voice_id"), # ID de Windows SAPI5
-            "edge_voice": self.db.get("edge_voice", "es-MX-JorgeNeural"), # ID de IA
-            "engine_type": self.db.get("tts_engine", "edge-tts"), # Qué motor usar
+            "voice_id": self.db.get("voice_id"),
+            "edge_voice": self.db.get("edge_voice", "es-MX-JorgeNeural"),
+            "engine_type": self.db.get("tts_engine", "edge-tts"),
             "rate": self.db.get_int("voice_rate", 175),
             "volume": self.db.get_int("voice_vol", 100),
             "command": self.db.get("tts_command") or "!voz",
@@ -90,10 +89,8 @@ class ChatService:
     # =========================================================================
     def get_chat_overlay_settings(self) -> Dict[str, Any]:
         """Recupera la configuración visual y sincroniza los ignorados desde Puntos."""
-        
-        # 🔴 MAGIA 1: Buscamos a los usuarios silenciados directamente en la tabla de Puntos
+
         all_users = self.db.get_all_points()
-        # u[0] es el nombre de usuario, u[4] es el estado is_muted
         muted_users = [u[0] for u in all_users if u[4] == 1] 
         ignored_str = ",".join(muted_users)
 
@@ -111,27 +108,22 @@ class ChatService:
             "show_time": self.db.get_bool("chat_show_time"),
             "hide_old": self.db.get_bool("chat_hide_old"),
             "hide_time": self.db.get_int("chat_hide_time", 10),
-            "ignored_users": ignored_str # <--- Enviamos la lista unificada a la interfaz
+            "ignored_users": ignored_str
         }
 
     def save_chat_overlay_settings(self, settings: Dict[str, Any]):
         """Guarda todas las variables visuales y sincroniza usuarios ignorados bidireccionalmente."""
-        
-        # 1. Guardamos TODA la configuración visual en la tabla general normalmente
+
         for key, value in settings.items():
             self.db.set(f"chat_{key}", value)
 
-        # 🔴 MAGIA 2: Sincronizamos los nombres de la caja de texto con la tabla de Puntos
-        ignored_str = settings.get("ignored_users", "")
-        
+        ignored_str = settings.get("ignored_users", "")      
         current_users = self.db.get_all_points()
         currently_muted = {u[0].lower() for u in current_users if u[4] == 1}
         new_muted = {u.strip().lower() for u in ignored_str.split(",") if u.strip()}
 
-        # A) Des-silenciar en la tabla de puntos a los que borraste de la caja de texto
         for u in currently_muted - new_muted:
             self.db.set_user_muted(u, False)
 
-        # B) Silenciar (y crear si no existen) a los nuevos que escribiste en la caja de texto
         for u in new_muted - currently_muted:
             self.db.set_user_muted(u, True)

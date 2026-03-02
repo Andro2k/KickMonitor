@@ -57,8 +57,19 @@ class EconomyRepository:
         res = self.conn.fetch_one("SELECT points FROM data_users WHERE username=?", (username.lower(),))
         return res['points'] if res else 0
 
-    def get_all_users_points(self) -> List: 
-        return self.conn.fetch_all("SELECT username, points, last_seen, is_paused, is_muted, role FROM data_users ORDER BY points DESC")
+    def get_all_users_points(self) -> List:
+        return self.conn.fetch_all("SELECT username, points, last_seen, is_paused, is_muted, role, color FROM data_users ORDER BY points DESC")
+
+    def set_color(self, username: str, color: str):
+        user = username.lower()
+        self.conn.execute_transaction([
+            ("INSERT OR IGNORE INTO data_users (username) VALUES (?)", (user,)),
+            ("UPDATE data_users SET color = ? WHERE username = ?", (color, user))
+        ])
+
+    def get_color(self, username: str) -> str:
+        res = self.conn.fetch_one("SELECT color FROM data_users WHERE username=?", (username.lower(),))
+        return res['color'] if res and res['color'] else ""
 
     def add_points_periodic(self, amount: int, minutes_window=10):
         query = f"UPDATE data_users SET points = points + ? WHERE last_seen >= datetime('now', '-{minutes_window} minutes') AND is_paused = 0"

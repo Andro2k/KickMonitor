@@ -2,6 +2,7 @@
 
 from datetime import datetime
 import os
+import random
 import re
 from typing import List, Optional
 from PyQt6.QtCore import QMutexLocker, QObject, pyqtSignal, QTimer, QThread
@@ -91,36 +92,54 @@ class MainController(QObject):
         """Recibe datos limpios y los procesa a través de la cadena de responsabilidad."""
         msg_lower = content.strip().lower()
         
-        if self.antibot.check_user(user, self._ban_user, self.emit_log) or \
-           self.chat_handler.is_bot(user) or \
-           self.chat_handler.should_ignore_user(user):
-            self._update_ui_chat(timestamp, user, content)
+        # 1. ANTIBOT: Bloqueo total (spam malicioso se ignora por completo)
+        if self.antibot.check_user(user, self._ban_user, self.emit_log):
             return
-            
+
+        # 2. UI LOCAL: Siempre mostramos los mensajes en el historial de tu app de escritorio
+        self._update_ui_chat(timestamp, user, content)
+
+        # 3. PUNTOS Y ROLES: Actualiza en BD (tu chat_handler ya sabe no dar puntos a bots)
         self.chat_handler.process_points(user, msg_lower, badges)
 
-        command_handlers = [
-            lambda: self.music_handler.handle_command(user, content, msg_lower, self.send_msg, self.emit_log),
-            lambda: self._handle_custom_responses(user, msg_lower),
-            lambda: self._handle_points_query(user, msg_lower)
-        ]
-        
-        if any(handler() for handler in command_handlers):
-            self._update_ui_chat(timestamp, user, content)
-            return
+        # Identificamos el estado del usuario
+        is_bot = self.chat_handler.is_bot(user)
+        is_ignored = self.chat_handler.should_ignore_user(user)
+
+        # 4. COMANDOS: Bots y usuarios silenciados NO pueden ejecutar comandos
+        if not is_bot and not is_ignored:
+            command_handlers = [
+                lambda: self.music_handler.handle_command(user, content, msg_lower, self.send_msg, self.emit_log),
+                lambda: self._handle_custom_responses(user, msg_lower),
+                lambda: self._handle_points_query(user, msg_lower),
+                lambda: self._handle_color_command(user, msg_lower) # El comando de colores
+            ]
             
-        if self.tts_enabled: 
+            # Si se ejecutó algún comando con éxito, detenemos el flujo aquí (no va al chat normal)
+            if any(handler() for handler in command_handlers):
+                return
+                
+        # 5. TEXT-TO-SPEECH (TTS): Bots y silenciados NO hablan
+        if self.tts_enabled and not is_bot and not is_ignored: 
             self._process_tts(user, content)
 
+        # 6. OVERLAY OBS: Usamos tu filtro inteligente que respeta los checkboxes de la UI
         if self._should_send_to_overlay(user, content):
             is_streamer = user.lower() == (self.db.get("kick_username") or "").lower()
+            
+            # Recuperar color o asignar uno aleatorio (Lo que hicimos en la fase 1)
+            user_color = self.db.get_user_color(user)
+            if not user_color:
+                import random
+                user_color = "#53fc18" if is_streamer else "#{:06x}".format(random.randint(0, 0xFFFFFF))
+                self.db.set_user_color(user, user_color)
+
+            # Enviamos al servidor web (OBS)
             self.unified_server.send_chat_message_to_overlay(
                 sender=user, content=content, badges=badges,
-                user_color="#53fc18" if is_streamer else "#ffffff",
+                user_color=user_color,
                 timestamp=timestamp
             )
-
-        self._update_ui_chat(timestamp, user, content)
 
     def _update_ignored_users_cache(self):
         """Actualiza la caché de usuarios ignorados una sola vez."""
@@ -183,6 +202,54 @@ class MainController(QObject):
         if final_text: 
             self.tts.add_message(f"{user} dice: {final_text}")
 
+    def _handle_color_command(self, user, msg_lower) -> bool:
+        if msg_lower.startswith("!color"):
+            predefined_colors = {
+                "rojo": "#FF4500",
+                "azul": "#1E90FF",
+                "verde": "#32CD32",
+                "amarillo": "#FFD700",
+                "naranja": "#FF8C00",
+                "morado": "#9370DB",
+                "rosado": "#FF69B4",
+                "cyan": "#00FFFF",
+                "blanco": "#FFFFFF"
+            }
+
+            parts = msg_lower.split(" ", 1)
+            
+            if len(parts) > 1:
+                arg = parts[1].strip().lower()
+
+                # 1. Si el usuario pide la lista de colores
+                if arg == "list":
+                    color_names = ", ".join(predefined_colors.keys())
+                    self.send_msg(f"@{user} Colores disponibles: {color_names}. Usa !color (nombre) o !color (#HEX)")
+                    return True
+                
+                # 2. Si el usuario escribe un nombre de color predefinido (ej: !color rojo)
+                if arg in predefined_colors:
+                    color_val = predefined_colors[arg]
+                    self.db.set_user_color(user, color_val)
+                    self.send_msg(f"@{user} color actualizado a {arg} ✅")
+                    return True
+
+                # 3. Si el usuario escribe un código HEX (ej: !color #FF00FF)
+                import re
+                if re.match(r'^#(?:[0-9a-fA-F]{3}){1,2}$', arg):
+                    self.db.set_user_color(user, arg)
+                    self.send_msg(f"@{user} color actualizado a {arg} ✅")
+                    return True
+                
+                # 4. Si escribe algo que no existe
+                self.send_msg(f"@{user} color no válido. Usa '!color list' para ver las opciones o un HEX (ej: #FF0000) ❌")
+            else:
+                # Si solo escribe "!color" sin nada más
+                self.send_msg(f"@{user} uso correcto: !color (nombre/HEX) o '!color list'")
+                
+            return True
+        return False
+    
     # =========================================================================
     # REGIÓN 3: GESTIÓN DE WORKERS Y CONEXIÓN
     # =========================================================================

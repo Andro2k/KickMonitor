@@ -55,7 +55,7 @@ class CommandsPage(QWidget):
         self.table.setHorizontalHeaderLabels(["", "Comando", "Respuesta", "Alias", "Costo", "CD", "Acciones"])
         self.table.verticalHeader().setVisible(False)
         self.table.setShowGrid(False)
-        self.table.setAlternatingRowColors(True)
+        self.table.setAlternatingRowColors(False)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setStyleSheet(STYLES["table_clean"])
@@ -65,22 +65,18 @@ class CommandsPage(QWidget):
         h.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)            # Activo (Switch)
         h.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents) # Comando
         h.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)          # Respuesta
-        
-        # EL CAMBIO 1: Interactivo permite ajustar y FlowLayout hará el resto
-        h.setSectionResizeMode(3, QHeaderView.ResizeMode.Interactive)      # Alias
-        
+        h.setSectionResizeMode(3, QHeaderView.ResizeMode.Interactive)      # Alias        
         h.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)            # Costo
         h.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)            # CD
         h.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)            # Acciones
         
         self.table.setColumnWidth(0, 50)
-        self.table.setColumnWidth(3, 200) # Un ancho inicial generoso para Alias
+        self.table.setColumnWidth(3, 200)
         self.table.setColumnWidth(4, 60)
         self.table.setColumnWidth(5, 50)
         self.table.setColumnWidth(6, 90)
         
-        # Aumentamos un poquito la altura para que entren 2 líneas de Alias cómodamente
-        self.table.verticalHeader().setDefaultSectionSize(60) 
+        self.table.verticalHeader().setDefaultSectionSize(65) 
 
         l_content.addWidget(self.table)
         main_layout.addWidget(content)
