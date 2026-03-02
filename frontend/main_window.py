@@ -42,16 +42,18 @@ class MainWindow(QMainWindow):
         self.setup_ui()
         self._connect_signals()
 
-        # Inicializamos el componente de la bandeja del sistema
         self.tray_icon = TrayIcon(self)
 
-        # Estado Inicial
-        self.controller.force_user_refresh()
-        self.ui_home.refresh_data()
-        self.ui_home.update_connection_state(False)
+        QTimer.singleShot(100, self._initial_data_load)
         
         if self.controller.db.get_bool("auto_connect"):
             QTimer.singleShot(1000, self.controller.start_bot)
+
+    def _initial_data_load(self):
+        """Carga la información del usuario y refresca la UI una vez renderizada la ventana."""
+        self.controller.force_user_refresh()
+        self.ui_home.refresh_data()
+        self.ui_home.update_connection_state(False)
 
     def _setup_app_id(self):
         with suppress(Exception):

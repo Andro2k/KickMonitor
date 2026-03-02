@@ -118,15 +118,7 @@ class MusicPlayerPanel(QFrame):
         main_layout.addWidget(player_container, stretch=1)
 
         # ==========================================
-        # 2. SEPARADOR
-        # ==========================================
-        sep = QFrame()
-        sep.setFrameShape(QFrame.Shape.VLine)
-        sep.setStyleSheet(f"color: {THEME_DARK['Gray_Border']}; margin: 2px;")
-        main_layout.addWidget(sep)
-
-        # ==========================================
-        # 3. SECCIÓN COMANDOS (Derecha)
+        # 2. SECCIÓN COMANDOS (Derecha)
         # ==========================================
         cmds_container = QWidget()
         cmds_container.setStyleSheet("background: transparent; border: none;")

@@ -168,7 +168,7 @@ class PointsPage(QWidget):
         self.table = QTableWidget()
         self.table.setColumnCount(7)
         self.table.setHorizontalHeaderLabels(["Usuario", "Color", "Puntos", "Visto", "Pausar", "Silenciar", "Acción"])
-        self.table.setStyleSheet(STYLES["table_clean"] + "QTableWidget { border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }")
+        self.table.setStyleSheet(STYLES["table_clean"])
         
         self.table.setShowGrid(False)
         self.table.setAlternatingRowColors(False)
@@ -218,6 +218,8 @@ class PointsPage(QWidget):
         }
 
         users = self.service.get_users_data() 
+        MAX_ROWS = 100 # LÍMITE DE PROTECCIÓN
+        current_rows = 0
 
         # OJO: Desempaquetamos los 7 valores (incluyendo 'color' de nuestra modificación anterior)
         for idx, (user, points, last_seen, is_paused, is_muted, role, chat_color) in enumerate(users):
@@ -233,9 +235,13 @@ class PointsPage(QWidget):
             if self.filter_mode == "Pausados" and not is_paused: continue
             if self.filter_mode == "Silenciados" and not is_muted: continue
             
-            # 3. Insertar fila si pasó los filtros
+            # PROTECCIÓN: Si ya cargó 100 usuarios, detenemos el loop para no congelar la PC
+            if current_rows >= MAX_ROWS:
+                break
+                
             row = self.table.rowCount()
             self.table.insertRow(row)
+            current_rows += 1
             
             # Obtenemos su icono y color para la UI
             svg_name = role_svgs.get(clean_role, "user.svg")

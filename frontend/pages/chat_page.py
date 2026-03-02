@@ -27,7 +27,7 @@ class ChatPage(QWidget):
         
         self.init_ui()
         self._map_ui_elements()
-        self._load_initial_state()
+        QTimer.singleShot(150, self._load_initial_state)
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
@@ -203,7 +203,6 @@ class ChatPage(QWidget):
         w_time, self.s_hide_time = self._create_slider_widget("Desaparecer después de (Seg)", 5, 60, self._handle_overlay_settings_changed)
         l.addWidget(w_time)
 
-        sep = QFrame(); sep.setFixedHeight(1); sep.setStyleSheet(f"background: {THEME_DARK['Gray_Border']};"); l.addWidget(sep)
         l.addWidget(QLabel("Usuarios ignorados (separados por coma):", styleSheet="color:#aaa; font-size:11px;"))
         
         self.txt_ignored = DynamicTagInput(

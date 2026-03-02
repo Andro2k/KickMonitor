@@ -37,21 +37,12 @@ class AlertsPage(QWidget):
         # Header
         left_layout.addWidget(create_page_header("Diseñador de Alertas", "Personaliza y previsualiza en tiempo real."))
 
-        # Contenedor del Visor Web
-        preview_container = QFrame()
-        preview_container.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
-        preview_layout = QVBoxLayout(preview_container)
-        
-        # Visor Web (Carga el HTML de OBS)
-        self.webview = QWebEngineView()
-        self.webview.page().setBackgroundColor(QColor(0, 0, 0, 0)) 
-        self.webview.setUrl(QUrl("http://127.0.0.1:8081/alerts"))
-        
-        preview_layout.addWidget(self.webview)
-        
-        # Hacemos que el contenedor del visor se expanda en ambas direcciones
-        preview_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        left_layout.addWidget(preview_container, stretch=1)
+        # Contenedor del Visor Web (Lo dejamos vacío por ahora)
+        self.preview_container = QFrame()
+        self.preview_container.setStyleSheet(f"background-color: {THEME_DARK['Black_N2']}; border-radius: 12px;")
+        self.preview_layout = QVBoxLayout(self.preview_container)
+        self.preview_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        left_layout.addWidget(self.preview_container, stretch=1)
         
         # Fila de botones debajo de la previsualización
         btn_layout = QHBoxLayout()
@@ -172,6 +163,7 @@ class AlertsPage(QWidget):
         main_layout.addWidget(right_panel, stretch=0)
 
         self._load_alert_data()
+        QTimer.singleShot(300, self._init_web_engine)
 
     # FUNCIONES DE COLOR
     def _update_color_btn(self):
@@ -180,6 +172,12 @@ class AlertsPage(QWidget):
             f"border: 1px solid {THEME_DARK['Black_N1']}; "
             f"border-radius: 6px;"
         )
+
+    def _init_web_engine(self):
+        self.webview = QWebEngineView()
+        self.webview.page().setBackgroundColor(QColor(0, 0, 0, 0)) 
+        self.webview.setUrl(QUrl("http://127.0.0.1:8081/alerts"))
+        self.preview_layout.addWidget(self.webview)
 
     def _pick_color(self):
         dialog = QColorDialog(self)
@@ -260,12 +258,10 @@ class AlertsPage(QWidget):
             "animation": self.combo_anim.currentText()
         }
         self.service.save_alert(selected_event, data)
-        
-        # --- NUEVO: Feedback visual ---
+
         texto_original = self.btn_save.text()
         self.btn_save.setText("¡Guardado!")
-        
-        # Volver al estado normal después de 1.5 segundos
+
         QTimer.singleShot(1500, lambda: [
             self.btn_save.setText(texto_original),
             self.btn_save.setStyleSheet(STYLES["btn_primary"])

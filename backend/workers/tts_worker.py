@@ -79,6 +79,10 @@ class TTSWorker(QThread):
     # LOOP PRINCIPAL Y LIMPIEZA
     # ==========================================
     def run(self):
+        with suppress(Exception):
+            pygame.mixer.init(frequency=24000, size=-16, channels=1, buffer=2048)
+            self.backup_engine = pyttsx3.init()
+
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         
@@ -164,19 +168,13 @@ class TTSWorker(QThread):
 
     def _speak_pyttsx3(self, text: str):
         with suppress(Exception):
-            self.current_engine = pyttsx3.init()
             if self.selected_voice_id:
-                with suppress(Exception): 
-                    self.current_engine.setProperty('voice', self.selected_voice_id)
-            
-            self.current_engine.setProperty('rate', self.rate)
-            self.current_engine.setProperty('volume', self.volume)
-            
-            self.current_engine.say(text)
-            self.current_engine.runAndWait()
-            self.current_engine.stop()
+                self.backup_engine.setProperty('voice', self.selected_voice_id)
+            self.backup_engine.setProperty('rate', self.rate)
+            self.backup_engine.setProperty('volume', self.volume)
+            self.backup_engine.say(text)
+            self.backup_engine.runAndWait()
                 
         with suppress(Exception):
-            if self.current_engine:
-                del self.current_engine
-        self.current_engine = None
+            if self.backup_engine:
+                self.backup_engine.stop()

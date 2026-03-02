@@ -72,10 +72,10 @@ class DashboardService:
         return [
             ("chat.svg", "Chat", 1), 
             ("terminal.svg", "Comandos", 2),
-            # ("bell.svg", "Alertas", 3), 
-            ("layers.svg", "Triggers", 3), 
-            ("users.svg", "Usuarios", 4),
-            ("settings.svg", "Configuración", 5)
+            ("bell.svg", "Alertas", 3), 
+            ("layers.svg", "Triggers", 4), 
+            ("users.svg", "Usuarios", 5),
+            ("settings.svg", "Configuración", 6)
         ]
 
     # --- COMANDOS DE MÚSICA ---

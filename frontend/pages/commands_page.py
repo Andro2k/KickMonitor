@@ -76,7 +76,7 @@ class CommandsPage(QWidget):
         self.table.setColumnWidth(5, 50)
         self.table.setColumnWidth(6, 90)
         
-        self.table.verticalHeader().setDefaultSectionSize(65) 
+        self.table.verticalHeader().setDefaultSectionSize(68) 
 
         l_content.addWidget(self.table)
         main_layout.addWidget(content)
