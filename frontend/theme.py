@@ -181,10 +181,8 @@ STYLES = {
         QTextEdit {{
             background-color: {c.Black_N2};
             color: {c.White_N1};
-            border: 1px solid {c.Black_N2};
-            padding: 12px;
-            font-family: 'Segoe UI', monospace;
-            font-size: 13px;
+            padding: 8px;
+            font-size: 12px;
         }}
     """,
     "text_edit_console": f"""
@@ -203,16 +201,6 @@ STYLES = {
         }}
         QPlainTextEdit:focus {{
             border: 1px solid {c.Gray_N1}; 
-        }}
-    """,
-    "text_browser": f"""
-        QTextBrowser {{
-            background-color: {c.Black_N2}; 
-            color: {c.White_N1};
-            
-            border-radius: {r['input']};
-            padding: 6px;
-            font-size: 12px;
         }}
     """,
 
@@ -238,15 +226,6 @@ STYLES = {
             font-size: 12px; font-weight: bold; 
         }}
         QPushButton:hover {{ background-color: {c.Black_N3}; }}
-    """,
-    
-    "btn_primary_disabled": f"""
-        QPushButton {{ 
-            background-color: {c.Black_N4}; 
-            color: {c.Gray_N2};
-            padding: 6px 12px; margin: 2px; border-radius: 6px;
-            font-size: 12px; font-weight: bold; 
-        }}
     """,
     # Botón delineado (Configurar, Gestionar)
     "btn_outlined": f"""

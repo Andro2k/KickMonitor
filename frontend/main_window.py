@@ -30,14 +30,15 @@ from frontend.pages.commands_page import CommandsPage
 
 class MainWindow(QMainWindow):
     def __init__(self):
-        super().__init__() 
-        self._setup_app_id()     
+        super().__init__()
+        self.is_updating = False
+        self._setup_app_id() 
         self.setWindowIcon(QIcon(resource_path("icon.ico")))
         self.setWindowTitle(f"Kick Monitor v{INTERNAL_VERSION}")
         self.resize(1000, 650)
-        
+
         self.controller = MainController()
-        
+
         self._init_pages()
         self.setup_ui()
         self._connect_signals()
@@ -57,7 +58,7 @@ class MainWindow(QMainWindow):
 
     def _setup_app_id(self):
         with suppress(Exception):
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(u'kickmonitor.v2.5.0')
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(f'kickmonitor.v{INTERNAL_VERSION}')
 
     def _init_pages(self):
         db = self.controller.db
@@ -170,11 +171,21 @@ class MainWindow(QMainWindow):
 
     def show_toast(self, title, body, type_msg): 
         ToastNotification(self, title, body, type_msg).show_toast()
-
+        
+    def force_close_for_update(self):
+        """Fuerza el cierre de la aplicación para instalar la actualización."""
+        self.is_updating = True
+        self.close()  # Esto llamará a closeEvent, el cual ahora dejará pasar el cierre
     # =========================================================================
     # EVENTO DE CIERRE OPTIMIZADO
     # =========================================================================
     def closeEvent(self, event):
+        # 0. BYPASS: Si es una actualización, cerramos todo inmediatamente
+        if getattr(self, 'is_updating', False):
+            self.controller.shutdown()
+            event.accept()
+            return
+
         # 1. Si está configurado para minimizar a la bandeja:
         if self.controller.db.get_bool("minimize_to_tray"):
             event.ignore()

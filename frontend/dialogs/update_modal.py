@@ -46,7 +46,7 @@ class UpdateModal(BaseModal):
 
         txt_log = QTextBrowser()
         txt_log.setHtml(self.changelog)
-        txt_log.setStyleSheet(STYLES["text_browser"])
+        txt_log.setStyleSheet(STYLES["text_edit_log"])
         left_layout.addWidget(txt_log)
         
         main_h_layout.addLayout(left_layout, stretch=4)

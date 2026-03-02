@@ -12,7 +12,7 @@ from packaging import version
 # =========================================================================
 # CONFIGURACIÓN DE VERSIÓN
 # =========================================================================
-INTERNAL_VERSION = "2.5.0"
+INTERNAL_VERSION = "2.5.1"
 UPDATE_JSON_URL = "https://raw.githubusercontent.com/Andro2k/KickMonitor/refs/heads/main/version.json"
 
 # =========================================================================
@@ -105,25 +105,24 @@ class UpdateDownloaderWorker(QThread):
         bat_path = Path(temp_dir) / "updater_kickmonitor.bat"
         vbs_path = Path(temp_dir) / "updater_hidden.vbs"
 
-        # 1. El script Batch con espera amable (sin matar el proceso de golpe)
+        # 1. El script Batch optimizado y sin pausas innecesarias
         bat_content = f"""@echo off
-        :: Espera 2 segundos para permitir el cierre natural de la app
-        timeout /t 2 /nobreak > NUL
-
-        :: Bucle para esperar que el proceso desaparezca (maximo 10 segundos)
+        :: Bucle rápido para esperar que el proceso desaparezca (maximo 10 segundos de paciencia)
         set retries=0
+        
         :wait_loop
         tasklist /fi "imagename eq {current_exe}" | find /i "{current_exe}" > NUL
         if %errorlevel% equ 0 (
+            :: Si por alguna razon sigue abierto, espera 1 segundo
             timeout /t 1 /nobreak > NUL
             set /a retries+=1
             if %retries% lss 10 goto wait_loop
             
-            :: Si despues de 10 segundos sigue abierto, entonces si forzamos cierre
+            :: Si se traba mas de 10 segundos, forzamos cierre
             taskkill /f /im "{current_exe}" > NUL 2>&1
         )
 
-        :: Iniciar el instalador de la nueva version
+        :: Iniciar el instalador de la nueva version INMEDIATAMENTE
         start "" "{self.installer_path}"
 
         :: Limpiar los archivos temporales
@@ -133,15 +132,11 @@ class UpdateDownloaderWorker(QThread):
         try:
             with open(bat_path, "w") as f:
                 f.write(bat_content)
-                
-            # 2. El VBScript para ejecutar el .bat sin mostrar ventana CMD
+
             vbs_content = f'Set WshShell = CreateObject("WScript.Shell")\nWshShell.Run chr(34) & "{bat_path}" & chr(34), 0, False'
             with open(vbs_path, "w") as f:
                 f.write(vbs_content)
 
-            # 3. Lanzar el VBScript de forma separada
-            # 0x08000008 = DETACHED_PROCESS | CREATE_NO_WINDOW
-            # close_fds=True es CRUCIAL para evitar el error de Python DLL
             subprocess.Popen(
                 ["wscript.exe", str(vbs_path)], 
                 creationflags=0x08000008,

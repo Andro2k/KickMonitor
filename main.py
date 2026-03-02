@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import QApplication, QComboBox, QSlider, QAbstractSpinBox
 from PyQt6.QtCore import QObject, QEvent
 from PyQt6.QtGui import QIcon
 
+from backend.workers.update_worker import INTERNAL_VERSION
 from frontend.main_window import MainWindow
 from frontend.utils import resource_path
 # IMPORTAMOS LA NUEVA ALERTA
@@ -32,7 +33,8 @@ def setup_environment():
         if sys.stdout is None: sys.stdout = open(os.devnull, "w")
         if sys.stderr is None: sys.stderr = open(os.devnull, "w")
 
-    myappid = 'kickmonitor.v2.5.0' 
+    # Usamos la variable en lugar del texto estático
+    myappid = f'kickmonitor.v{INTERNAL_VERSION}' 
     try:
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     except Exception:

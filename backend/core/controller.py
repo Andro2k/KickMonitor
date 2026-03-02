@@ -344,11 +344,15 @@ class MainController(QObject):
         if hasattr(self, 'unified_server') and self.unified_server:
             self.unified_server.stop()
 
-        # 4. Detener el worker de Spotify (Hilo separado)
-        if hasattr(self, 'spotify_thread') and self.spotify_thread.isRunning():
-            self.spotify.sig_do_disconnect.emit()
-            self.spotify_thread.quit()
-            self.spotify_thread.wait(1000)
+        # 4. Detener el worker de Spotify (Hilo separado) de forma segura
+        try:
+            if hasattr(self, 'spotify_thread') and self.spotify_thread.isRunning():
+                self.spotify.sig_do_disconnect.emit()
+                self.spotify_thread.quit()
+                self.spotify_thread.wait(1000)
+        except RuntimeError:
+            # El objeto C++ ya fue destruido por deleteLater, lo ignoramos
+            pass
             
         self.emit_log(LoggerText.system("Backend apagado correctamente. Todos los hilos cerrados."))
 
