@@ -175,7 +175,9 @@ class DBHandler:
 
     def set_user_color(self, user: str, color: str): return self.economy.set_color(user, color)
     def get_user_color(self, user: str) -> str: return self.economy.get_color(user)
-
+    def bulk_import_points(self, users_data: List[dict]) -> bool:
+        return self.economy.bulk_import_users(users_data, self.conn_handler.mutex)
+            
     # =========================================================================
     # REGIÓN 6: FACHADA - CARACTERÍSTICAS (COMMANDS, OVERLAY, ALERTS)
     # =========================================================================

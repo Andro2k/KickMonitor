@@ -26,7 +26,7 @@ from frontend.utils import get_icon, get_icon_colored
 from frontend.theme import LAYOUT, STYLES, THEME_DARK, get_switch_style
 
 # =========================================================================
-# WORKERS ASÍNCRONOS (Evitan congelar la Interfaz de Usuario)
+# WORKERS ASÍNCRONOS PARA OPERACIONES PESADAS (GUARDADO, SINCRONIZACIÓN, IMPORTACIÓN)
 # =========================================================================
 class SaveTriggerWorker(QThread):
     finished_signal = pyqtSignal(bool, str, str)
@@ -59,6 +59,22 @@ class SyncKickWorker(QThread):
         changes = self.service.sync_kick_states()
         self.finished.emit(changes)
 
+class ImportCsvWorker(QThread):
+    # Emitimos: (count_ok, count_fail, missing_files)
+    finished_signal = pyqtSignal(int, int, list)
+
+    def __init__(self, service, path):
+        super().__init__()
+        self.service = service
+        self.path = path
+
+    def run(self):
+        try:
+            ok_count, fail_count, missing_files = self.service.import_csv(self.path)
+            self.finished_signal.emit(ok_count, fail_count, missing_files)
+        except Exception as e:
+            print(f"[ERROR WORKER] Fallo en la importación asíncrona: {e}")
+            self.finished_signal.emit(0, 1, [str(e)])
 
 # =========================================================================
 # CLASE PRINCIPAL: PÁGINA DE TRIGGERS
@@ -408,15 +424,32 @@ class TriggerPage(QWidget):
         path, _ = QFileDialog.getOpenFileName(self, "Importar Configuración", "", "CSV Files (*.csv)")
         if not path: return
 
-        if not ModalConfirm(self, "Importar", "¿Estás seguro? Esto sobrescribirá la configuración actual.").exec():
+        # Pequeño ajuste en el texto para avisar que tomará tiempo
+        if not ModalConfirm(self, "Importar", "¿Estás seguro? Esto sobrescribirá la configuración actual y tomará unos segundos en sincronizar con Kick.").exec():
             return
 
-        ok_count, fail_count, missing_files = self.service.import_csv(path)
+        # Notificamos al usuario que el proceso comenzó
+        ToastNotification(self, "Importando", "Procesando y sincronizando con Kick...", "info").show_toast()
+
+        # Instanciamos y lanzamos el worker
+        worker = ImportCsvWorker(self.service, path)
+        worker.finished_signal.connect(lambda ok, fail, missing: self._on_import_finished(ok, fail, missing, worker))
+        
+        # Lo guardamos en la lista de workers activos para que Python no lo borre de la memoria
+        self._active_workers.append(worker)
+        worker.start()
+
+    def _on_import_finished(self, ok_count, fail_count, missing_files, worker):
+        # Recargamos la interfaz gráfica
         self.load_data()
 
+        # Mostramos los resultados al usuario
         if missing_files:
             msg_missing = "\n".join(missing_files[:5])
             if len(missing_files) > 5: msg_missing += "\n... y más."
-            ModalConfirm(self, "Archivos Faltantes", f"La configuración referencia archivos que no tienes:\n{msg_missing}").exec()
+            ModalConfirm(self, "Archivos Faltantes", f"La configuración referencia archivos que no tienes en tu carpeta local:\n{msg_missing}").exec()
         
         ToastNotification(self, "Importación Finalizada", f"Éxito: {ok_count} | Errores: {fail_count}", "status_success").show_toast()
+        
+        # Limpiamos el worker de la memoria
+        self._cleanup_worker(worker)

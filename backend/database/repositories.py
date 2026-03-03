@@ -99,6 +99,30 @@ class EconomyRepository:
 
     def delete_user(self, username: str): 
         return self.conn.execute_query("DELETE FROM data_users WHERE username=?", (username,))
+    
+    def bulk_import_users(self, users_data: List[Dict], mutex) -> bool:
+        """Importa o actualiza una lista de usuarios en una sola transacción."""
+        query = """
+            INSERT INTO data_users (username, points, is_paused, is_muted, role, color)
+            VALUES (:username, :points, :is_paused, :is_muted, :role, :color)
+            ON CONFLICT(username) DO UPDATE SET
+                points = :points,
+                is_paused = COALESCE(:is_paused, is_paused),
+                is_muted = COALESCE(:is_muted, is_muted),
+                role = COALESCE(:role, role),
+                color = COALESCE(:color, color)
+        """
+        # Usamos el mutex de PyQt6 que pasaremos desde el controlador
+        from PyQt6.QtCore import QMutexLocker 
+        
+        with QMutexLocker(mutex):
+            try:
+                self.conn.conn.executemany(query, users_data)
+                self.conn.conn.commit()
+                return True
+            except Exception as e:
+                print(f"[DB_DEBUG] Error en bulk_import: {e}")
+                return False
 
 class TriggersRepository:
     def __init__(self, conn): self.conn = conn

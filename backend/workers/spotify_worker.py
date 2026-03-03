@@ -175,8 +175,12 @@ class SpotifyWorker(QObject):
 
     def _init_client(self):
         try:
-            # Optimización: autoreintentos nativos
-            self.sp = spotipy.Spotify(auth_manager=self.auth_manager, retries=3) 
+            # Optimización: autoreintentos nativos y timeout de 5 segundos
+            self.sp = spotipy.Spotify(
+                auth_manager=self.auth_manager, 
+                retries=3, 
+                requests_timeout=5  # <-- ¡Añadimos esto!
+            ) 
             user = self.sp.current_user()
             
             self.is_active = True

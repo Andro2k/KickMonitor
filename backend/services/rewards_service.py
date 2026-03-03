@@ -17,40 +17,45 @@ class RewardsService:
     def __init__(self, shared_scraper=None):
         self.scraper = shared_scraper if shared_scraper else cloudscraper.create_scraper()
         self.db = DBHandler()
+        
+        # [OPTIMIZACIÓN]: Caché en memoria para evitar leer el disco duro en cada petición.
+        self._access_token = None
+        self._refresh_token_val = None
+        self._load_tokens_to_memory()
 
     def _get_random_color(self):
-        """Genera un color hexadecimal aleatorio."""
         return "#{:06x}".format(random.randint(0, 0xFFFFFF))
 
-    def _get_session_data(self):
-        """Lee el archivo session.json completo."""
+    def _load_tokens_to_memory(self):
+        """Carga los tokens desde el disco a la RAM una sola vez al arrancar."""
         try:
             path = os.path.join(get_config_path(), "session.json")
             if os.path.exists(path):
                 with open(path, 'r') as f:
-                    return json.load(f)
+                    data = json.load(f)
+                    self._access_token = data.get("access_token")
+                    self._refresh_token_val = data.get("refresh_token")
         except: pass
-        return {}
 
     def _save_session_data(self, data):
-        """Guarda los nuevos tokens en session.json."""
+        """Guarda en disco y actualiza la RAM automáticamente."""
         try:
             path = os.path.join(get_config_path(), "session.json")
             with open(path, 'w') as f:
                 json.dump(data, f, indent=4)
+                
+            self._access_token = data.get("access_token")
+            self._refresh_token_val = data.get("refresh_token")
         except Exception as e:
             print(f"[ERROR] No se pudo guardar sesión: {e}")
 
     def _refresh_token(self) -> bool:
-        """Intenta renovar el token usando el refresh_token almacenado."""
         print("[SISTEMA] Token expirado (401). Intentando renovar...")
         
-        session = self._get_session_data()
-        refresh_token = session.get("refresh_token")
         client_id = self.db.get("client_id")
         client_secret = self.db.get("client_secret")
 
-        if not all([refresh_token, client_id, client_secret]):
+        if not all([self._refresh_token_val, client_id, client_secret]):
             print("[ERROR] Faltan credenciales o Refresh Token para renovar.")
             return False
 
@@ -58,7 +63,7 @@ class RewardsService:
             "grant_type": "refresh_token",
             "client_id": client_id,
             "client_secret": client_secret,
-            "refresh_token": refresh_token
+            "refresh_token": self._refresh_token_val
         }
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
@@ -66,9 +71,8 @@ class RewardsService:
             resp = self.scraper.post(URL_TOKEN, data=payload, headers=headers)
             if resp.status_code == 200:
                 new_data = resp.json()
-                # Aseguramos de no perder el refresh_token si la API no devuelve uno nuevo
                 if "refresh_token" not in new_data:
-                    new_data["refresh_token"] = refresh_token
+                    new_data["refresh_token"] = self._refresh_token_val
                 
                 self._save_session_data(new_data)
                 print("[SISTEMA] Token renovado con éxito.")
@@ -81,22 +85,17 @@ class RewardsService:
             return False
 
     def _make_request(self, method, url, json_data=None, retry=True):
-        """Wrapper inteligente que maneja autenticación y reintentos automáticos."""
-        session = self._get_session_data()
-        token = session.get("access_token")
-        
-        if not token:
-            # print("[ERROR] No hay token de acceso disponible.")
+        """Wrapper con token desde la memoria RAM (0 lag)."""
+        if not self._access_token:
             return None
 
         headers = {
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"Bearer {self._access_token}",
             "Accept": "application/json",
             "Content-Type": "application/json"
         }
 
         try:
-            # Ejecutar la petición según el método
             if method == "GET":
                 resp = self.scraper.get(url, headers=headers)
             elif method == "POST":
@@ -108,7 +107,6 @@ class RewardsService:
             else:
                 return None
 
-            # Si el token caducó (401), se auto-renueva y reintenta
             if resp.status_code == 401 and retry:
                 if self._refresh_token():
                     return self._make_request(method, url, json_data, retry=False)
@@ -121,9 +119,7 @@ class RewardsService:
             print(f"[EXCEPCIÓN REQUEST] {e}")
             return None
 
-    # =========================================================================
-    # GESTIÓN DE RECOMPENSAS (REWARDS)
-    # =========================================================================
+    # Las funciones de abajo (list_rewards, create_reward, etc.) quedan exactamente igual
     def list_rewards(self) -> list:
         resp = self._make_request("GET", URL_REWARDS)
         if resp and resp.status_code == 200:
@@ -132,14 +128,9 @@ class RewardsService:
 
     def create_reward(self, title: str, cost: int, color: str = None, description: str = None, is_active: bool = True) -> bool:
         payload = {
-            "title": title, 
-            "cost": cost, 
-            "description": description or "Trigger KickMonitor", 
-            "is_enabled": is_active, 
-            "is_paused": False, 
-            "is_user_input_required": False,
-            "should_redemptions_skip_request_queue": False, 
-            "background_color": color or self._get_random_color()
+            "title": title, "cost": cost, "description": description or "Trigger KickMonitor", 
+            "is_enabled": is_active, "is_paused": False, "is_user_input_required": False,
+            "should_redemptions_skip_request_queue": False, "background_color": color or self._get_random_color()
         }
         resp = self._make_request("POST", URL_REWARDS, json_data=payload)
         return resp and resp.status_code in [200, 201]
@@ -147,49 +138,28 @@ class RewardsService:
     def edit_reward(self, reward_id: str, title: str, cost: int, color: str = None, description: str = None, is_active: bool = True) -> bool:
         url = f"{URL_REWARDS}/{reward_id}"
         payload = {
-            "title": title, 
-            "cost": cost, 
-            "description": description or "Trigger KickMonitor",
-            "is_enabled": is_active, 
-            "is_paused": False, 
-            "is_user_input_required": False,
-            "should_redemptions_skip_request_queue": False, 
-            "background_color": color or "#53fc18"
+            "title": title, "cost": cost, "description": description or "Trigger KickMonitor",
+            "is_enabled": is_active, "is_paused": False, "is_user_input_required": False,
+            "should_redemptions_skip_request_queue": False, "background_color": color or "#53fc18"
         }
         resp = self._make_request("PATCH", url, json_data=payload)
         return resp and resp.status_code in [200, 204]
 
     def delete_reward_by_title(self, title: str):
         rewards = self.list_rewards()
-        # Buscamos ignorando mayúsculas y espacios extra
         target_id = next((r.get("id") for r in rewards if r.get("title", "").strip().lower() == title.strip().lower()), None)
         if target_id:
             self._make_request("DELETE", f"{URL_REWARDS}/{target_id}")
 
-    # =========================================================================
-    # GESTIÓN DE CANJES (REDEMPTIONS)
-    # =========================================================================
     def get_redemptions(self, status: str) -> list:
-        """
-        status puede ser: 'pending' o 'fulfilled'
-        """
         url = f"{URL_REDEMPTIONS}?status={status}"
         resp = self._make_request("GET", url)
-        
-        if not resp: 
-            return []
-        
-        if resp.status_code == 200:
-            return resp.json().get("data", [])
-        elif resp.status_code == 429:
-            time.sleep(2)
-            
+        if not resp: return []
+        if resp.status_code == 200: return resp.json().get("data", [])
+        elif resp.status_code == 429: time.sleep(2)
         return []
 
     def accept_redemptions(self, red_ids: list):
-        """
-        Marca múltiples canjes pendientes como completados en Kick en una sola petición (Evita Error 429).
-        """
         if not red_ids: return
         url = f"{URL_REDEMPTIONS}/accept"
         payload = {"ids": red_ids}

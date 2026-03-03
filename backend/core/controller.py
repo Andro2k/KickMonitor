@@ -2,7 +2,6 @@
 
 from datetime import datetime
 import os
-import random
 import re
 from typing import List, Optional
 from PyQt6.QtCore import QMutexLocker, QObject, pyqtSignal, QTimer, QThread
@@ -21,7 +20,6 @@ from backend.workers.tts_worker import TTSWorker
 from backend.workers.unified_server import UnifiedOverlayWorker
 from backend.workers.update_worker import UpdateCheckerWorker, UpdateDownloaderWorker
 from backend.workers.kick_worker import FollowMonitorWorker
-# --- LÓGICA DE NEGOCIO (SERVICIOS Y HANDLERS) ---
 from backend.services.commands_service import CommandsService
 from backend.handlers.chat_handler import ChatHandler
 from backend.handlers.music_handler import MusicHandler
@@ -335,15 +333,12 @@ class MainController(QObject):
         """Apaga todos los workers y hilos de forma segura."""
         # 1. Detener bot principal y monitores
         self.stop_bot()
-
         # 2. Detener el servidor TTS
         if hasattr(self, 'tts') and self.tts:
             self.tts.stop()
-
         # 3. Detener el NUEVO Servidor Unificado
         if hasattr(self, 'unified_server') and self.unified_server:
             self.unified_server.stop()
-
         # 4. Detener el worker de Spotify (Hilo separado) de forma segura
         try:
             if hasattr(self, 'spotify_thread') and self.spotify_thread.isRunning():
@@ -351,7 +346,6 @@ class MainController(QObject):
                 self.spotify_thread.quit()
                 self.spotify_thread.wait(1000)
         except RuntimeError:
-            # El objeto C++ ya fue destruido por deleteLater, lo ignoramos
             pass
             
         self.emit_log(LoggerText.system("Backend apagado correctamente. Todos los hilos cerrados."))

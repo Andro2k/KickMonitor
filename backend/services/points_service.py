@@ -41,16 +41,15 @@ class PointsService:
 
     def import_points_csv(self, path: str) -> Tuple[bool, str, str]:
         """
-        Importa puntos calculando la diferencia para ajustar el total.
+        Importa puntos y configuración de usuarios en bloque.
         """
-
         required = ["username", "points"]
         rows, error_msg = DataManager.import_csv(path, required)
         
         if rows is None:
             return False, "Error de Archivo", error_msg
 
-        count = 0
+        batch_data = []
         errors = 0
         
         for row in rows:
@@ -58,28 +57,22 @@ class PointsService:
                 user = row.get("username")
                 if not user: continue
 
-                target_points = int(row.get("points", 0))
-                current_points = self.db.get_points(user)
-                diff = target_points - current_points
-                
-                if diff != 0:
-                    self.db.add_points(user, diff)
-
-                if "is_paused" in row:
-                    self.toggle_pause(user, int(row["is_paused"]) == 1)
-                
-                if "is_muted" in row:
-                    self.toggle_mute(user, int(row["is_muted"]) == 1)
-                
-                if "role" in row:
-                    self.db.update_user_role(user, row["role"])
-
-                if "color" in row and row["color"]:
-                    self.db.set_user_color(user, row["color"])
-                
-                count += 1
+                # Construimos el diccionario de datos para esta fila
+                user_dict = {
+                    "username": user,
+                    "points": int(row.get("points", 0)),
+                    "is_paused": int(row["is_paused"]) if "is_paused" in row else None,
+                    "is_muted": int(row["is_muted"]) if "is_muted" in row else None,
+                    "role": row.get("role"),
+                    "color": row.get("color")
+                }
+                batch_data.append(user_dict)
             except ValueError:
                 errors += 1
                 continue
 
-        return True, "Importación Finalizada", f"Se actualizaron {count} usuarios. (Errores: {errors})"
+        # Enviamos toda la lista a SQLite en una sola transacción
+        if batch_data:
+            self.db.bulk_import_points(batch_data)
+
+        return True, "Importación Finalizada", f"Se actualizaron {len(batch_data)} usuarios. (Errores: {errors})"

@@ -20,10 +20,7 @@ class TriggerService:
         self.db = db_handler
         self.server = server_worker
         self.scraper = shared_scraper if shared_scraper else cloudscraper.create_scraper()
-        
-        # Le inyectamos el scraper compartido al servicio de recompensas
-        self.rewards_api = RewardsService(self.scraper)
-        
+        self.rewards_api = RewardsService(self.scraper)      
         self.VIDEO_EXTS = {'.mp4', '.webm'}
         self.AUDIO_EXTS = {'.mp3', '.wav', '.ogg'}
 
@@ -31,14 +28,11 @@ class TriggerService:
         filename = os.path.basename(filepath)
         ext = os.path.splitext(filename)[1].lower()
         ftype = "video" if ext in self.VIDEO_EXTS else "audio"
-
-        # --- NUEVO: Limpiamos rastros viejos para evitar el error 404 ---
         self.db.delete_triggers_by_filename(filename) 
 
-        # Guarda en DB el registro con la RUTA ABSOLUTA
         self.db.set_trigger(
             cmd="", file=filename, ftype=ftype,
-            dur=0, sc=1.0, act=0, cost=1, vol=100, # <-- Costo base en 1
+            dur=0, sc=1.0, act=0, cost=1, vol=100,
             pos_x=0, pos_y=0, color="#53fc18", description="",
             path=filepath, random_pos=0  
         )
@@ -63,15 +57,13 @@ class TriggerService:
             for r in rewards:
                 if r.get("title", "").strip().lower() == clean_old:
                     target_id = r.get("id")
-                    break
-        
+                    break       
         # 2. Si no, buscar por nombre NUEVO
         if not target_id:
             for r in rewards:
                 if r.get("title", "").strip().lower() == clean_new:
                     target_id = r.get("id")
-                    break
-        
+                    break       
         # 3. Ejecutar pasando is_active
         if target_id:          
             return self.rewards_api.edit_reward(
@@ -80,7 +72,7 @@ class TriggerService:
                 cost=cost, 
                 color=color, 
                 description=description, 
-                is_active=is_active # <--- IMPORTANTE: Pasa el estado (True/False)
+                is_active=is_active
             )
         else:
             return self.rewards_api.create_reward(
@@ -88,7 +80,7 @@ class TriggerService:
                 cost=cost, 
                 color=color, 
                 description=description, 
-                is_active=is_active # <--- IMPORTANTE
+                is_active=is_active
             )
 
     def delete_reward_from_kick(self, title: str):
@@ -108,7 +100,6 @@ class TriggerService:
                 existing_cmd = config.get("cmd", "").strip().lower()
                 
                 if existing_cmd == clean_title:
-                    # Desactivar el trigger conflictivo localmente
                     self.db.set_trigger(
                         cmd="", 
                         file=fname,
@@ -122,8 +113,8 @@ class TriggerService:
                         pos_y=config.get("pos_y", 0),
                         color=config.get("color", "#53fc18"),
                         description=config.get("description", "Trigger KickMonitor"),
-                        path=config.get("path", ""),           # <--- MANTIENE LA RUTA
-                        random_pos=config.get("random_pos", 0) # <--- MANTIENE RANDOM POS
+                        path=config.get("path", ""),
+                        random_pos=config.get("random_pos", 0)
                     )
 
     # =========================================================================
@@ -185,25 +176,17 @@ class TriggerService:
             return True, "Trigger desactivado (sin nombre)"
             
         if sync_kick:
-            # Obtenemos las recompensas actuales
             current_rewards = self.rewards_api.list_rewards()
-            
-            # Verificamos si estamos EDITANDO o CREANDO
-            # Si el titulo nuevo NO está en la lista actual, y el titulo viejo tampoco... es CREACIÓN.
             is_creation = True
-            
-            # Buscamos si ya existe (por nombre viejo o nuevo)
+
             for r in current_rewards:
                 r_title = r.get("title", "").strip().lower()
                 if r_title == old_title.lower() or r_title == new_title.lower():
                     is_creation = False
                     break
-            
-            # Si es creación nueva y ya tenemos 15 o más... BLOQUEAR
+
             if is_creation and len(current_rewards) >= 15:
-                # Restauramos la config local anterior para no romper la UI
                 if old_title:
-                    # (Opcional) Aquí podrías intentar restaurar, pero devolviendo False basta para alertar
                     pass
                 return False, "Error: Kick solo permite máximo 15 recompensas activas."
         # =====================================================================
@@ -350,17 +333,33 @@ class TriggerService:
             print(f"Error Preview: {e}")
 
     def export_csv(self, path: str) -> bool:
-        headers = ["Recompensa", "Archivo", "Tipo", "Duracion", "Escala", "Activo", "Costo", "Volumen"]
+        # Añadimos TODAS las columnas necesarias a las cabeceras
+        headers = [
+            "Recompensa", "Archivo", "Tipo", "Duracion", "Escala", 
+            "Activo", "Costo", "Volumen", "Pos_X", "Pos_Y", 
+            "Color", "Descripcion", "Path", "Random_Pos"
+        ]
         data_rows = []
         triggers = self.db.get_all_triggers()
+        
         for filename, cfg in triggers.items():
             ext = os.path.splitext(filename)[1].lower()
             ftype = "video" if ext in self.VIDEO_EXTS else "audio"
             data_rows.append([
-                cfg.get("cmd", ""), filename, ftype,
-                cfg.get("dur", 0), cfg.get("scale", 1.0),
-                cfg.get("active", 1), cfg.get("cost", 0),
-                cfg.get("volume", 100)
+                cfg.get("cmd", ""), 
+                filename, 
+                ftype,
+                cfg.get("dur", 0), 
+                cfg.get("scale", 1.0),
+                cfg.get("active", 1), 
+                cfg.get("cost", 0),
+                cfg.get("volume", 100),
+                cfg.get("pos_x", 0),
+                cfg.get("pos_y", 0),
+                cfg.get("color", "#53fc18"),
+                cfg.get("description", "Trigger KickMonitor"),
+                cfg.get("path", ""),
+                cfg.get("random_pos", 0)
             ])
         return DataManager.export_csv(path, headers, data_rows)
 
@@ -375,22 +374,50 @@ class TriggerService:
 
         for row in rows:
             try:
-                cmd = row.get("recompensa") or row.get("command")
-                filename = row.get("archivo") or row.get("file")
+                cmd = row.get("recompensa") or row.get("command", "")
+                filename = row.get("archivo") or row.get("file", "")
                 if not cmd or not filename:
                     count_fail += 1; continue
 
-                dur = int(float(row.get("duracion", 0)))
-                cost = int(float(row.get("costo", 0)))
+                # Extracción segura de datos respetando la info del CSV o aplicando defaults lógicos
+                ftype = row.get("tipo", row.get("type", "audio"))
+                dur = int(float(row.get("duracion", row.get("duration", 0))))
+                scale = float(row.get("escala", row.get("scale", 1.0)))
+                active = int(float(row.get("activo", row.get("active", 1))))
+                cost = int(float(row.get("costo", row.get("cost", 0))))
+                vol = int(float(row.get("volumen", row.get("volume", 100))))
+                pos_x = int(float(row.get("pos_x", 0)))
+                pos_y = int(float(row.get("pos_y", 0)))
+                color = row.get("color", "#53fc18")
+                desc = row.get("descripcion", row.get("description", "Importado"))
+                fpath = row.get("path", "")
+                random_pos = int(float(row.get("random_pos", 0)))
 
-                self.db.set_trigger(cmd.lower(), filename, "audio", dur, 1.0, 1, cost, 100, 0, 0)
-                # Sincronizamos con defaults
-                self.sync_reward_to_kick(cmd, cost, "#53fc18", "Importado", True)
+                # 1. Guardar en DB Local con TODOS los atributos
+                self.db.set_trigger(
+                    cmd.lower(), filename, ftype, dur, scale, active, cost, 
+                    vol, pos_x, pos_y, color, desc, fpath, random_pos
+                )
+                
+                # 2. Sincronizar con Kick (Fix: Parámetros en el orden correcto)
+                self.sync_reward_to_kick(
+                    old_title=cmd, 
+                    new_title=cmd, 
+                    cost=cost, 
+                    color=color, 
+                    description=desc, 
+                    is_active=bool(active)
+                )
 
-                if media_folder and not os.path.exists(os.path.join(media_folder, filename)):
+                # 3. Verificación de archivos faltantes (Revisa ruta relativa o absoluta)
+                if fpath and not os.path.exists(fpath):
+                    missing_files.append(filename)
+                elif media_folder and not os.path.exists(os.path.join(media_folder, filename)):
                     missing_files.append(filename)
                 
                 count_ok += 1
-            except: count_fail += 1
+            except Exception as e: 
+                print(f"[ERROR IMPORT] Fallo en la fila {row}: {e}")
+                count_fail += 1
 
         return count_ok, count_fail, missing_files
